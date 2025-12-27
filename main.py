@@ -5,6 +5,7 @@ Orchestrates the full workflow: retrieve, identify, analyze, answer.
 
 import sys
 import time
+from config import FILTER_YEAR
 
 # Add src to path
 sys.path.insert(0, 'src')
@@ -140,10 +141,12 @@ def main():
             return
         
         # Navigate to contracts
-        if not navigate_to_contracts(driver):
+        # Navigate to contracts (with optional year filter)
+
+        if not navigate_to_contracts(driver, year=FILTER_YEAR):
             print("✗ Falha ao carregar página de contratos. Encerrando.")
             return
-        
+
         # Collect all data
         raw_rows = scroll_and_collect_rows(driver)
         all_companies = parse_row_data(raw_rows)

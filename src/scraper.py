@@ -18,6 +18,7 @@ from selenium.common.exceptions import (
     NoSuchElementException
 )
 from webdriver_manager.chrome import ChromeDriverManager
+from datetime import datetime
 
 # Import configuration
 import sys
@@ -90,23 +91,24 @@ def navigate_to_home(driver):
     """
     try:
         driver.get(BASE_URL)
-        print("Aguardando carregamento da tela Home...")
+        print("Checando se o Site funciona. Aguardando carregamento da tela Home...")
         
         wait_for_element(driver, (By.XPATH, LOCATORS["home_menu"]))
         print("✓ Home carregada!")
         return True
         
     except TimeoutException:
-        print("✗ Timeout ao carregar a Home")
+        print("✗ Timeout ao carregar, site pode estar fora do ar.")
         return False
 
 
-def navigate_to_contracts(driver):
+def navigate_to_contracts(driver, year=None):
     """
     Navigate to the contracts page with retry logic.
     
     Args:
         driver: WebDriver instance
+        year: Optional integer/string, e.g. 2022. If provided, selects this year.
         
     Returns:
         True if successful, False otherwise
@@ -118,6 +120,11 @@ def navigate_to_contracts(driver):
             print(f"Tentativa {attempt}: Aguardando carregamento do painel...")
             wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]))
             print("✓ Painel carregado com sucesso!")
+
+            # NEW: set the year filter before any scrolling happens
+            if year:
+                set_year_filter(driver, year)
+
             return True
             
         except TimeoutException:
@@ -131,6 +138,115 @@ def navigate_to_contracts(driver):
     
     return False
 
+def set_year_filter(driver, year):
+    """
+    Select the desired 'year' in the Vaadin FilterSelect (v-filterselect).
+    Attempts to find the combobox whose current value equals the current year,
+    then changes it to the requested 'year'.
+    """
+    if not year:
+        return  # Nothing to do
+
+    year = str(year)
+    print(f"\n→ Ajustando filtro do ano para: {year}")
+
+    # Try to capture an existing grid row to detect refresh after changing year
+    first_row = None
+    try:
+        first_row = driver.find_element(By.XPATH, LOCATORS["table_rows"])
+    except Exception:
+        pass
+
+    # 1) Find all filterselect inputs
+    inputs = WebDriverWait(driver, TIMEOUT_SECONDS).until(
+        EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".v-filterselect-input"))
+    )
+
+    # 2) Choose the one likely to be the YEAR filter
+    # Heuristic: pick the input whose current value equals the current year
+    current_year = str(datetime.now().year)
+    target_input = None
+
+    for inp in inputs:
+        try:
+            val = (inp.get_attribute("value") or "").strip()
+            if val == current_year:
+                target_input = inp
+                break
+        except Exception:
+            continue
+
+    if target_input is None:
+        # Fallback: pick the first input
+        target_input = inputs[0]
+
+    # 3) Scroll into view and click the input
+    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", target_input)
+    target_input.click()
+    time.sleep(0.2)
+
+    # 4) Clear existing value and type the new year
+    target_input.send_keys(Keys.CONTROL, "a")
+    target_input.send_keys(Keys.DELETE)
+    target_input.send_keys(year)
+    time.sleep(0.2)
+
+    # 5) Try to open dropdown and select exact match (if popup appears)
+    # Otherwise, just press ENTER to accept the first suggested item
+    try:
+        # Try clicking the dropdown button next to the input
+        try:
+            btn = target_input.find_element(
+                By.XPATH, "./following-sibling::div[contains(@class,'v-filterselect-button')]"
+            )
+            btn.click()
+            time.sleep(0.2)
+        except Exception:
+            pass
+
+        # Wait for the popup and click the exact option if visible
+        popup = WebDriverWait(driver, 3).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                "//div[contains(@class,'v-filterselect-suggestpopup') and not(contains(@style,'display: none'))]"
+            ))
+        )
+        option = WebDriverWait(popup, 2).until(
+            EC.presence_of_element_located((
+                By.XPATH,
+                f".//*[normalize-space(text())='{year}']"
+            ))
+        )
+        driver.execute_script("arguments[0].scrollIntoView({block:'nearest'});", option)
+        option.click()
+    except Exception:
+        # Fallback: accept selection by pressing ENTER
+        target_input.send_keys(Keys.ENTER)
+
+    # 6) Wait until the input shows the selected year (best-effort)
+    try:
+        WebDriverWait(driver, 5).until(
+            lambda d: ((target_input.get_attribute("value") or "").strip() == year)
+        )
+    except Exception:
+        pass
+
+    # 7) Wait for the grid to refresh (best-effort)
+    if first_row is not None:
+        try:
+            WebDriverWait(driver, 10).until(EC.staleness_of(first_row))
+        except Exception:
+            pass
+
+    # 8) Ensure rows are present (grid ready)
+    try:
+        WebDriverWait(driver, TIMEOUT_SECONDS).until(
+            EC.presence_of_element_located((By.XPATH, LOCATORS["table_rows"]))
+        )
+    except Exception:
+        pass
+
+    print("✓ Ano ajustado.")
 
 def scroll_and_collect_rows(driver):
     """

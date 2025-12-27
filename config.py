@@ -60,3 +60,9 @@ LOCATORS = {
     "grid_wrapper": "//div[contains(@class,'v-grid-tablewrapper')]/table",
     "column_header": "//div[contains(@class,'v-grid-column-header-content')]",
 }
+
+# =============================================================================
+# Year Filter Options
+# =============================================================================
+_year_env = os.getenv("FILTER_YEAR", "")
+FILTER_YEAR = int(_year_env) if _year_env.strip().isdigit() else None
