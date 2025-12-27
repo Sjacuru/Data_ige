@@ -38,4 +38,4 @@ conda activate ige
 1. **Clone the repository**
    ```bash
    git clone https://github.com/sjacuru/Data_ige.git
-   cd contrato-analyzer
+   cd Data_ige
