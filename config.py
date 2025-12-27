@@ -15,7 +15,7 @@ load_dotenv()
 CHROME_HEADLESS = os.getenv("CHROME_HEADLESS", "false").lower() == "true"
 TIMEOUT_SECONDS = int(os.getenv("TIMEOUT_SECONDS", 20))
 MAX_RETRIES = int(os.getenv("MAX_RETRIES", 3))
-SCROLL_DELAY = 0.8  # seconds between scroll actions
+SCROLL_DELAY = 1.5  # seconds between scroll actions
 
 # =============================================================================
 # URLs

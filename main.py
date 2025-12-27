@@ -20,8 +20,15 @@ from src.scraper import (
     get_document_link,
     close_driver
 )
-from src.downloader import download_document, should_download
-from src.parser import extract_text_from_pdf, extract_text_from_url, parse_contract_data
+from src.downloader import (
+    download_document, 
+    should_download
+)
+from src.parser import (
+    extract_text_from_pdf, 
+    extract_text_from_url, 
+    parse_contract_data
+)
 from src.analyzer import analyze_contract
 from src.reporter import (
     generate_analysis_report,
@@ -59,7 +66,7 @@ def process_single_company(driver, company_data):
         print("✗ Falha ao clicar na empresa")
         return None
     
-    time.sleep(1)
+    time.sleep(2)
     
     # Step 3: Get document link
     doc_link = get_document_link(driver)

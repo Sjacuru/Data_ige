@@ -41,7 +41,8 @@ def initialize_driver(headless=False):
     try:
         options = Options()
         if headless:
-            options.add_argument("--headless")
+            options.add_argument("--headless") # It makes Chrome run in headless mode 
+                                               # (means it doesn't open a visible window).
         
         # Recommended options for stability
         options.add_argument("--no-sandbox")
@@ -175,6 +176,9 @@ def scroll_and_collect_rows(driver):
         last_scroll = current_scroll
     
     print(f"✓ Scroll finalizado! Total de linhas: {len(all_rows)}")
+    print("✓ Primeiras 5 linhas:")
+    for i, row in enumerate(all_rows[:5], start=1):
+        print(f"{i}: {row}")
     return all_rows
 
 
@@ -217,6 +221,9 @@ def parse_row_data(raw_rows):
             print(f"  ⚠ Linha não reconhecida: {row_text[:50]}...")
     
     print(f"✓ {len(all_data)} registros processados!")
+    print("✓ Primeiros 5 registros:")
+    for i, item in enumerate(all_data[:5], start=1):
+        print(f"{i}: {item}")
     return all_data
 
 
@@ -317,7 +324,7 @@ def get_document_link(driver, column_name="Processo"):
             "arguments[0].scrollIntoView({block:'center'});",
             grid
         )
-        time.sleep(0.5)
+        time.sleep(2)
         
         # Find column index
         headers = driver.find_elements(By.XPATH, LOCATORS["column_header"])
