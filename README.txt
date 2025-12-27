@@ -10,10 +10,10 @@ This tool automates the process of:
 3. **Analyzing** document content using AI
 4. **Answering** based on pre-set instructions and generating reports
 
-| Nome do Projeto             | Localização           | Descrição                                                                                     |
+| Nome do Projeto              | Localização           | Descrição                                                                                     |
 | :---                        | :---                  | :---                                                                                          |
 | **Automação com Selenium**  | `./Data_ige/`         | Scripts Python para interação e raspagem de dados via navegador web (Selenium WebDriver).     |
-| [próximo Projeto]           | `./nome_nova_pasta/`  | [Descrição breve] |
+| [próximo Projeto]           | `./nome_nova_pasta/`  | [Descrição breve]                                                                             |
 
 ---
 
