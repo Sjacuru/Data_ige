@@ -3,6 +3,7 @@ scraper.py - Web scraping functions for ContasRio portal.
 Handles browser automation, navigation, and data extraction.
 """
 
+import numbers
 import re
 import time
 from selenium import webdriver
@@ -28,6 +29,9 @@ from config import (
     BASE_URL, CONTRACTS_URL, VALUE_COLUMNS, LOCATORS
 )
 
+# =============================================================================
+# DRIVER MANAGEMENT
+# =============================================================================
 
 def initialize_driver(headless=False):
     """
@@ -62,6 +66,9 @@ def initialize_driver(headless=False):
         print(f"✗ Erro ao inicializar o driver: {e}")
         return None
 
+# =============================================================================
+# WAIT HELPERS
+# =============================================================================
 
 def wait_for_element(driver, locator, timeout=TIMEOUT_SECONDS):
     """
@@ -78,6 +85,9 @@ def wait_for_element(driver, locator, timeout=TIMEOUT_SECONDS):
     wait = WebDriverWait(driver, timeout)
     return wait.until(EC.presence_of_element_located(locator))
 
+# =============================================================================
+# NAVIGATION
+# =============================================================================
 
 def navigate_to_home(driver):
     """
@@ -248,6 +258,10 @@ def set_year_filter(driver, year):
 
     print("✓ Ano ajustado.")
 
+# =============================================================================
+# DATA COLLECTION
+# =============================================================================
+
 def scroll_and_collect_rows(driver):
     """
     Scroll through the dynamic table and collect all row data.
@@ -320,6 +334,7 @@ def parse_row_data(raw_rows):
         # Regex to capture ID, company name, and 5 numeric values
         match = re.match(r"(.+?)\s*-\s*(.*?)\s((?:[\d\.,]+\s?){5})$", row_text)
         
+
         if match:
             identifier = match.group(1).strip()
             company_name = match.group(2).strip()
@@ -342,6 +357,9 @@ def parse_row_data(raw_rows):
         print(f"{i}: {item}")
     return all_data
 
+# =============================================================================
+# CLICK ACTIONS - NAVIGATION THROUGH THE SITE
+# =============================================================================
 
 def filter_by_company(driver, company_id):
     """
@@ -416,6 +434,171 @@ def click_company_button(driver, company_id):
         print(f"✗ Erro ao clicar na empresa: {e}")
         return None
 
+def click_next_level(driver, original_caption):
+    """
+    Click on the next-level button (Org/Secretaria) after clicking a company.
+    
+    Args:
+        driver: WebDriver instance
+        original_caption: Caption of the company button (to exclude it)
+        
+    Returns:
+        The clicked button's caption text if successful, None otherwise
+    """
+    print("\n→ Aguardando botões do próximo nível carregarem...")
+    time.sleep(0.7)
+    
+    found_next = False
+    chosen_text = None
+    
+    for attempt in range(6):
+        try:
+            captions = driver.find_elements(
+                By.XPATH,
+                "//div[@role='button' and not(contains(@style,'display: none'))]"
+                "//span[contains(@class,'v-button-caption')]"
+            )
+            
+            print(f"   Tentativa {attempt+1}: encontrados {len(captions)} caption(s)")
+            
+            candidate_captions = []
+            for c in captions:
+                txt = c.text.strip()
+                if not txt:
+                    continue
+                if txt == original_caption:
+                    continue  # Skip the company we already clicked
+                
+                # Prefer pattern "digits - name"
+                if " - " in txt:
+                    left, _ = txt.split(" - ", 1)
+                    if left.replace(".", "").isdigit():
+                        candidate_captions.append((c, txt))
+                        continue
+                
+                # Fallback — any non-empty caption
+                candidate_captions.append((c, txt))
+            
+            if not candidate_captions:
+                time.sleep(0.8)
+                continue
+            
+            # Select best match (prefer "digits - name" pattern)
+            chosen = None
+            for c, txt in candidate_captions:
+                if " - " in txt and txt.split(" - ", 1)[0].replace(".", "").isdigit():
+                    chosen = (c, txt)
+                    break
+            
+            if not chosen:
+                chosen = candidate_captions[0]
+            
+            chosen_elem, chosen_text = chosen
+            print(f"   Selecionado para clicar: '{chosen_text}'")
+            
+            # Find the clickable parent button
+            clickable_next = chosen_elem.find_element(
+                By.XPATH, "./ancestor::div[@role='button']"
+            )
+            
+            # Try to click
+            for click_attempt in range(3):
+                try:
+                    driver.execute_script(
+                        "arguments[0].scrollIntoView({block:'center'});",
+                        clickable_next
+                    )
+                    time.sleep(0.2)
+                    driver.execute_script("arguments[0].click();", clickable_next)
+                    found_next = True
+                    break
+                except Exception as e_click:
+                    print(f"   Clique falhou: {e_click}")
+                    time.sleep(0.5)
+            
+            if found_next:
+                time.sleep(1.0)
+                print(f"✓ Próximo nível clicado: {chosen_text}")
+                break
+                
+        except Exception as e:
+            print(f"   Exceção ao localizar botões: {e}")
+            time.sleep(0.8)
+    
+    if not found_next:
+        print("⚠️ Não foi possível identificar/clicar o próximo botão")
+        return None
+    
+    return chosen_text
+
+def click_ug_button(driver):
+    """
+    Click on the UG (Unidade Gestora) button - the 3rd non-empty caption.
+    
+    Args:
+        driver: WebDriver instance
+        
+    Returns:
+        The clicked button's caption text if successful, None otherwise
+    """
+    print("\n→ Procurando o link da UG dentro do grid (Vaadin)...")
+    
+    try:
+        # Get ALL button captions
+        all_buttons = driver.find_elements(
+            By.XPATH,
+            "//span[contains(@class,'v-button-caption')]"
+        )
+        
+        print(f"   Total de botões encontrados: {len(all_buttons)}")
+        
+        # Extract non-empty captions
+        non_empty = [b for b in all_buttons if b.text.strip() != ""]
+        
+        print(f"\n   Botões não vazios encontrados: {len(non_empty)}")
+        for i, b in enumerate(non_empty[:5]):  # Show first 5
+            print(f"      {i+1}: {b.text.strip()}")
+        
+        # The UG is ALWAYS the 3rd non-empty caption
+        if len(non_empty) < 3:
+            print("✗ Não há botões suficientes para selecionar UG.")
+            return None
+        
+        ug_button = non_empty[2]  # 3rd non-empty caption (index 2)
+        ug_text = ug_button.text.strip()
+        
+        print(f"\n→ UG encontrada: {ug_text}")
+        
+        # Go up to the clickable button div
+        clickable = ug_button.find_element(
+            By.XPATH, "./ancestor::div[@role='button']"
+        )
+        
+        # Try to click
+        for attempt in range(3):
+            try:
+                driver.execute_script(
+                    "arguments[0].scrollIntoView({block:'center'});",
+                    clickable
+                )
+                time.sleep(0.2)
+                driver.execute_script("arguments[0].click();", clickable)
+                print("✓ Link da UG clicado com sucesso.")
+                return ug_text
+            except Exception as e:
+                print(f"   Tentativa de clique falhou: {e}")
+                time.sleep(0.3)
+        
+        print("✗ Não foi possível clicar na UG")
+        return None
+        
+    except Exception as e:
+        print(f"✗ Erro ao buscar UG: {e}")
+        return None
+
+# =============================================================================
+# DOCUMENT LINK EXTRACTION
+# =============================================================================
 
 def get_document_link(driver, column_name="Processo"):
     """
@@ -478,7 +661,6 @@ def get_document_link(driver, column_name="Processo"):
     except Exception as e:
         print(f"✗ Erro ao buscar link: {e}")
         return None
-
 
 def close_driver(driver):
     """Safely close the browser."""

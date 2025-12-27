@@ -6,6 +6,7 @@ Creates reports, exports data, and handles dashboard.
 import os
 import pandas as pd
 from datetime import datetime
+import json
 from config import DATA_OUTPUTS_PATH
 
 
@@ -165,3 +166,52 @@ def create_summary_dataframe(all_reports):
         })
     
     return pd.DataFrame(summary_data)
+
+def save_companies_with_links(companies_data, filename="companies_with_links.json"):
+    """
+    Save company data including document links to a JSON file.
+    
+    Args:
+        companies_data: List of company dictionaries with document_url
+        filename: Output filename
+        
+    Returns:
+        Path to saved file
+    """
+    import json
+    
+    os.makedirs(DATA_OUTPUTS_PATH, exist_ok=True)
+    filepath = os.path.join(DATA_OUTPUTS_PATH, filename)
+    
+    output = {
+        "generated_at": datetime.now().isoformat(),
+        "total_companies": len(companies_data),
+        "companies": companies_data
+    }
+    
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(output, f, indent=2, ensure_ascii=False)
+    
+    print(f"✓ Dados com links salvos em: {filepath}")
+    return filepath
+
+
+def load_companies_with_links(filename="companies_with_links.json"):
+    """
+    Load previously saved company data with links.
+    
+    Args:
+        filename: Name of file to load
+        
+    Returns:
+        List of company dictionaries
+    """
+    import json
+    
+    filepath = os.path.join(DATA_OUTPUTS_PATH, filename)
+    
+    with open(filepath, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    
+    print(f"✓ Carregados {data['total_companies']} registros")
+    return data["companies"]

@@ -5,7 +5,7 @@ Orchestrates the full workflow: retrieve, identify, analyze, answer.
 
 import sys
 import time
-from config import FILTER_YEAR
+from src.reporter import save_companies_with_links  
 
 # Add src to path
 sys.path.insert(0, 'src')
@@ -18,6 +18,8 @@ from src.scraper import (
     parse_row_data,
     filter_by_company,
     click_company_button,
+    click_next_level,
+    click_ug_button,
     get_document_link,
     close_driver
 )
@@ -37,19 +39,11 @@ from src.reporter import (
     save_to_excel,
     create_summary_dataframe
 )
-from config import CHROME_HEADLESS
-
+from config import CHROME_HEADLESS, FILTER_YEAR
 
 def process_single_company(driver, company_data):
     """
     Process a single company: navigate, extract, analyze.
-    
-    Args:
-        driver: WebDriver instance
-        company_data: Dictionary with company info
-        
-    Returns:
-        Analysis report dictionary
     """
     company_id = company_data.get("ID")
     print(f"\n{'='*60}")
@@ -67,11 +61,34 @@ def process_single_company(driver, company_data):
         print("✗ Falha ao clicar na empresa")
         return None
     
-    time.sleep(2)
+    time.sleep(1)
     
-    # Step 3: Get document link
+    # Step 3: Click next level (Org/Secretaria) ← NEW
+    next_level_caption = click_next_level(driver, original_caption)
+    if not next_level_caption:
+        print("⚠️ Continuando mesmo sem próximo nível...")
+    
+    time.sleep(1)
+    
+    # Step 4: Click UG button ← NEW
+    ug_caption = click_ug_button(driver)
+    if not ug_caption:
+        print("⚠️ Continuando mesmo sem UG...")
+    
+    time.sleep(1)
+    
+    # Step 5: Get document link
     doc_link = get_document_link(driver)
     
+    # Store link in company data
+    if doc_link:
+        company_data["document_url"] = doc_link["href"]
+        company_data["document_text"] = doc_link["text"]
+    else:
+        company_data["document_url"] = None
+        company_data["document_text"] = None
+
+    print(f"📎 Link armazenado: {company_data.get('document_url', 'N/A')}")
     if not doc_link:
         print("⚠️ Nenhum link de documento encontrado")
         # Still generate report with available data
@@ -140,7 +157,6 @@ def main():
             print("✗ Falha ao carregar página inicial. Encerrando.")
             return
         
-        # Navigate to contracts
         # Navigate to contracts (with optional year filter)
 
         if not navigate_to_contracts(driver, year=FILTER_YEAR):
@@ -161,7 +177,10 @@ def main():
         # Later you can change this to a loop for batch processing
         all_reports = []
         
-        # Process first company as example
+        # =============================================================================
+        ## Process first company as example !!!!!@@@@@!!!!!!@@@@!!!!!
+        # =============================================================================
+
         company = all_companies[0]
         report = process_single_company(driver, company)
         
@@ -177,8 +196,19 @@ def main():
             # Save to Excel
             save_to_excel(summary_df, "analysis_summary.xlsx")
             
-            print("\n✓ Processamento concluído!")
         
+        # ═══════════════════════════════════════════════════════════════
+        # NEW: Save companies with document links
+        # ═══════════════════════════════════════════════════════════════
+        
+        
+        # The company dict now has document_url added by process_single_company
+        companies_processed = [company]  # Add more when batch processing
+        save_companies_with_links(companies_processed)
+        # ═══════════════════════════════════════════════════════════════
+        
+        print("\n✓ Processamento concluído!")
+
     except KeyboardInterrupt:
         print("\n\n⚠️ Interrompido pelo usuário.")
         
