@@ -100,6 +100,8 @@ def generate_analysis_report(company_data, analysis_results):
         "company_id": company_data.get("ID", "N/A"),
         "company_name": company_data.get("Company", "N/A"),
         "total_contratado": company_data.get("Total Contratado", "N/A"),
+        "document_url": company_data.get("document_url"),        # ← ADD THIS
+        "document_text": company_data.get("document_text"),      # ← ADD THIS
         "risk_level": analysis_results.get("risk_level", "unknown"),
         "flags_count": len(analysis_results.get("flags", [])),
         "flags": analysis_results.get("flags", []),
@@ -113,9 +115,6 @@ def generate_analysis_report(company_data, analysis_results):
 def print_report(report):
     """
     Print a formatted report to console.
-    
-    Args:
-        report: Dictionary with report data
     """
     print("\n" + "=" * 60)
     print("           RELATÓRIO DE ANÁLISE DE CONTRATO")
@@ -125,6 +124,14 @@ def print_report(report):
     print(f"   ID: {report.get('company_id', 'N/A')}")
     print(f"   Nome: {report.get('company_name', 'N/A')}")
     print(f"   Total Contratado: {report.get('total_contratado', 'N/A')}")
+    
+    # ═══════════════════════════════════════════════════════════════
+    # NEW: Show document info
+    # ═══════════════════════════════════════════════════════════════
+    print(f"\n📄 DOCUMENTO")
+    print(f"   Processo: {report.get('document_text', 'N/A')}")
+    print(f"   URL: {report.get('document_url', 'N/A')}")
+    # ═══════════════════════════════════════════════════════════════
     
     risk_level = report.get('risk_level', 'unknown')
     risk_emoji = {"low": "🟢", "medium": "🟡", "high": "🔴"}.get(risk_level, "⚪")
@@ -141,7 +148,6 @@ def print_report(report):
     print("\n" + "-" * 60)
     print(report.get('summary', 'Sem resumo disponível'))
     print("=" * 60 + "\n")
-
 
 def create_summary_dataframe(all_reports):
     """
@@ -160,6 +166,8 @@ def create_summary_dataframe(all_reports):
             "ID": report.get("company_id"),
             "Empresa": report.get("company_name"),
             "Total Contratado": report.get("total_contratado"),
+            "Processo": report.get("document_text"),             # ← ADD THIS
+            "Link Documento": report.get("document_url"),        # ← ADD THIS
             "Nível de Risco": report.get("risk_level"),
             "Qtd Flags": report.get("flags_count"),
             "Data Análise": report.get("generated_at")

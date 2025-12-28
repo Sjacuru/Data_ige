@@ -307,7 +307,7 @@ def scroll_and_collect_rows(driver):
     
     print(f"✓ Scroll finalizado! Total de linhas: {len(all_rows)}")
     print("✓ Primeiras 5 linhas:")
-    for i, row in enumerate(all_rows[:5], start=1):
+    for i, row in enumerate(list(all_rows)[:5], start=1):
         print(f"{i}: {row}")
     return all_rows
 
@@ -531,131 +531,199 @@ def click_next_level(driver, original_caption):
     
     return chosen_text
 
+
 def click_ug_button(driver):
     """
-    Click on the UG (Unidade Gestora) button - the 3rd non-empty caption.
+    Keep clicking through hierarchy levels until reaching the deepest level.
+    Clicks the LAST non-empty caption repeatedly until no new buttons appear.
     
     Args:
         driver: WebDriver instance
         
     Returns:
-        The clicked button's caption text if successful, None otherwise
+        The last clicked button's caption text if successful, None otherwise
     """
-    print("\n→ Procurando o link da UG dentro do grid (Vaadin)...")
+    print("\n→ Navegando pelos níveis até chegar ao nível mais profundo...")
     
-    try:
-        # Get ALL button captions
-        all_buttons = driver.find_elements(
-            By.XPATH,
-            "//span[contains(@class,'v-button-caption')]"
-        )
+    last_clicked_text = None
+    previous_button_texts = set()  # Track what we've seen to detect changes
+    
+    max_levels = 10  # Safety limit to prevent infinite loops
+    level = 0
+    
+    while level < max_levels:
+        level += 1
+        print(f"\n   --- Nível {level} ---")
         
-        print(f"   Total de botões encontrados: {len(all_buttons)}")
-        
-        # Extract non-empty captions
-        non_empty = [b for b in all_buttons if b.text.strip() != ""]
-        
-        print(f"\n   Botões não vazios encontrados: {len(non_empty)}")
-        for i, b in enumerate(non_empty[:5]):  # Show first 5
-            print(f"      {i+1}: {b.text.strip()}")
-        
-        # The UG is ALWAYS the 3rd non-empty caption
-        if len(non_empty) < 3:
-            print("✗ Não há botões suficientes para selecionar UG.")
-            return None
-        
-        ug_button = non_empty[2]  # 3rd non-empty caption (index 2)
-        ug_text = ug_button.text.strip()
-        
-        print(f"\n→ UG encontrada: {ug_text}")
-        
-        # Go up to the clickable button div
-        clickable = ug_button.find_element(
-            By.XPATH, "./ancestor::div[@role='button']"
-        )
-        
-        # Try to click
-        for attempt in range(3):
-            try:
-                driver.execute_script(
-                    "arguments[0].scrollIntoView({block:'center'});",
-                    clickable
-                )
-                time.sleep(0.2)
-                driver.execute_script("arguments[0].click();", clickable)
-                print("✓ Link da UG clicado com sucesso.")
-                return ug_text
-            except Exception as e:
-                print(f"   Tentativa de clique falhou: {e}")
-                time.sleep(0.3)
-        
-        print("✗ Não foi possível clicar na UG")
-        return None
-        
-    except Exception as e:
-        print(f"✗ Erro ao buscar UG: {e}")
-        return None
-
+        try:
+            # Wait a moment for UI to update
+            time.sleep(0.5)
+            
+            # Get ALL button captions
+            all_buttons = driver.find_elements(
+                By.XPATH,
+                "//span[contains(@class,'v-button-caption')]"
+            )
+            
+            # Extract non-empty captions
+            non_empty = [b for b in all_buttons if b.text.strip() != ""]
+            current_texts = {b.text.strip() for b in non_empty}
+            
+            print(f"   Botões não vazios encontrados: {len(non_empty)}")
+            for i, b in enumerate(non_empty[:5]):
+                print(f"      {i+1}: {b.text.strip()}")
+            
+            # If no buttons found, we've reached the end
+            if len(non_empty) < 1:
+                print("   ✓ Nenhum botão restante - nível mais profundo atingido.")
+                break
+            
+            # If only 1 button and it's the same as last clicked, we're done
+            if len(non_empty) == 1 and non_empty[0].text.strip() == last_clicked_text:
+                print("   ✓ Apenas o botão já clicado restante - nível mais profundo atingido.")
+                break
+            
+            # If the buttons are the same as before (no change after click), we're done
+            if current_texts == previous_button_texts and last_clicked_text is not None:
+                print("   ✓ Botões não mudaram após clique - nível mais profundo atingido.")
+                break
+            
+            # Find the last button that is NOT the one we just clicked
+            ug_button = None
+            ug_text = None
+            
+            for b in reversed(non_empty):
+                txt = b.text.strip()
+                if txt != last_clicked_text:
+                    ug_button = b
+                    ug_text = txt
+                    break
+            
+            # If all buttons are the same as last clicked, we're done
+            if ug_button is None:
+                print("   ✓ Todos os botões já foram clicados - nível mais profundo atingido.")
+                break
+            
+            print(f"\n   → Clicando em: {ug_text}")
+            
+            # Go up to the clickable button div
+            clickable = ug_button.find_element(
+                By.XPATH, "./ancestor::div[@role='button']"
+            )
+            
+            # Try to click
+            clicked = False
+            for attempt in range(3):
+                try:
+                    driver.execute_script(
+                        "arguments[0].scrollIntoView({block:'center'});",
+                        clickable
+                    )
+                    time.sleep(0.2)
+                    driver.execute_script("arguments[0].click();", clickable)
+                    print(f"   ✓ Botão clicado: {ug_text}")
+                    clicked = True
+                    last_clicked_text = ug_text
+                    previous_button_texts = current_texts
+                    break
+                except Exception as e:
+                    print(f"   Tentativa de clique falhou: {e}")
+                    time.sleep(0.3)
+            
+            if not clicked:
+                print("   ✗ Não foi possível clicar - parando navegação.")
+                break
+            
+            # Wait for page to potentially update
+            time.sleep(1.0)
+            
+        except Exception as e:
+            print(f"   Erro no nível {level}: {e}")
+            break
+    
+    if last_clicked_text:
+        print(f"\n✓ Navegação completa! Último nível: {last_clicked_text}")
+    else:
+        print("\n✗ Nenhum botão foi clicado.")
+    
+    return last_clicked_text
+    
 # =============================================================================
 # DOCUMENT LINK EXTRACTION
 # =============================================================================
 
-def get_document_link(driver, column_name="Processo"):
+def get_document_link(driver):
     """
-    Find and return the document link from the table.
+    Find and return the document link (processo) from the page.
+    Searches for any link containing 'processo' in the href.
     
     Args:
         driver: WebDriver instance
-        column_name: Name of the column containing the link
         
     Returns:
-        Dictionary with 'href' and 'text', or None if not found
+        Dictionary with 'href' and 'processo', or None if not found
     """
+    print("\n→ Procurando link do processo...")
+    
     try:
-        print(f"\n→ Procurando link na coluna '{column_name}'...")
+        # Wait a moment for page to be ready
+        time.sleep(1)
         
-        # Wait for grid
-        grid = wait_for_element(
-            driver,
-            (By.XPATH, LOCATORS["grid_wrapper"])
-        )
-        driver.execute_script(
-            "arguments[0].scrollIntoView({block:'center'});",
-            grid
-        )
-        time.sleep(2)
-        
-        # Find column index
-        headers = driver.find_elements(By.XPATH, LOCATORS["column_header"])
-        column_index = None
-        
-        for i, header in enumerate(headers):
-            if header.text.strip() == column_name:
-                column_index = i + 1  # XPath is 1-indexed
-                break
-        
-        if column_index is None:
-            print(f"✗ Coluna '{column_name}' não encontrada")
-            return None
-        
-        # Find link in column
-        rows = grid.find_elements(By.XPATH, ".//tbody/tr")
-        for row in rows:
-            try:
-                link = row.find_element(
+        # Try to find link containing 'processo' in href
+        # Method 1: Direct search for links with 'processo' in href
+        try:
+            link = WebDriverWait(driver, TIMEOUT_SECONDS).until(
+                EC.presence_of_element_located((
                     By.XPATH,
-                    f"./td[{column_index}]//a[starts-with(@href,'http')]"
-                )
-                result = {
-                    "href": link.get_attribute("href"),
-                    "text": link.text
-                }
-                print(f"✓ Link encontrado: {result['href']}")
-                return result
-            except NoSuchElementException:
-                continue
+                    "//a[contains(@href, 'processo')]"
+                ))
+            )
+            
+            href = link.get_attribute("href")
+            processo = link.text.strip()
+            
+            result = {
+                "href": href,
+                "processo": processo
+            }
+            
+            print(f"✓ Link encontrado!")
+            print(f"   URL: {href}")
+            print(f"   Processo: {processo}")
+            
+            return result
+            
+        except TimeoutException:
+            print("   Método 1 falhou, tentando método alternativo...")
         
-        print("✗ Nenhum link encontrado")
+        # Method 2: Search for any external link (starts with http)
+        try:
+            links = driver.find_elements(
+                By.XPATH,
+                "//a[starts-with(@href, 'http')]"
+            )
+            
+            for link in links:
+                href = link.get_attribute("href") or ""
+                text = link.text.strip()
+                
+                # Check if it looks like a processo link
+                if "processo" in href.lower() or "PRO-" in text:
+                    result = {
+                        "href": href,
+                        "processo": text
+                    }
+                    
+                    print(f"✓ Link encontrado (método alternativo)!")
+                    print(f"   URL: {href}")
+                    print(f"   Processo: {text}")
+                    
+                    return result
+                    
+        except Exception as e:
+            print(f"   Método 2 falhou: {e}")
+        
+        print("✗ Nenhum link de processo encontrado")
         return None
         
     except Exception as e:

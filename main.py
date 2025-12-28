@@ -83,7 +83,8 @@ def process_single_company(driver, company_data):
     # Store link in company data
     if doc_link:
         company_data["document_url"] = doc_link["href"]
-        company_data["document_text"] = doc_link["text"]
+        company_data["" \
+        ""] = doc_link["processo"]  # ← NEW KEY
     else:
         company_data["document_url"] = None
         company_data["document_text"] = None
@@ -182,6 +183,8 @@ def main():
         # =============================================================================
 
         company = all_companies[0]
+        print(driver.current_url)
+        print(f"\n→ Processando empresa: {company.get('ID')} - {company.get('Company', 'N/A')}")
         report = process_single_company(driver, company)
         
         if report:
