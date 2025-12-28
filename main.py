@@ -84,6 +84,11 @@ def process_single_company(driver, company_data):
     if doc_link:
         company_data["document_url"] = doc_link["href"]
         company_data["document_text"] = doc_link["processo"]  # ← NEW KEY
+
+        # DEBUG: Confirm data is stored    
+        print(f"   DEBUG - processo: {company_data['document_text']}") # DEBUG: Confirm data is stored
+        print(f"   DEBUG - url: {company_data['document_url']}") # DEBUG: Confirm data is stored
+    
     else:
         company_data["document_url"] = None
         company_data["document_text"] = None

@@ -265,12 +265,6 @@ def set_year_filter(driver, year):
 def scroll_and_collect_rows(driver):
     """
     Scroll through the dynamic table and collect all row data.
-    
-    Args:
-        driver: WebDriver instance
-        
-    Returns:
-        Set of row text strings
     """
     print("Iniciando scroll para carregar todas as linhas...")
     
@@ -281,10 +275,27 @@ def scroll_and_collect_rows(driver):
     stopped_count = 0
     
     while True:
+        # Wait for rows to render completely
+        time.sleep(SCROLL_DELAY + 0.3)  # ← Extra wait time
+        
         # Collect visible rows
         visible_rows = driver.find_elements(By.CSS_SELECTOR, LOCATORS["grid_row"])
+        
         for row in visible_rows:
-            all_rows.add(row.text)
+            try:
+                row_text = row.text.strip()
+                
+                # ═══════════════════════════════════════════════════════════
+                # NEW: Only add rows that look complete (have ID pattern)
+                # ═══════════════════════════════════════════════════════════
+                if row_text and "-" in row_text:
+                    # Check if row has numbers at the end (looks complete)
+                    if re.search(r'\d+[,\.]\d+\s*$', row_text):
+                        all_rows.add(row_text)
+                # ═══════════════════════════════════════════════════════════
+                        
+            except StaleElementReferenceException:
+                continue  # Row changed, skip it
         
         # Scroll down
         driver.execute_script(
@@ -306,11 +317,7 @@ def scroll_and_collect_rows(driver):
         last_scroll = current_scroll
     
     print(f"✓ Scroll finalizado! Total de linhas: {len(all_rows)}")
-    print("✓ Primeiras 5 linhas:")
-    for i, row in enumerate(list(all_rows)[:5], start=1):
-        print(f"{i}: {row}")
     return all_rows
-
 
 def parse_row_data(raw_rows):
     """
@@ -323,18 +330,35 @@ def parse_row_data(raw_rows):
         List of dictionaries with parsed data
     """
     print("Processando dados das linhas...")
-    
+    print(f"\n{'='*60}")
+    print(f"DEBUG: Total de linhas brutas recebidas: {len(raw_rows)}")
+    print(f"{'='*60}")
+
+    # DEBUG: Show ALL raw rows to understand the format
+    print("\n--- TODAS AS LINHAS BRUTAS ---")
+    for i, row in enumerate(list(raw_rows)[:20], start=1):  # Show first 20
+        print(f"[{i}] ({len(row)} chars): '{row}'")
+    print("--- FIM DEBUG ---\n")
+
     all_data = []
-    
+    unrecognized = []  # Track unrecognized rows
+
     for row_text in raw_rows:
+        # Skip empty rows
+        if not row_text.strip():
+            continue
+        
         # Skip summary rows
         if "total" in row_text.lower():
             continue
         
+        # Skip rows that are only numbers (incomplete rows)
+        if re.match(r'^[\d\.,\s]+$', row_text.strip()):
+            unrecognized.append(("only_numbers", row_text))
+            continue
+
         # Regex to capture ID, company name, and 5 numeric values
         match = re.match(r"(.+?)\s*-\s*(.*?)\s((?:[\d\.,]+\s?){5})$", row_text)
-        
-
         if match:
             identifier = match.group(1).strip()
             company_name = match.group(2).strip()
@@ -349,12 +373,26 @@ def parse_row_data(raw_rows):
             })
             all_data.append(data_dict)
         else:
+            unrecognized.append((" unrecognized.append - no_match", row_text))
             print(f"  ⚠ Linha não reconhecida: {row_text[:50]}...")
     
+    print(f"\n{'='*60}")
+    print(f"RESUMO DO PARSING:")
+    print(f"  ✓ Linhas processadas com sucesso: {len(all_data)}")
+    print(f"  ⚠ Linhas não reconhecidas: {len(unrecognized)}")
+    print(f"{'='*60}")
+
+    if unrecognized:
+        print("\n--- LINHAS NÃO RECONHECIDAS ---")
+        for reason, row in unrecognized[:10]:  # Show first 10
+            print(f"  [{reason}]: '{row[:80]}...'")
+        print("--- FIM ---\n")
+
     print(f"✓ {len(all_data)} registros processados!")
     print("✓ Primeiros 5 registros:")
     for i, item in enumerate(all_data[:5], start=1):
         print(f"{i}: {item}")
+    
     return all_data
 
 # =============================================================================
@@ -719,6 +757,21 @@ def get_document_link(driver):
             href = link.get_attribute("href")
             processo = link.text.strip()
             
+            # If text is empty, extract processo from URL
+            if not processo and href:
+                # URL format: ...processo?n=TRA-PRO-2025/00184
+                if "?n=" in href:
+                    processo = href.split("?n=")[-1]
+                elif "processo/" in href:
+                    processo = href.split("processo/")[-1]
+
+            if not processo:
+                processo = driver.execute_script(
+                    "return arguments[0].innerText || arguments[0].textContent || '';", 
+                    link
+                ).strip()
+
+            # Still empty? Try getting innerText via JavaScript
             result = {
                 "href": href,
                 "processo": processo

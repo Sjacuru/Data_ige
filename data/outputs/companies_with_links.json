@@ -1,17 +1,15 @@
 {
-  "generated_at": "2025-12-28T21:29:57.653287",
+  "generated_at": "2025-12-29T12:30:22.436554",
   "total_companies": 1,
   "companies": [
     {
-      "ID": "28029634000196",
-      "Company": "YORK SERVICOS LTDA",
-      "Total Contratado": "18.889.571,41",
-      "Empenhado": "3.951.676,52",
-      "Saldo a Executar": "14.937.894,89",
-      "Liquidado": "3.514.464,81",
-      "Pago": "3.514.464,81",
-      "document_url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=CET-PRO-2024/03611",
-      "document_text": ""
+      "ID": "20222439000176",
+      "Company": "REOBOOT 101 SERVICOS LTDA",
+      "Total Contratado": "222.000,00",
+      "Empenhado": "58.891,67",
+      "Saldo a Executar": "163.108,33",
+      "document_url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=FIL-PRO-2025/00230",
+      "document_text": "FIL-PRO-2025/00230"
     }
   ]
 }
