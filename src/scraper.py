@@ -546,9 +546,9 @@ def click_ug_button(driver):
     print("\n→ Navegando pelos níveis até chegar ao nível mais profundo...")
     
     last_clicked_text = None
-    previous_button_texts = set()  # Track what we've seen to detect changes
+    previous_button_texts = set()
     
-    max_levels = 10  # Safety limit to prevent infinite loops
+    max_levels = 10
     level = 0
     
     while level < max_levels:
@@ -556,22 +556,42 @@ def click_ug_button(driver):
         print(f"\n   --- Nível {level} ---")
         
         try:
-            # Wait a moment for UI to update
-            time.sleep(0.5)
+            # Wait for UI to stabilize
+            time.sleep(1)
             
-            # Get ALL button captions
-            all_buttons = driver.find_elements(
-                By.XPATH,
-                "//span[contains(@class,'v-button-caption')]"
-            )
+            # ═══════════════════════════════════════════════════════════
+            # FRESH FETCH: Get elements anew each iteration
+            # ═══════════════════════════════════════════════════════════
+            try:
+                all_buttons = driver.find_elements(
+                    By.XPATH,
+                    "//span[contains(@class,'v-button-caption')]"
+                )
+            except StaleElementReferenceException:
+                print("   ⚠️ Elementos mudaram, buscando novamente...")
+                time.sleep(1)
+                all_buttons = driver.find_elements(
+                    By.XPATH,
+                    "//span[contains(@class,'v-button-caption')]"
+                )
             
-            # Extract non-empty captions
-            non_empty = [b for b in all_buttons if b.text.strip() != ""]
-            current_texts = {b.text.strip() for b in non_empty}
+            # Extract non-empty captions (get text immediately, not later)
+            non_empty = []
+            current_texts = set()
+            
+            for b in all_buttons:
+                try:
+                    txt = b.text.strip()
+                    if txt:
+                        non_empty.append((b, txt))  # Store element AND text together
+                        current_texts.add(txt)
+                except StaleElementReferenceException:
+                    # Element became stale while reading, skip it
+                    continue
             
             print(f"   Botões não vazios encontrados: {len(non_empty)}")
-            for i, b in enumerate(non_empty[:5]):
-                print(f"      {i+1}: {b.text.strip()}")
+            for i, (_, txt) in enumerate(non_empty[:5]):
+                print(f"      {i+1}: {txt}")
             
             # If no buttons found, we've reached the end
             if len(non_empty) < 1:
@@ -579,7 +599,7 @@ def click_ug_button(driver):
                 break
             
             # If only 1 button and it's the same as last clicked, we're done
-            if len(non_empty) == 1 and non_empty[0].text.strip() == last_clicked_text:
+            if len(non_empty) == 1 and non_empty[0][1] == last_clicked_text:
                 print("   ✓ Apenas o botão já clicado restante - nível mais profundo atingido.")
                 break
             
@@ -592,8 +612,7 @@ def click_ug_button(driver):
             ug_button = None
             ug_text = None
             
-            for b in reversed(non_empty):
-                txt = b.text.strip()
+            for b, txt in reversed(non_empty):
                 if txt != last_clicked_text:
                     ug_button = b
                     ug_text = txt
@@ -606,36 +625,54 @@ def click_ug_button(driver):
             
             print(f"\n   → Clicando em: {ug_text}")
             
-            # Go up to the clickable button div
-            clickable = ug_button.find_element(
-                By.XPATH, "./ancestor::div[@role='button']"
-            )
-            
-            # Try to click
+            # ═══════════════════════════════════════════════════════════
+            # CLICK WITH RETRY: Handle stale elements during click
+            # ═══════════════════════════════════════════════════════════
             clicked = False
             for attempt in range(3):
                 try:
+                    # Re-find the element by its text (fresh reference)
+                    fresh_button = driver.find_element(
+                        By.XPATH,
+                        f"//span[contains(@class,'v-button-caption') and normalize-space(text())='{ug_text}']"
+                    )
+                    
+                    # Find clickable parent
+                    clickable = fresh_button.find_element(
+                        By.XPATH, "./ancestor::div[@role='button']"
+                    )
+                    
                     driver.execute_script(
                         "arguments[0].scrollIntoView({block:'center'});",
                         clickable
                     )
-                    time.sleep(0.2)
+                    time.sleep(0.3)
                     driver.execute_script("arguments[0].click();", clickable)
+                    
                     print(f"   ✓ Botão clicado: {ug_text}")
                     clicked = True
                     last_clicked_text = ug_text
                     previous_button_texts = current_texts
                     break
+                    
+                except StaleElementReferenceException:
+                    print(f"   ⚠️ Elemento ficou stale, tentativa {attempt + 1}...")
+                    time.sleep(0.5)
                 except Exception as e:
                     print(f"   Tentativa de clique falhou: {e}")
-                    time.sleep(0.3)
+                    time.sleep(0.4)
             
             if not clicked:
                 print("   ✗ Não foi possível clicar - parando navegação.")
                 break
             
-            # Wait for page to potentially update
+            # Wait for page to update
             time.sleep(1.0)
+            
+        except StaleElementReferenceException:
+            print(f"   ⚠️ Stale element no nível {level}, tentando novamente...")
+            time.sleep(0.5)
+            continue  # Retry this level
             
         except Exception as e:
             print(f"   Erro no nível {level}: {e}")

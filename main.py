@@ -83,8 +83,7 @@ def process_single_company(driver, company_data):
     # Store link in company data
     if doc_link:
         company_data["document_url"] = doc_link["href"]
-        company_data["" \
-        ""] = doc_link["processo"]  # ← NEW KEY
+        company_data["document_text"] = doc_link["processo"]  # ← NEW KEY
     else:
         company_data["document_url"] = None
         company_data["document_text"] = None

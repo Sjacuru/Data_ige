@@ -100,8 +100,8 @@ def generate_analysis_report(company_data, analysis_results):
         "company_id": company_data.get("ID", "N/A"),
         "company_name": company_data.get("Company", "N/A"),
         "total_contratado": company_data.get("Total Contratado", "N/A"),
-        "document_url": company_data.get("document_url"),        # ← ADD THIS
         "document_text": company_data.get("document_text"),      # ← ADD THIS
+        "document_url": company_data.get("document_url"),        # ← ADD THIS
         "risk_level": analysis_results.get("risk_level", "unknown"),
         "flags_count": len(analysis_results.get("flags", [])),
         "flags": analysis_results.get("flags", []),
