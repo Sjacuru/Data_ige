@@ -1,15 +1,17 @@
 {
-  "generated_at": "2025-12-29T12:30:22.436554",
+  "generated_at": "2025-12-29T14:38:47.928584",
   "total_companies": 1,
   "companies": [
     {
-      "ID": "20222439000176",
-      "Company": "REOBOOT 101 SERVICOS LTDA",
-      "Total Contratado": "222.000,00",
-      "Empenhado": "58.891,67",
-      "Saldo a Executar": "163.108,33",
-      "document_url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=FIL-PRO-2025/00230",
-      "document_text": "FIL-PRO-2025/00230"
+      "ID": "08804604000100",
+      "Company": "AVOHAI EVENTOS LTDA",
+      "Total Contratado": "169.000,00",
+      "Empenhado": "31.650,00",
+      "Saldo a Executar": "137.350,00",
+      "Liquidado": "0",
+      "Pago": "0",
+      "document_url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=SME-PRO-2025/27598",
+      "document_text": "SME-PRO-2025/27598"
     }
   ]
 }

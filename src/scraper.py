@@ -265,6 +265,7 @@ def set_year_filter(driver, year):
 def scroll_and_collect_rows(driver):
     """
     Scroll through the dynamic table and collect all row data.
+    Includes validation and verification pass for reliability.
     """
     print("Iniciando scroll para carregar todas as linhas...")
     
@@ -274,37 +275,44 @@ def scroll_and_collect_rows(driver):
     last_scroll = -1
     stopped_count = 0
     
+    # ═══════════════════════════════════════════════════════════
+    # VALIDATION PATTERN: A complete row must match this
+    # ID - Company Name + numbers at the end
+    # ═══════════════════════════════════════════════════════════
+    complete_row_pattern = re.compile(
+        r'^[\w\d\.\/\-]+\s*-\s*.+\s+-?[\d\.,]+\s+-?[\d\.,]+\s+-?[\d\.,]+.*$'
+    )
+    
+    def is_complete_row(text):
+        """Check if row has ID, company name, AND numbers."""
+        if not text or "-" not in text:
+            return False
+        return bool(complete_row_pattern.match(text.strip()))
+    
+    # ═══════════════════════════════════════════════════════════
+    # FIRST PASS: Scroll and collect
+    # ═══════════════════════════════════════════════════════════
+    print("   Primeira passagem...")
+    
     while True:
-        # Wait for rows to render completely
-        time.sleep(SCROLL_DELAY + 0.3)  # ← Extra wait time
+        time.sleep(SCROLL_DELAY + 0.5)
         
-        # Collect visible rows
         visible_rows = driver.find_elements(By.CSS_SELECTOR, LOCATORS["grid_row"])
         
         for row in visible_rows:
             try:
                 row_text = row.text.strip()
-                
-                # ═══════════════════════════════════════════════════════════
-                # NEW: Only add rows that look complete (have ID pattern)
-                # ═══════════════════════════════════════════════════════════
-                if row_text and "-" in row_text:
-                    # Check if row has numbers at the end (looks complete)
-                    if re.search(r'\d+[,\.]\d+\s*$', row_text):
-                        all_rows.add(row_text)
-                # ═══════════════════════════════════════════════════════════
-                        
+                if is_complete_row(row_text):
+                    all_rows.add(row_text)
             except StaleElementReferenceException:
-                continue  # Row changed, skip it
+                continue
         
-        # Scroll down
         driver.execute_script(
             "arguments[0].scrollTop += arguments[0].clientHeight;",
             scroller
         )
         time.sleep(SCROLL_DELAY)
         
-        # Check if we reached the bottom
         current_scroll = scroller.get_property("scrollTop")
         if current_scroll == last_scroll:
             stopped_count += 1
@@ -316,83 +324,133 @@ def scroll_and_collect_rows(driver):
             
         last_scroll = current_scroll
     
+    first_pass_count = len(all_rows)
+    print(f"   Primeira passagem: {first_pass_count} linhas")
+    
+    # ═══════════════════════════════════════════════════════════
+    # VERIFICATION PASS: Scroll back to top and collect again
+    # ═══════════════════════════════════════════════════════════
+    print("   Passagem de verificação...")
+    
+    driver.execute_script("arguments[0].scrollTop = 0;", scroller)
+    time.sleep(1)
+    
+    last_scroll = -1
+    stopped_count = 0
+    
+    while True:
+        time.sleep(SCROLL_DELAY + 0.3)
+        
+        visible_rows = driver.find_elements(By.CSS_SELECTOR, LOCATORS["grid_row"])
+        
+        for row in visible_rows:
+            try:
+                row_text = row.text.strip()
+                if is_complete_row(row_text):
+                    all_rows.add(row_text)
+            except StaleElementReferenceException:
+                continue
+        
+        driver.execute_script(
+            "arguments[0].scrollTop += arguments[0].clientHeight;",
+            scroller
+        )
+        time.sleep(SCROLL_DELAY)
+        
+        current_scroll = scroller.get_property("scrollTop")
+        if current_scroll == last_scroll:
+            stopped_count += 1
+        else:
+            stopped_count = 0
+            
+        if stopped_count >= 5:
+            break
+            
+        last_scroll = current_scroll
+    
+    new_rows = len(all_rows) - first_pass_count
+    print(f"   Verificação: +{new_rows} novas linhas encontradas")
     print(f"✓ Scroll finalizado! Total de linhas: {len(all_rows)}")
+    
     return all_rows
 
 def parse_row_data(raw_rows):
     """
     Parse raw row text into structured dictionaries.
-    
-    Args:
-        raw_rows: Set of row text strings
-        
-    Returns:
-        List of dictionaries with parsed data
     """
     print("Processando dados das linhas...")
-    print(f"\n{'='*60}")
-    print(f"DEBUG: Total de linhas brutas recebidas: {len(raw_rows)}")
-    print(f"{'='*60}")
-
-    # DEBUG: Show ALL raw rows to understand the format
-    print("\n--- TODAS AS LINHAS BRUTAS ---")
-    for i, row in enumerate(list(raw_rows)[:20], start=1):  # Show first 20
-        print(f"[{i}] ({len(row)} chars): '{row}'")
-    print("--- FIM DEBUG ---\n")
-
+    print(f"\nDEBUG: Total de linhas brutas recebidas: {len(raw_rows)}")
+    
     all_data = []
-    unrecognized = []  # Track unrecognized rows
-
+    
+    # Track ALL skip reasons
+    skip_empty = 0
+    skip_total = 0
+    skip_numbers_only = 0
+    skip_no_match = 0
+    
     for row_text in raw_rows:
         # Skip empty rows
         if not row_text.strip():
+            skip_empty += 1
             continue
-        
+            
         # Skip summary rows
         if "total" in row_text.lower():
+            skip_total += 1
             continue
         
-        # Skip rows that are only numbers (incomplete rows)
-        if re.match(r'^[\d\.,\s]+$', row_text.strip()):
-            unrecognized.append(("only_numbers", row_text))
+        # Skip rows that are only numbers (incomplete/split rows)
+        if re.match(r'^[\d\.,\s\-]+$', row_text.strip()):
+            skip_numbers_only += 1
+            print(f"  ⚠ Apenas números: {row_text[:50]}...")
             continue
-
-        # Regex to capture ID, company name, and 5 numeric values
-        match = re.match(r"(.+?)\s*-\s*(.*?)\s((?:[\d\.,]+\s?){5})$", row_text)
+        
+        # Regex to parse
+        match = re.match(
+            r'^([\w\d\.\/\-]+)\s*-\s*(.+?)\s+(-?[\d\.,]+(?:\s+-?[\d\.,]+){2,5})$',
+            row_text.strip()
+        )
+        
         if match:
             identifier = match.group(1).strip()
             company_name = match.group(2).strip()
-            numbers = match.group(3).split()
+            numbers_raw = match.group(3).strip()
+            numbers = numbers_raw.split()
             
             data_dict = {
                 "ID": identifier,
                 "Company": company_name
             }
-            data_dict.update({
-                name: num for name, num in zip(VALUE_COLUMNS, numbers)
-            })
+            
+            for i, col_name in enumerate(VALUE_COLUMNS):
+                if i < len(numbers):
+                    data_dict[col_name] = numbers[i]
+                else:
+                    data_dict[col_name] = "0"
+                    
             all_data.append(data_dict)
         else:
-            unrecognized.append((" unrecognized.append - no_match", row_text))
-            print(f"  ⚠ Linha não reconhecida: {row_text[:50]}...")
+            skip_no_match += 1
+            print(f"  ⚠ Não reconhecida: {row_text[:70]}...")
     
+    # Complete summary
     print(f"\n{'='*60}")
     print(f"RESUMO DO PARSING:")
-    print(f"  ✓ Linhas processadas com sucesso: {len(all_data)}")
-    print(f"  ⚠ Linhas não reconhecidas: {len(unrecognized)}")
+    print(f"  ✓ Processadas com sucesso: {len(all_data)}")
+    print(f"  ⊘ Vazias ignoradas: {skip_empty}")
+    print(f"  ⊘ Linhas 'total' ignoradas: {skip_total}")
+    print(f"  ⚠ Apenas números (incompletas): {skip_numbers_only}")
+    print(f"  ⚠ Não reconhecidas: {skip_no_match}")
+    print(f"  ─────────────────────────────")
+    total_accounted = len(all_data) + skip_empty + skip_total + skip_numbers_only + skip_no_match
+    print(f"  Σ Total contabilizado: {total_accounted} / {len(raw_rows)}")
     print(f"{'='*60}")
-
-    if unrecognized:
-        print("\n--- LINHAS NÃO RECONHECIDAS ---")
-        for reason, row in unrecognized[:10]:  # Show first 10
-            print(f"  [{reason}]: '{row[:80]}...'")
-        print("--- FIM ---\n")
-
-    print(f"✓ {len(all_data)} registros processados!")
-    print("✓ Primeiros 5 registros:")
+    
+    print("\n✓ Primeiros 5 registros:")
     for i, item in enumerate(all_data[:5], start=1):
         print(f"{i}: {item}")
-    
+        
     return all_data
 
 # =============================================================================
