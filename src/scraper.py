@@ -406,33 +406,53 @@ def parse_row_data(raw_rows):
             print(f"  ⚠ Apenas números: {row_text[:50]}...")
             continue
         
-        # Regex to parse
-        match = re.match(
-            r'^([\w\d\.\/\-]+)\s*-\s*(.+?)\s+(-?[\d\.,]+(?:\s+-?[\d\.,]+){2,5})$',
-            row_text.strip()
-        )
+        # ═══════════════════════════════════════════════════════════
+        # STEP 1: Extract ID
+        # ═══════════════════════════════════════════════════════════
+        id_match = re.match(r'^([\w\d\.\/\-]+)\s*-\s*(.+)$', row_text.strip())
         
-        if match:
-            identifier = match.group(1).strip()
-            company_name = match.group(2).strip()
-            numbers_raw = match.group(3).strip()
-            numbers = numbers_raw.split()
-            
-            data_dict = {
-                "ID": identifier,
-                "Company": company_name
-            }
-            
-            for i, col_name in enumerate(VALUE_COLUMNS):
-                if i < len(numbers):
-                    data_dict[col_name] = numbers[i]
-                else:
-                    data_dict[col_name] = "0"
-                    
-            all_data.append(data_dict)
-        else:
+        if not id_match:
             skip_no_match += 1
-            print(f"  ⚠ Não reconhecida: {row_text[:70]}...")
+            print(f"  ⚠ Não reconhecida (sem ID): {row_text[:70]}...")
+            continue
+        
+        identifier = id_match.group(1).strip()
+        rest = id_match.group(2).strip()
+        
+        # ═══════════════════════════════════════════════════════════
+        # STEP 2: Find currency numbers (format: 1.234,56 or -1.234,56)
+        # This ignores plain numbers like CPF (14707320767)
+        # ═══════════════════════════════════════════════════════════
+        currency_numbers = re.findall(r'-?[\d\.]+,\d{2}', rest)
+        
+        if len(currency_numbers) < 5:
+            skip_no_match += 1
+            print(f"  ⚠ Poucos valores ({len(currency_numbers)}): {row_text[:70]}...")
+            continue
+        
+        # Take only the LAST 5 numbers
+        numbers = currency_numbers[-5:]
+        
+        # ═══════════════════════════════════════════════════════════
+        # STEP 3: Company name is everything before the first of last 5
+        # ═══════════════════════════════════════════════════════════
+        first_currency = numbers[0]
+        split_pos = rest.find(first_currency)
+        company_name = rest[:split_pos].strip()
+        
+        # Build data dict
+        data_dict = {
+            "ID": identifier,
+            "Company": company_name
+        }
+        
+        for i, col_name in enumerate(VALUE_COLUMNS):
+            if i < len(numbers):
+                data_dict[col_name] = numbers[i]
+            else:
+                data_dict[col_name] = "0"
+                
+        all_data.append(data_dict)
     
     # Complete summary
     print(f"\n{'='*60}")
@@ -460,13 +480,6 @@ def parse_row_data(raw_rows):
 def filter_by_company(driver, company_id):
     """
     Apply filter to show only one company.
-    
-    Args:
-        driver: WebDriver instance
-        company_id: Company ID to filter
-        
-    Returns:
-        True if successful, False otherwise
     """
     try:
         print(f"\n→ Filtrando por ID: {company_id}")
@@ -478,9 +491,13 @@ def filter_by_company(driver, company_id):
         
         filter_box.clear()
         filter_box.send_keys(company_id)
-        time.sleep(2)
+        time.sleep(1)
         filter_box.send_keys(Keys.ENTER)
-        time.sleep(2)
+        
+        # ═══════════════════════════════════════════════════════════
+        # Wait longer for filter results to load
+        # ═══════════════════════════════════════════════════════════
+        time.sleep(3)  # ← Increased from 2 to 3
         
         print("✓ Filtro aplicado!")
         return True
@@ -501,15 +518,57 @@ def click_company_button(driver, company_id):
     Returns:
         The original caption text if successful, None otherwise
     """
+    print(f"\n→ Clicando na empresa {company_id}...")
+    
+    # ═══════════════════════════════════════════════════════════
+    # Wait for the filtered results to appear
+    # ═══════════════════════════════════════════════════════════
+    xpath = (
+        f"//div[contains(@class,'v-button-link') and @role='button']"
+        f"[.//span[contains(@class,'v-button-caption') and contains(text(), '{company_id}')]]"
+    )
+    
+    company_button = None
+    
+    # Try multiple times with wait
+    for attempt in range(5):
+        try:
+            # Wait for element to be present
+            company_button = WebDriverWait(driver, 3).until(
+                EC.presence_of_element_located((By.XPATH, xpath))
+            )
+            break
+        except TimeoutException:
+            print(f"   Tentativa {attempt + 1}: Aguardando elemento...")
+            time.sleep(1)
+    
+    # If still not found, try alternative approach
+    if company_button is None:
+        print("   Tentando método alternativo...")
+        try:
+            # Look for any button containing the ID
+            all_buttons = driver.find_elements(
+                By.XPATH,
+                "//span[contains(@class,'v-button-caption')]"
+            )
+            
+            for btn in all_buttons:
+                if company_id in btn.text:
+                    company_button = btn.find_element(
+                        By.XPATH, 
+                        "./ancestor::div[@role='button']"
+                    )
+                    print(f"   ✓ Encontrado via método alternativo")
+                    break
+                    
+        except Exception as e:
+            print(f"   Método alternativo falhou: {e}")
+    
+    if company_button is None:
+        print(f"✗ Erro ao clicar na empresa: Elemento não encontrado")
+        return None
+    
     try:
-        print(f"\n→ Clicando na empresa {company_id}...")
-        
-        company_button = driver.find_element(
-            By.XPATH,
-            f"//div[contains(@class,'v-button-link') and @role='button']"
-            f"[.//span[contains(@class,'v-button-caption') and contains(text(), '{company_id}')]]"
-        )
-        
         caption_element = company_button.find_element(
             By.XPATH, ".//span[contains(@class,'v-button-caption')]"
         )
@@ -631,13 +690,7 @@ def click_next_level(driver, original_caption):
 def click_ug_button(driver):
     """
     Keep clicking through hierarchy levels until reaching the deepest level.
-    Clicks the LAST non-empty caption repeatedly until no new buttons appear.
-    
-    Args:
-        driver: WebDriver instance
-        
-    Returns:
-        The last clicked button's caption text if successful, None otherwise
+    Stops when processo links are found or no new buttons to click.
     """
     print("\n→ Navegando pelos níveis até chegar ao nível mais profundo...")
     
@@ -647,31 +700,43 @@ def click_ug_button(driver):
     max_levels = 10
     level = 0
     
+    def has_processo_links():
+        """Check if processo links are visible (means we're at deepest level)."""
+        try:
+            links = driver.find_elements(By.XPATH, "//a[contains(@href, 'processo')]")
+            return len(links) > 0
+        except:
+            return False
+    
     while level < max_levels:
         level += 1
         print(f"\n   --- Nível {level} ---")
         
         try:
             # Wait for UI to stabilize
-            time.sleep(1)
+            time.sleep(1.0)  # ← Increased wait time
             
             # ═══════════════════════════════════════════════════════════
-            # FRESH FETCH: Get elements anew each iteration
+            # CHECK: Are we at the deepest level? (processo links visible)
             # ═══════════════════════════════════════════════════════════
+            if has_processo_links():
+                print("   ✓ Links de processo encontrados - nível mais profundo atingido.")
+                break
+            
+            # Fresh fetch of elements
             try:
                 all_buttons = driver.find_elements(
                     By.XPATH,
                     "//span[contains(@class,'v-button-caption')]"
                 )
             except StaleElementReferenceException:
-                print("   ⚠️ Elementos mudaram, buscando novamente...")
-                time.sleep(1)
+                time.sleep(0.5)
                 all_buttons = driver.find_elements(
                     By.XPATH,
                     "//span[contains(@class,'v-button-caption')]"
                 )
             
-            # Extract non-empty captions (get text immediately, not later)
+            # Extract non-empty captions
             non_empty = []
             current_texts = set()
             
@@ -679,10 +744,9 @@ def click_ug_button(driver):
                 try:
                     txt = b.text.strip()
                     if txt:
-                        non_empty.append((b, txt))  # Store element AND text together
+                        non_empty.append((b, txt))
                         current_texts.add(txt)
                 except StaleElementReferenceException:
-                    # Element became stale while reading, skip it
                     continue
             
             print(f"   Botões não vazios encontrados: {len(non_empty)}")
@@ -697,11 +761,6 @@ def click_ug_button(driver):
             # If only 1 button and it's the same as last clicked, we're done
             if len(non_empty) == 1 and non_empty[0][1] == last_clicked_text:
                 print("   ✓ Apenas o botão já clicado restante - nível mais profundo atingido.")
-                break
-            
-            # If the buttons are the same as before (no change after click), we're done
-            if current_texts == previous_button_texts and last_clicked_text is not None:
-                print("   ✓ Botões não mudaram após clique - nível mais profundo atingido.")
                 break
             
             # Find the last button that is NOT the one we just clicked
@@ -719,21 +778,22 @@ def click_ug_button(driver):
                 print("   ✓ Todos os botões já foram clicados - nível mais profundo atingido.")
                 break
             
+            # ═══════════════════════════════════════════════════════════
+            # REMOVED: "buttons didn't change" check - unreliable
+            # Instead, we always try to click if there's a new button
+            # ═══════════════════════════════════════════════════════════
+            
             print(f"\n   → Clicando em: {ug_text}")
             
-            # ═══════════════════════════════════════════════════════════
-            # CLICK WITH RETRY: Handle stale elements during click
-            # ═══════════════════════════════════════════════════════════
+            # Click with retry
             clicked = False
             for attempt in range(3):
                 try:
-                    # Re-find the element by its text (fresh reference)
                     fresh_button = driver.find_element(
                         By.XPATH,
                         f"//span[contains(@class,'v-button-caption') and normalize-space(text())='{ug_text}']"
                     )
                     
-                    # Find clickable parent
                     clickable = fresh_button.find_element(
                         By.XPATH, "./ancestor::div[@role='button']"
                     )
@@ -763,12 +823,12 @@ def click_ug_button(driver):
                 break
             
             # Wait for page to update
-            time.sleep(1.0)
+            time.sleep(1.5)  # ← Increased wait time
             
         except StaleElementReferenceException:
             print(f"   ⚠️ Stale element no nível {level}, tentando novamente...")
             time.sleep(0.5)
-            continue  # Retry this level
+            continue
             
         except Exception as e:
             print(f"   Erro no nível {level}: {e}")
@@ -785,98 +845,108 @@ def click_ug_button(driver):
 # DOCUMENT LINK EXTRACTION
 # =============================================================================
 
-def get_document_link(driver):
+def get_all_document_links(driver):
     """
-    Find and return the document link (processo) from the page.
-    Searches for any link containing 'processo' in the href.
+    Find and return ALL document links (processos) from the page.
+    Searches for all links containing 'processo' in the href.
     
     Args:
         driver: WebDriver instance
         
     Returns:
-        Dictionary with 'href' and 'processo', or None if not found
+        List of dictionaries with 'href' and 'processo', or empty list if none found
     """
-    print("\n→ Procurando link do processo...")
+    print("\n→ Procurando links de processos...")
+    
+    results = []
     
     try:
-        # Wait a moment for page to be ready
         time.sleep(1)
         
-        # Try to find link containing 'processo' in href
-        # Method 1: Direct search for links with 'processo' in href
+        # Find ALL links containing 'processo' in href
         try:
-            link = WebDriverWait(driver, TIMEOUT_SECONDS).until(
-                EC.presence_of_element_located((
+            links = WebDriverWait(driver, TIMEOUT_SECONDS).until(
+                EC.presence_of_all_elements_located((
                     By.XPATH,
                     "//a[contains(@href, 'processo')]"
                 ))
             )
             
-            href = link.get_attribute("href")
-            processo = link.text.strip()
-            
-            # If text is empty, extract processo from URL
-            if not processo and href:
-                # URL format: ...processo?n=TRA-PRO-2025/00184
-                if "?n=" in href:
-                    processo = href.split("?n=")[-1]
-                elif "processo/" in href:
-                    processo = href.split("processo/")[-1]
-
-            if not processo:
-                processo = driver.execute_script(
-                    "return arguments[0].innerText || arguments[0].textContent || '';", 
-                    link
-                ).strip()
-
-            # Still empty? Try getting innerText via JavaScript
-            result = {
-                "href": href,
-                "processo": processo
-            }
-            
-            print(f"✓ Link encontrado!")
-            print(f"   URL: {href}")
-            print(f"   Processo: {processo}")
-            
-            return result
-            
-        except TimeoutException:
-            print("   Método 1 falhou, tentando método alternativo...")
-        
-        # Method 2: Search for any external link (starts with http)
-        try:
-            links = driver.find_elements(
-                By.XPATH,
-                "//a[starts-with(@href, 'http')]"
-            )
+            print(f"   Encontrados {len(links)} link(s) de processo")
             
             for link in links:
-                href = link.get_attribute("href") or ""
-                text = link.text.strip()
-                
-                # Check if it looks like a processo link
-                if "processo" in href.lower() or "PRO-" in text:
-                    result = {
-                        "href": href,
-                        "processo": text
-                    }
+                try:
+                    href = link.get_attribute("href")
+                    processo = link.text.strip()
                     
-                    print(f"✓ Link encontrado (método alternativo)!")
-                    print(f"   URL: {href}")
-                    print(f"   Processo: {text}")
+                    # If text is empty, extract from URL
+                    if not processo and href:
+                        if "?n=" in href:
+                            processo = href.split("?n=")[-1]
+                        elif "processo/" in href:
+                            processo = href.split("processo/")[-1]
                     
-                    return result
+                    # Still empty? Try JavaScript
+                    if not processo:
+                        processo = driver.execute_script(
+                            "return arguments[0].innerText || arguments[0].textContent || '';", 
+                            link
+                        ).strip()
                     
-        except Exception as e:
-            print(f"   Método 2 falhou: {e}")
+                    if href:  # Only add if we have a valid href
+                        results.append({
+                            "href": href,
+                            "processo": processo
+                        })
+                        print(f"   ✓ Processo: {processo}")
+                        print(f"     URL: {href}")
+                        
+                except StaleElementReferenceException:
+                    continue
+                except Exception as e:
+                    print(f"   ⚠ Erro ao processar link: {e}")
+                    continue
+                    
+        except TimeoutException:
+            print("   Nenhum link de processo encontrado (timeout)")
         
-        print("✗ Nenhum link de processo encontrado")
-        return None
+        # Fallback: Search for any external link with processo pattern
+        if not results:
+            print("   Tentando método alternativo...")
+            try:
+                links = driver.find_elements(
+                    By.XPATH,
+                    "//a[starts-with(@href, 'http')]"
+                )
+                
+                for link in links:
+                    href = link.get_attribute("href") or ""
+                    text = link.text.strip()
+                    
+                    if "processo" in href.lower() or "PRO-" in text:
+                        processo = text
+                        if not processo and "?n=" in href:
+                            processo = href.split("?n=")[-1]
+                        
+                        results.append({
+                            "href": href,
+                            "processo": processo
+                        })
+                        print(f"   ✓ Processo (alternativo): {processo}")
+                        
+            except Exception as e:
+                print(f"   Método alternativo falhou: {e}")
+        
+        if results:
+            print(f"\n✓ Total de processos encontrados: {len(results)}")
+        else:
+            print("✗ Nenhum link de processo encontrado")
+        
+        return results
         
     except Exception as e:
-        print(f"✗ Erro ao buscar link: {e}")
-        return None
+        print(f"✗ Erro ao buscar links: {e}")
+        return []
 
 def close_driver(driver):
     """Safely close the browser."""

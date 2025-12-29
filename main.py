@@ -20,7 +20,7 @@ from src.scraper import (
     click_company_button,
     click_next_level,
     click_ug_button,
-    get_document_link,
+    get_all_document_links,
     close_driver
 )
 from src.downloader import (
@@ -44,6 +44,7 @@ from config import CHROME_HEADLESS, FILTER_YEAR
 def process_single_company(driver, company_data):
     """
     Process a single company: navigate, extract, analyze.
+    Returns a LIST of reports (one per processo found).
     """
     company_id = company_data.get("ID")
     print(f"\n{'='*60}")
@@ -53,93 +54,88 @@ def process_single_company(driver, company_data):
     # Step 1: Filter by company
     if not filter_by_company(driver, company_id):
         print("✗ Falha ao filtrar empresa")
-        return None
+        return []
     
     # Step 2: Click on company
     original_caption = click_company_button(driver, company_id)
     if not original_caption:
         print("✗ Falha ao clicar na empresa")
-        return None
+        return []
     
     time.sleep(1)
     
-    # Step 3: Click next level (Org/Secretaria) ← NEW
+    # Step 3: Click next level (Org/Secretaria)
     next_level_caption = click_next_level(driver, original_caption)
     if not next_level_caption:
         print("⚠️ Continuando mesmo sem próximo nível...")
     
     time.sleep(1)
     
-    # Step 4: Click UG button ← NEW
+    # Step 4: Click UG button (navigates to deepest level)
     ug_caption = click_ug_button(driver)
     if not ug_caption:
         print("⚠️ Continuando mesmo sem UG...")
     
     time.sleep(1)
     
-    # Step 5: Get document link
-    doc_link = get_document_link(driver)
+    # Step 5: Get ALL document links
+    doc_links = get_all_document_links(driver)
     
-    # Store link in company data
-    if doc_link:
-        company_data["document_url"] = doc_link["href"]
-        company_data["document_text"] = doc_link["processo"]  # ← NEW KEY
-
-        # DEBUG: Confirm data is stored    
-        print(f"   DEBUG - processo: {company_data['document_text']}") # DEBUG: Confirm data is stored
-        print(f"   DEBUG - url: {company_data['document_url']}") # DEBUG: Confirm data is stored
+    # ═══════════════════════════════════════════════════════════
+    # Create one report per processo
+    # ═══════════════════════════════════════════════════════════
+    all_reports = []
     
-    else:
-        company_data["document_url"] = None
-        company_data["document_text"] = None
-
-    print(f"📎 Link armazenado: {company_data.get('document_url', 'N/A')}")
-    if not doc_link:
+    if not doc_links:
         print("⚠️ Nenhum link de documento encontrado")
-        # Still generate report with available data
+        report_data = company_data.copy()
+        report_data["document_url"] = None
+        report_data["document_text"] = None  # ← CORRECT KEY
+        
         analysis_results = {
             "flags": [{"type": "no_document", "message": "Documento não encontrado", "severity": "medium"}],
             "risk_level": "medium",
             "summary": "Não foi possível acessar o documento do contrato."
         }
+        
+        report = generate_analysis_report(report_data, analysis_results)
+        all_reports.append(report)
     else:
-        # Step 4: Extract text (read online first)
-        print(f"\n→ Lendo documento online: {doc_link['href'][:50]}...")
-        
-        # Try to extract text from URL (for HTML) or download PDF
-        if doc_link['href'].lower().endswith('.pdf'):
-            # Download and extract from PDF
-            filepath = download_document(doc_link['href'])
-            if filepath:
-                text_content = extract_text_from_pdf(filepath)
-            else:
-                text_content = None
-        else:
-            # Try to extract from HTML page
-            text_content = extract_text_from_url(doc_link['href'])
-        
-        # Step 5: Parse and analyze
-        if text_content:
-            contract_data = parse_contract_data(text_content)
-            analysis_results = analyze_contract(contract_data)
+        for i, doc_link in enumerate(doc_links, 1):
+            print(f"\n   --- Processando processo {i}/{len(doc_links)} ---")
             
-            # Check if we need to download (based on flags)
-            if should_download({"high_value": analysis_results.get("risk_level") == "high"}):
-                print("⚠️ Flag de risco alto - garantindo download do documento")
-                if not doc_link['href'].lower().endswith('.pdf'):
-                    # Already downloaded if PDF, otherwise download now
-                    download_document(doc_link['href'])
-        else:
-            analysis_results = {
-                "flags": [{"type": "parse_error", "message": "Não foi possível extrair texto", "severity": "low"}],
-                "risk_level": "low",
-                "summary": "Documento encontrado mas não foi possível extrair conteúdo."
-            }
+            report_data = company_data.copy()
+            report_data["document_url"] = doc_link["href"]
+            report_data["document_text"] = doc_link["processo"]  # ← CORRECT KEY
+            
+            print(f"   📎 Processo: {doc_link['processo']}")
+            print(f"   🔗 URL: {doc_link['href']}")
+            
+            # Extract and analyze
+            if doc_link['href'].lower().endswith('.pdf'):
+                filepath = download_document(doc_link['href'])
+                if filepath:
+                    text_content = extract_text_from_pdf(filepath)
+                else:
+                    text_content = None
+            else:
+                text_content = extract_text_from_url(doc_link['href'])
+            
+            if text_content:
+                contract_data = parse_contract_data(text_content)
+                analysis_results = analyze_contract(contract_data)
+            else:
+                analysis_results = {
+                    "flags": [{"type": "parse_error", "message": "Não foi possível extrair texto", "severity": "low"}],
+                    "risk_level": "low",
+                    "summary": "Documento encontrado mas não foi possível extrair conteúdo."
+                }
+            
+            report = generate_analysis_report(report_data, analysis_results)
+            all_reports.append(report)
     
-    # Step 6: Generate report
-    report = generate_analysis_report(company_data, analysis_results)
-    
-    return report
+    print(f"\n✓ {len(all_reports)} relatório(s) gerado(s) para esta empresa")
+    return all_reports
 
 
 def main():
@@ -150,25 +146,20 @@ def main():
     print("     CONTRATO ANALYZER - Iniciando...")
     print("=" * 60 + "\n")
     
-    # Initialize driver
     driver = initialize_driver(headless=CHROME_HEADLESS)
     if not driver:
         print("✗ Não foi possível iniciar o navegador. Encerrando.")
         return
     
     try:
-        # Navigate to home
         if not navigate_to_home(driver):
             print("✗ Falha ao carregar página inicial. Encerrando.")
             return
         
-        # Navigate to contracts (with optional year filter)
-
         if not navigate_to_contracts(driver, year=FILTER_YEAR):
             print("✗ Falha ao carregar página de contratos. Encerrando.")
             return
 
-        # Collect all data
         raw_rows = scroll_and_collect_rows(driver)
         all_companies = parse_row_data(raw_rows)
         
@@ -178,41 +169,31 @@ def main():
         
         print(f"\n✓ {len(all_companies)} empresas encontradas!")
         
-        # For now, process only the first company (single processing mode)
-        # Later you can change this to a loop for batch processing
         all_reports = []
         
-        # =============================================================================
-        ## Process first company as example !!!!!@@@@@!!!!!!@@@@!!!!!
-        # =============================================================================
-
+        # Process first company as example
         company = all_companies[0]
         print(driver.current_url)
         print(f"\n→ Processando empresa: {company.get('ID')} - {company.get('Company', 'N/A')}")
-        report = process_single_company(driver, company)
         
-        if report:
-            all_reports.append(report)
-            print_report(report)
+        # ═══════════════════════════════════════════════════════════
+        # Now returns a LIST of reports
+        # ═══════════════════════════════════════════════════════════
+        reports = process_single_company(driver, company)
+        
+        if reports:
+            all_reports.extend(reports)  # ← extend, not append
+            for report in reports:
+                print_report(report)
         
         # Save results
         if all_reports:
-            # Create summary DataFrame
             summary_df = create_summary_dataframe(all_reports)
-            
-            # Save to Excel
             save_to_excel(summary_df, "analysis_summary.xlsx")
-            
         
-        # ═══════════════════════════════════════════════════════════════
-        # NEW: Save companies with document links
-        # ═══════════════════════════════════════════════════════════════
-        
-        
-        # The company dict now has document_url added by process_single_company
-        companies_processed = [company]  # Add more when batch processing
+        # Save companies with links
+        companies_processed = [company]
         save_companies_with_links(companies_processed)
-        # ═══════════════════════════════════════════════════════════════
         
         print("\n✓ Processamento concluído!")
 
@@ -225,9 +206,7 @@ def main():
         traceback.print_exc()
         
     finally:
-        # Always close the browser
         close_driver(driver)
-
 
 # =============================================================================
 # BATCH PROCESSING (for future use)

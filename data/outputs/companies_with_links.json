@@ -1,17 +1,15 @@
 {
-  "generated_at": "2025-12-29T14:38:47.928584",
+  "generated_at": "2025-12-29T16:57:54.018825",
   "total_companies": 1,
   "companies": [
     {
-      "ID": "08804604000100",
-      "Company": "AVOHAI EVENTOS LTDA",
-      "Total Contratado": "169.000,00",
-      "Empenhado": "31.650,00",
-      "Saldo a Executar": "137.350,00",
+      "ID": "43213049000135",
+      "Company": "RHAIANY SOARES SILVA",
+      "Total Contratado": "14707320767",
+      "Empenhado": "4.000,00",
+      "Saldo a Executar": "4.000,00",
       "Liquidado": "0",
-      "Pago": "0",
-      "document_url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=SME-PRO-2025/27598",
-      "document_text": "SME-PRO-2025/27598"
+      "Pago": "0"
     }
   ]
 }
