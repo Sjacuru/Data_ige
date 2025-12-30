@@ -1,4 +1,25 @@
 """
+scraper.py:
+- scroll_and_collect_rows: 2-pass scroll, validate rows, wait+0.5s
+- parse_row_data: negative nums, alphanumeric IDs, last 5 currency numbers
+- filter_by_company: wait 3s
+- click_company_button: 5 retries, 3 click methods, verify level transition
+- get_all_document_links: search 'processo' href, extract from URL, return list
+- NEW: get_current_level, get_all_buttons_at_level, click_specific_button, has_processo_links
+- NEW: discover_all_paths, discover_paths_recursive (tree traversal)
+- NEW: reset_and_navigate_to_company (BASE_URL first, verify transitions)
+- NEW: follow_path_and_collect
+- REMOVED: click_ug_button, click_next_level
+main.py:
+- process_single_company: reset first, discover paths, collect processos, return list
+- main: loop ALL companies, progress counter, periodic save, error handling
+reporter.py:
+- add "document_text", "document_url", "Processo", "Link Documento"
+Key: doc_link["processo"] → "document_text" → Excel "Processo"
+Reset: BASE_URL → CONTRACTS_URL → year → filter → click → verify
+Known issue: Path discovery may mix buttons from different branches (to fix later)
+"""
+"""
 scraper.py - Web scraping functions for ContasRio portal.
 Handles browser automation, navigation, and data extraction.
 """
@@ -28,6 +49,7 @@ from config import (
     TIMEOUT_SECONDS, MAX_RETRIES, SCROLL_DELAY,
     BASE_URL, CONTRACTS_URL, VALUE_COLUMNS, LOCATORS
 )
+
 
 # =============================================================================
 # DRIVER MANAGEMENT
@@ -149,106 +171,52 @@ def navigate_to_contracts(driver, year=None):
     return False
 
 def set_year_filter(driver, year):
-    """
-    Select the desired 'year' in the Vaadin FilterSelect (v-filterselect).
-    Attempts to find the combobox whose current value equals the current year,
-    then changes it to the requested 'year'.
-    """
     if not year:
-        return  # Nothing to do
+        return
 
     year = str(year)
-    print(f"\n→ Ajustando filtro do ano para: {year}")
+    print(f"→ Ajustando filtro do ano para: {year}")
 
-    # Try to capture an existing grid row to detect refresh after changing year
-    first_row = None
+    # Capture a row to detect grid refresh
     try:
         first_row = driver.find_element(By.XPATH, LOCATORS["table_rows"])
     except Exception:
-        pass
+        first_row = None
 
-    # 1) Find all filterselect inputs
+    # Find all Vaadin filter inputs
     inputs = WebDriverWait(driver, TIMEOUT_SECONDS).until(
         EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".v-filterselect-input"))
     )
 
-    # 2) Choose the one likely to be the YEAR filter
-    # Heuristic: pick the input whose current value equals the current year
+    # Pick the input that already shows the current year (fallback to first)
     current_year = str(datetime.now().year)
-    target_input = None
+    target = next(
+        (i for i in inputs if (i.get_attribute("value") or "").strip() == current_year),
+        inputs[0]
+    )
 
-    for inp in inputs:
-        try:
-            val = (inp.get_attribute("value") or "").strip()
-            if val == current_year:
-                target_input = inp
-                break
-        except Exception:
-            continue
+    # Interact with the input
+    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", target)
+    target.click()
 
-    if target_input is None:
-        # Fallback: pick the first input
-        target_input = inputs[0]
+    target.send_keys(Keys.CONTROL, "a", Keys.DELETE, year, Keys.ENTER)
 
-    # 3) Scroll into view and click the input
-    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", target_input)
-    target_input.click()
-    time.sleep(0.2)
-
-    # 4) Clear existing value and type the new year
-    target_input.send_keys(Keys.CONTROL, "a")
-    target_input.send_keys(Keys.DELETE)
-    target_input.send_keys(year)
-    time.sleep(0.2)
-
-    # 5) Try to open dropdown and select exact match (if popup appears)
-    # Otherwise, just press ENTER to accept the first suggested item
-    try:
-        # Try clicking the dropdown button next to the input
-        try:
-            btn = target_input.find_element(
-                By.XPATH, "./following-sibling::div[contains(@class,'v-filterselect-button')]"
-            )
-            btn.click()
-            time.sleep(0.2)
-        except Exception:
-            pass
-
-        # Wait for the popup and click the exact option if visible
-        popup = WebDriverWait(driver, 3).until(
-            EC.presence_of_element_located((
-                By.XPATH,
-                "//div[contains(@class,'v-filterselect-suggestpopup') and not(contains(@style,'display: none'))]"
-            ))
-        )
-        option = WebDriverWait(popup, 2).until(
-            EC.presence_of_element_located((
-                By.XPATH,
-                f".//*[normalize-space(text())='{year}']"
-            ))
-        )
-        driver.execute_script("arguments[0].scrollIntoView({block:'nearest'});", option)
-        option.click()
-    except Exception:
-        # Fallback: accept selection by pressing ENTER
-        target_input.send_keys(Keys.ENTER)
-
-    # 6) Wait until the input shows the selected year (best-effort)
+    # Wait until the input reflects the selected year
     try:
         WebDriverWait(driver, 5).until(
-            lambda d: ((target_input.get_attribute("value") or "").strip() == year)
+            lambda d: (target.get_attribute("value") or "").strip() == year
         )
     except Exception:
         pass
 
-    # 7) Wait for the grid to refresh (best-effort)
-    if first_row is not None:
+    # Wait for grid refresh
+    if first_row:
         try:
             WebDriverWait(driver, 10).until(EC.staleness_of(first_row))
         except Exception:
             pass
 
-    # 8) Ensure rows are present (grid ready)
+    # Ensure rows are present
     try:
         WebDriverWait(driver, TIMEOUT_SECONDS).until(
             EC.presence_of_element_located((By.XPATH, LOCATORS["table_rows"]))
@@ -506,295 +474,293 @@ def filter_by_company(driver, company_id):
         print(f"✗ Erro ao filtrar: {e}")
         return False
 
-
 def click_company_button(driver, company_id):
     """
     Click on a company button in the table.
-    
-    Args:
-        driver: WebDriver instance
-        company_id: Company ID to click
-        
-    Returns:
-        The original caption text if successful, None otherwise
+    Verifies the page transitions after clicking.
     """
     print(f"\n→ Clicando na empresa {company_id}...")
     
     # ═══════════════════════════════════════════════════════════
-    # Wait for the filtered results to appear
+    # STEP 1: Check current level before clicking
     # ═══════════════════════════════════════════════════════════
+    level_before = get_current_level(driver)
+    print(f"   Nível antes do clique: '{level_before}'")
+    
     xpath = (
         f"//div[contains(@class,'v-button-link') and @role='button']"
         f"[.//span[contains(@class,'v-button-caption') and contains(text(), '{company_id}')]]"
     )
     
     company_button = None
+    original_caption = None
     
-    # Try multiple times with wait
+    # ═══════════════════════════════════════════════════════════
+    # STEP 2: Find the button (with retries)
+    # ═══════════════════════════════════════════════════════════
     for attempt in range(5):
         try:
-            # Wait for element to be present
             company_button = WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.XPATH, xpath))
             )
+            print(f"   ✓ Botão encontrado na tentativa {attempt + 1}")
             break
         except TimeoutException:
             print(f"   Tentativa {attempt + 1}: Aguardando elemento...")
             time.sleep(1)
     
-    # If still not found, try alternative approach
+    # Fallback method
     if company_button is None:
         print("   Tentando método alternativo...")
         try:
-            # Look for any button containing the ID
             all_buttons = driver.find_elements(
                 By.XPATH,
                 "//span[contains(@class,'v-button-caption')]"
             )
             
             for btn in all_buttons:
-                if company_id in btn.text:
-                    company_button = btn.find_element(
-                        By.XPATH, 
-                        "./ancestor::div[@role='button']"
-                    )
-                    print(f"   ✓ Encontrado via método alternativo")
-                    break
+                try:
+                    if company_id in btn.text:
+                        company_button = btn.find_element(
+                            By.XPATH, 
+                            "./ancestor::div[@role='button']"
+                        )
+                        print(f"   ✓ Encontrado via método alternativo")
+                        break
+                except:
+                    continue
                     
         except Exception as e:
             print(f"   Método alternativo falhou: {e}")
     
     if company_button is None:
-        print(f"✗ Erro ao clicar na empresa: Elemento não encontrado")
+        print(f"✗ Elemento não encontrado para empresa {company_id}")
         return None
     
+    # Get caption
     try:
         caption_element = company_button.find_element(
             By.XPATH, ".//span[contains(@class,'v-button-caption')]"
         )
         original_caption = caption_element.text.strip()
-        
-        # Scroll and click
-        driver.execute_script(
-            "arguments[0].scrollIntoView({block:'center'});",
-            company_button
-        )
-        time.sleep(0.3)
-        driver.execute_script("arguments[0].click();", company_button)
-        
-        print("✓ Empresa clicada!")
-        return original_caption
-        
-    except Exception as e:
-        print(f"✗ Erro ao clicar na empresa: {e}")
-        return None
-
-def click_next_level(driver, original_caption):
-    """
-    Click on the next-level button (Org/Secretaria) after clicking a company.
+    except:
+        original_caption = company_id
     
-    Args:
-        driver: WebDriver instance
-        original_caption: Caption of the company button (to exclude it)
-        
-    Returns:
-        The clicked button's caption text if successful, None otherwise
-    """
-    print("\n→ Aguardando botões do próximo nível carregarem...")
-    time.sleep(0.7)
-    
-    found_next = False
-    chosen_text = None
-    
-    for attempt in range(6):
+    # ═══════════════════════════════════════════════════════════
+    # STEP 3: Try to click (with retries and verification)
+    # ═══════════════════════════════════════════════════════════
+    for click_attempt in range(3):
         try:
-            captions = driver.find_elements(
-                By.XPATH,
-                "//div[@role='button' and not(contains(@style,'display: none'))]"
-                "//span[contains(@class,'v-button-caption')]"
+            # Scroll into view
+            driver.execute_script(
+                "arguments[0].scrollIntoView({block:'center'});",
+                company_button
             )
+            time.sleep(0.5)
             
-            print(f"   Tentativa {attempt+1}: encontrados {len(captions)} caption(s)")
+            # Try JavaScript click
+            driver.execute_script("arguments[0].click();", company_button)
+            print(f"   Clique executado (tentativa {click_attempt + 1})")
             
-            candidate_captions = []
-            for c in captions:
-                txt = c.text.strip()
+            # ═══════════════════════════════════════════════════════════
+            # STEP 4: Wait and verify page transitioned
+            # ═══════════════════════════════════════════════════════════
+            time.sleep(2)
+            
+            level_after = get_current_level(driver)
+            print(f"   Nível após clique: '{level_after}'")
+            
+            # Check if level changed (favorecido → orgao)
+            if level_after != level_before:
+                print(f"✓ Empresa clicada e página transicionou: {original_caption[:50]}...")
+                return original_caption
+            
+            # Level didn't change - try alternative click methods
+            print(f"   ⚠ Página não transicionou, tentando outro método...")
+            
+            # Try regular click
+            try:
+                company_button.click()
+                time.sleep(2)
+                level_after = get_current_level(driver)
+                if level_after != level_before:
+                    print(f"✓ Empresa clicada (click direto): {original_caption[:50]}...")
+                    return original_caption
+            except:
+                pass
+            
+            # Try ActionChains click
+            try:
+                from selenium.webdriver.common.action_chains import ActionChains
+                actions = ActionChains(driver)
+                actions.move_to_element(company_button).click().perform()
+                time.sleep(2)
+                level_after = get_current_level(driver)
+                if level_after != level_before:
+                    print(f"✓ Empresa clicada (ActionChains): {original_caption[:50]}...")
+                    return original_caption
+            except:
+                pass
+            
+            # Re-find button for next attempt
+            try:
+                company_button = driver.find_element(By.XPATH, xpath)
+            except:
+                pass
+                
+        except Exception as e:
+            print(f"   ⚠ Erro no clique {click_attempt + 1}: {e}")
+            time.sleep(1)
+    
+    print(f"✗ Clique na empresa não funcionou após múltiplas tentativas")
+    return None
+
+# =============================================================================
+# LEVEL DETECTION AND PATH DISCOVERY
+# =============================================================================
+
+def get_current_level(driver):
+    """
+    Identify current level by checking column headers.
+    
+    Returns:
+        String: 'favorecido', 'orgao', 'unidade_gestora', 'objeto', or 'unknown'
+    """
+    try:
+        headers = driver.find_elements(
+            By.XPATH,
+            "//div[contains(@class,'v-grid-column-header-content')]"
+        )
+        
+        for header in headers:
+            text = header.text.strip().lower()
+            if "objeto" in text:
+                return "objeto"
+            elif "unidade gestora" in text:
+                return "unidade_gestora"
+            elif "órgão" in text or "orgao" in text:
+                return "orgao"
+            elif "favorecido" in text:
+                return "favorecido"
+        
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+
+def get_all_buttons_at_level(driver, exclude_texts=None):
+    """
+    Get all clickable button texts at current level.
+    """
+    if exclude_texts is None:
+        exclude_texts = set()
+    
+    try:
+        all_buttons = driver.find_elements(
+            By.XPATH,
+            "//span[contains(@class,'v-button-caption')]"
+        )
+        
+        button_texts = []
+        for b in all_buttons:
+            try:
+                txt = b.text.strip()
                 if not txt:
                     continue
-                if txt == original_caption:
-                    continue  # Skip the company we already clicked
-                
-                # Prefer pattern "digits - name"
+                if txt in exclude_texts:
+                    continue
+                    
+                # Pattern "digits - name" (Org/UG pattern)
                 if " - " in txt:
-                    left, _ = txt.split(" - ", 1)
+                    left = txt.split(" - ", 1)[0]
                     if left.replace(".", "").isdigit():
-                        candidate_captions.append((c, txt))
+                        button_texts.append(txt)
                         continue
                 
-                # Fallback — any non-empty caption
-                candidate_captions.append((c, txt))
-            
-            if not candidate_captions:
-                time.sleep(0.8)
+                # ═══════════════════════════════════════════════════════════
+                # FALLBACK: Also accept alphanumeric IDs (like ES20250183)
+                # ═══════════════════════════════════════════════════════════
+                if " - " in txt:
+                    left = txt.split(" - ", 1)[0]
+                    if left.replace(".", "").replace("/", "").replace("-", "").isalnum():
+                        button_texts.append(txt)
+                        
+            except StaleElementReferenceException:
                 continue
+        
+        return button_texts
+    except Exception as e:
+        print(f"   ⚠ Erro ao obter botões: {e}")
+        return []
+
+def click_specific_button(driver, button_text):
+    """
+    Click a button by its text.
+    """
+    # ═══════════════════════════════════════════════════════════
+    # METHOD 1: Wait for button to appear with retries
+    # ═══════════════════════════════════════════════════════════
+    for attempt in range(5):
+        try:
+            # First, wait for any buttons to be present
+            time.sleep(0.5)
             
-            # Select best match (prefer "digits - name" pattern)
-            chosen = None
-            for c, txt in candidate_captions:
-                if " - " in txt and txt.split(" - ", 1)[0].replace(".", "").isdigit():
-                    chosen = (c, txt)
-                    break
+            # Try exact match first
+            try:
+                button = driver.find_element(
+                    By.XPATH,
+                    f"//span[contains(@class,'v-button-caption') and normalize-space(text())='{button_text}']"
+                )
+            except NoSuchElementException:
+                # Try contains match as fallback
+                button = driver.find_element(
+                    By.XPATH,
+                    f"//span[contains(@class,'v-button-caption') and contains(text(), '{button_text[:30]}')]"
+                )
             
-            if not chosen:
-                chosen = candidate_captions[0]
-            
-            chosen_elem, chosen_text = chosen
-            print(f"   Selecionado para clicar: '{chosen_text}'")
-            
-            # Find the clickable parent button
-            clickable_next = chosen_elem.find_element(
+            # Find clickable parent
+            clickable = button.find_element(
                 By.XPATH, "./ancestor::div[@role='button']"
             )
             
-            # Try to click
-            for click_attempt in range(3):
-                try:
-                    driver.execute_script(
-                        "arguments[0].scrollIntoView({block:'center'});",
-                        clickable_next
-                    )
-                    time.sleep(0.2)
-                    driver.execute_script("arguments[0].click();", clickable_next)
-                    found_next = True
-                    break
-                except Exception as e_click:
-                    print(f"   Clique falhou: {e_click}")
-                    time.sleep(0.5)
+            # Scroll and click
+            driver.execute_script(
+                "arguments[0].scrollIntoView({block:'center'});",
+                clickable
+            )
+            time.sleep(0.3)
+            driver.execute_script("arguments[0].click();", clickable)
             
-            if found_next:
-                time.sleep(1.0)
-                print(f"✓ Próximo nível clicado: {chosen_text}")
-                break
-                
+            print(f"   ✓ Botão clicado: {button_text[:50]}...")
+            time.sleep(1.0)
+            return True
+            
+        except StaleElementReferenceException:
+            print(f"   ⚠ Tentativa {attempt + 1}: Elemento stale, tentando novamente...")
+            time.sleep(0.8)
+        except NoSuchElementException:
+            print(f"   ⚠ Tentativa {attempt + 1}: Elemento não encontrado, aguardando...")
+            time.sleep(1.0)
         except Exception as e:
-            print(f"   Exceção ao localizar botões: {e}")
+            error_msg = str(e).split('\n')[0] if str(e) else "Erro desconhecido"
+            print(f"   ⚠ Tentativa {attempt + 1}: {error_msg}")
             time.sleep(0.8)
     
-    if not found_next:
-        print("⚠️ Não foi possível identificar/clicar o próximo botão")
-        return None
-    
-    return chosen_text
-
-
-def click_ug_button(driver):
-    """
-    Keep clicking through hierarchy levels until reaching the deepest level.
-    Stops when processo links are found or no new buttons to click.
-    """
-    print("\n→ Navegando pelos níveis até chegar ao nível mais profundo...")
-    
-    last_clicked_text = None
-    previous_button_texts = set()
-    
-    max_levels = 10
-    level = 0
-    
-    def has_processo_links():
-        """Check if processo links are visible (means we're at deepest level)."""
-        try:
-            links = driver.find_elements(By.XPATH, "//a[contains(@href, 'processo')]")
-            return len(links) > 0
-        except:
-            return False
-    
-    while level < max_levels:
-        level += 1
-        print(f"\n   --- Nível {level} ---")
+    # ═══════════════════════════════════════════════════════════
+    # METHOD 2: Fallback - search all buttons
+    # ═══════════════════════════════════════════════════════════
+    print(f"   → Tentando método alternativo para: {button_text[:40]}...")
+    try:
+        all_buttons = driver.find_elements(
+            By.XPATH,
+            "//span[contains(@class,'v-button-caption')]"
+        )
         
-        try:
-            # Wait for UI to stabilize
-            time.sleep(1.0)  # ← Increased wait time
-            
-            # ═══════════════════════════════════════════════════════════
-            # CHECK: Are we at the deepest level? (processo links visible)
-            # ═══════════════════════════════════════════════════════════
-            if has_processo_links():
-                print("   ✓ Links de processo encontrados - nível mais profundo atingido.")
-                break
-            
-            # Fresh fetch of elements
+        for btn in all_buttons:
             try:
-                all_buttons = driver.find_elements(
-                    By.XPATH,
-                    "//span[contains(@class,'v-button-caption')]"
-                )
-            except StaleElementReferenceException:
-                time.sleep(0.5)
-                all_buttons = driver.find_elements(
-                    By.XPATH,
-                    "//span[contains(@class,'v-button-caption')]"
-                )
-            
-            # Extract non-empty captions
-            non_empty = []
-            current_texts = set()
-            
-            for b in all_buttons:
-                try:
-                    txt = b.text.strip()
-                    if txt:
-                        non_empty.append((b, txt))
-                        current_texts.add(txt)
-                except StaleElementReferenceException:
-                    continue
-            
-            print(f"   Botões não vazios encontrados: {len(non_empty)}")
-            for i, (_, txt) in enumerate(non_empty[:5]):
-                print(f"      {i+1}: {txt}")
-            
-            # If no buttons found, we've reached the end
-            if len(non_empty) < 1:
-                print("   ✓ Nenhum botão restante - nível mais profundo atingido.")
-                break
-            
-            # If only 1 button and it's the same as last clicked, we're done
-            if len(non_empty) == 1 and non_empty[0][1] == last_clicked_text:
-                print("   ✓ Apenas o botão já clicado restante - nível mais profundo atingido.")
-                break
-            
-            # Find the last button that is NOT the one we just clicked
-            ug_button = None
-            ug_text = None
-            
-            for b, txt in reversed(non_empty):
-                if txt != last_clicked_text:
-                    ug_button = b
-                    ug_text = txt
-                    break
-            
-            # If all buttons are the same as last clicked, we're done
-            if ug_button is None:
-                print("   ✓ Todos os botões já foram clicados - nível mais profundo atingido.")
-                break
-            
-            # ═══════════════════════════════════════════════════════════
-            # REMOVED: "buttons didn't change" check - unreliable
-            # Instead, we always try to click if there's a new button
-            # ═══════════════════════════════════════════════════════════
-            
-            print(f"\n   → Clicando em: {ug_text}")
-            
-            # Click with retry
-            clicked = False
-            for attempt in range(3):
-                try:
-                    fresh_button = driver.find_element(
-                        By.XPATH,
-                        f"//span[contains(@class,'v-button-caption') and normalize-space(text())='{ug_text}']"
-                    )
-                    
-                    clickable = fresh_button.find_element(
+                txt = btn.text.strip()
+                if txt == button_text or button_text in txt:
+                    clickable = btn.find_element(
                         By.XPATH, "./ancestor::div[@role='button']"
                     )
                     
@@ -805,45 +771,313 @@ def click_ug_button(driver):
                     time.sleep(0.3)
                     driver.execute_script("arguments[0].click();", clickable)
                     
-                    print(f"   ✓ Botão clicado: {ug_text}")
-                    clicked = True
-                    last_clicked_text = ug_text
-                    previous_button_texts = current_texts
-                    break
-                    
-                except StaleElementReferenceException:
-                    print(f"   ⚠️ Elemento ficou stale, tentativa {attempt + 1}...")
-                    time.sleep(0.5)
-                except Exception as e:
-                    print(f"   Tentativa de clique falhou: {e}")
-                    time.sleep(0.4)
-            
-            if not clicked:
-                print("   ✗ Não foi possível clicar - parando navegação.")
-                break
-            
-            # Wait for page to update
-            time.sleep(1.5)  # ← Increased wait time
-            
-        except StaleElementReferenceException:
-            print(f"   ⚠️ Stale element no nível {level}, tentando novamente...")
-            time.sleep(0.5)
-            continue
-            
-        except Exception as e:
-            print(f"   Erro no nível {level}: {e}")
+                    print(f"   ✓ Botão clicado (alternativo): {txt[:50]}...")
+                    time.sleep(1.0)
+                    return True
+            except:
+                continue
+        
+        # DEBUG: Show available buttons
+        print(f"   DEBUG: Botões disponíveis:")
+        for i, btn in enumerate(all_buttons[:5]):
+            try:
+                print(f"      {i+1}: '{btn.text.strip()}'")
+            except:
+                pass
+                
+    except Exception as e:
+        print(f"   ✗ Método alternativo falhou: {e}")
+    
+    return False
+
+
+def has_processo_links(driver):
+    """Check if processo links are visible (means we're at deepest level)."""
+    try:
+        links = driver.find_elements(By.XPATH, "//a[contains(@href, 'processo')]")
+        return len(links) > 0
+    except:
+        return False
+
+
+def discover_paths_recursive(driver, current_path, all_paths, company_id, original_caption, max_depth=10):
+    """
+    Recursively discover all paths by exploring each branch.
+    """
+    if len(current_path) >= max_depth:
+        return
+    
+    # ═══════════════════════════════════════════════════════════
+    # WAIT FOR PAGE TO LOAD (from original click_next_level)
+    # ═══════════════════════════════════════════════════════════
+    print("\n   → Aguardando botões carregarem...")
+    
+    buttons = []
+    level = "unknown"
+    
+    for attempt in range(6):
+        time.sleep(1.5)
+        
+        # Check if we're at the deepest level (processo links visible)
+        if has_processo_links(driver):
+            all_paths.append(current_path.copy())
+            print(f"   ✓ Caminho completo encontrado: {' → '.join(current_path) if current_path else '(direto)'}")
+            return
+        
+        # Get current level
+        level = get_current_level(driver)
+        
+        # Get all buttons at this level (exclude what's already in path + company)
+        exclude = set(current_path) | {original_caption}
+        buttons = get_all_buttons_at_level(driver, exclude)
+        
+        if buttons:
+            print(f"   Tentativa {attempt + 1}: Nível '{level}', {len(buttons)} botão(ões) encontrado(s)")
             break
+        else:
+            print(f"   Tentativa {attempt + 1}: Nível '{level}', aguardando botões...")
     
-    if last_clicked_text:
-        print(f"\n✓ Navegação completa! Último nível: {last_clicked_text}")
+    if not buttons:
+        # No buttons found after retries - check for processo links one more time
+        if has_processo_links(driver):
+            all_paths.append(current_path.copy())
+            print(f"   ✓ Caminho completo (sem botões): {' → '.join(current_path) if current_path else '(direto)'}")
+        elif current_path:
+            # Record incomplete path
+            all_paths.append(current_path.copy())
+            print(f"   ⚠ Caminho incompleto: {' → '.join(current_path)}")
+        else:
+            print("   ✗ Nenhum botão encontrado no primeiro nível")
+        return
+    
+    print(f"   Botões encontrados: {buttons[:5]}{'...' if len(buttons) > 5 else ''}")
+    
+    # Explore each button
+    for i, btn_text in enumerate(buttons):
+        print(f"\n   --- Explorando branch {i+1}/{len(buttons)}: {btn_text} ---")
+        
+        # Click this button
+        if click_specific_button(driver, btn_text):
+            # Recurse with updated path
+            new_path = current_path + [btn_text]
+            discover_paths_recursive(driver, new_path, all_paths, company_id, original_caption, max_depth)
+            
+            # Reset to explore next branch (if there are more)
+            if i < len(buttons) - 1:
+                print(f"   ↩ Resetando para explorar próximo branch...")
+                if not reset_and_navigate_to_company(driver, company_id):
+                    print("   ✗ Falha ao resetar")
+                    return
+                
+                # Re-navigate to current path position
+                for path_btn in current_path:
+                    time.sleep(0.5)
+                    if not click_specific_button(driver, path_btn):
+                        print(f"   ✗ Falha ao re-navegar para: {path_btn}")
+                        return
+        else:
+            print(f"   ✗ Não foi possível clicar em: {btn_text}")
+
+def reset_and_navigate_to_company(driver, company_id):
+    """
+    Reset to contracts page and navigate back to company.
+    """
+    from config import FILTER_YEAR, CONTRACTS_URL, BASE_URL
+    
+    print(f"\n   ↩ Resetando para página de contratos...")
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 1: Go to HOME first to fully reset Vaadin state
+    # ═══════════════════════════════════════════════════════════
+    print(f"   STEP 1: Navegando para HOME para resetar estado...")
+    driver.get(BASE_URL)
+    time.sleep(2)
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 2: Now navigate to contracts page
+    # ═══════════════════════════════════════════════════════════
+    print(f"   STEP 2: Navegando para página de contratos...")
+    driver.get(CONTRACTS_URL)
+    time.sleep(2)
+    
+    # Wait for page to load
+    try:
+        wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]), timeout=10)
+        print("   STEP 2: ✓ Tabela carregada")
+    except TimeoutException:
+        print("   STEP 2: ⚠ Timeout, tentando refresh...")
+        driver.refresh()
+        time.sleep(3)
+        try:
+            wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]), timeout=10)
+            print("   STEP 2: ✓ Tabela carregada após refresh")
+        except TimeoutException:
+            print("   STEP 2: ✗ Falha ao carregar página")
+            return False
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 3: Set year filter if needed
+    # ═══════════════════════════════════════════════════════════
+    if FILTER_YEAR:
+        print(f"   STEP 3: Aplicando filtro de ano: {FILTER_YEAR}")
+        set_year_filter(driver, FILTER_YEAR)
+        time.sleep(1)
     else:
-        print("\n✗ Nenhum botão foi clicado.")
+        print("   STEP 3: Sem filtro de ano")
     
-    return last_clicked_text
+    # ═══════════════════════════════════════════════════════════
+    # STEP 4: Verify we're at 'favorecido' level
+    # ═══════════════════════════════════════════════════════════
+    level = get_current_level(driver)
+    print(f"   STEP 4: Nível atual: '{level}'")
     
-# =============================================================================
-# DOCUMENT LINK EXTRACTION
-# =============================================================================
+    if level != "favorecido":
+        print(f"   STEP 4: ⚠ Esperado 'favorecido', forçando refresh completo...")
+        # Force complete refresh
+        driver.get(BASE_URL)
+        time.sleep(2)
+        driver.get(CONTRACTS_URL)
+        time.sleep(3)
+        if FILTER_YEAR:
+            set_year_filter(driver, FILTER_YEAR)
+        time.sleep(1)
+        
+        level = get_current_level(driver)
+        print(f"   STEP 4: Nível após refresh: '{level}'")
+        
+        if level != "favorecido":
+            print("   STEP 4: ✗ Não conseguiu resetar para 'favorecido'")
+            return False
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 5: Filter by company
+    # ═══════════════════════════════════════════════════════════
+    print(f"   STEP 5: Filtrando por empresa: {company_id}")
+    if not filter_by_company(driver, company_id):
+        print("   STEP 5: ✗ Falha ao filtrar")
+        return False
+    print("   STEP 5: ✓ Filtro aplicado")
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 6: Wait for filter results to load
+    # ═══════════════════════════════════════════════════════════
+    print("   STEP 6: Aguardando resultados do filtro...")
+    time.sleep(3)
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 7: Click on company
+    # ═══════════════════════════════════════════════════════════
+    print(f"   STEP 7: Clicando na empresa...")
+    caption = click_company_button(driver, company_id)
+    if not caption:
+        print("   STEP 7: ✗ Falha ao clicar na empresa")
+        return False
+    
+    print(f"   STEP 7: ✓ Empresa clicada: {caption[:50]}...")
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 8: Verify we're now at 'orgao' level
+    # ═══════════════════════════════════════════════════════════
+    time.sleep(2)
+    level = get_current_level(driver)
+    print(f"   STEP 8: Nível após clicar empresa: '{level}'")
+    
+    if level != "orgao":
+        print(f"   STEP 8: ⚠ Esperado 'orgao', atual: '{level}'")
+        # Still return True, the click might have worked but level detection is off
+    
+    return True
+
+def discover_all_paths(driver, company_id, original_caption):
+    """
+    Discover all paths from company to deepest level.
+    
+    Args:
+        driver: WebDriver instance
+        company_id: Company ID
+        original_caption: Company button caption
+        
+    Returns:
+        List of paths, where each path is a list of button texts
+    """
+    print("\n" + "="*60)
+    print("DESCOBRINDO TODOS OS CAMINHOS")
+    print("="*60)
+    
+    all_paths = []
+    discover_paths_recursive(driver, [], all_paths, company_id, original_caption)
+    
+    print(f"\n✓ Total de caminhos descobertos: {len(all_paths)}")
+    for i, path in enumerate(all_paths, 1):
+        print(f"   {i}: {' → '.join(path)}")
+    
+    return all_paths
+
+
+def follow_path_and_collect(driver, company_id, path):
+    """
+    Follow a specific path and collect all processos.
+    """
+    print(f"\n   → Seguindo caminho: {' → '.join(path) if path else '(nível atual)'}")
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 1: Reset and navigate to company
+    # ═══════════════════════════════════════════════════════════
+    if not reset_and_navigate_to_company(driver, company_id):
+        print("   ✗ Falha ao resetar para seguir caminho")
+        return []
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 2: Wait for page to transition after company click
+    # ═══════════════════════════════════════════════════════════
+    print("   → Aguardando transição de página...")
+    time.sleep(2)
+    
+    # Wait for buttons to appear (like original click_next_level did)
+    for attempt in range(6):
+        buttons = get_all_buttons_at_level(driver, exclude_texts=set())
+        if buttons:
+            print(f"   ✓ {len(buttons)} botões disponíveis após {attempt + 1} tentativa(s)")
+            break
+        time.sleep(0.8)
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 3: Follow the path
+    # ═══════════════════════════════════════════════════════════
+    for i, btn_text in enumerate(path):
+        print(f"   → Clicando em [{i+1}/{len(path)}]: {btn_text}")
+        
+        # Wait for this specific button to be clickable
+        if not click_specific_button(driver, btn_text):
+            print(f"   ✗ Falha ao clicar em: {btn_text}")
+            return []
+        
+        # Wait for page to update after each click
+        print(f"   → Aguardando próximo nível...")
+        time.sleep(1.5)
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 4: Wait for deepest level
+    # ═══════════════════════════════════════════════════════════
+    time.sleep(1.5)
+    
+    # Check if we're at deepest level
+    for attempt in range(5):
+        if has_processo_links(driver):
+            print("   ✓ Links de processo encontrados")
+            break
+        time.sleep(1)
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 5: Collect processos
+    # ═══════════════════════════════════════════════════════════
+    doc_links = get_all_document_links(driver)
+    
+    print(f"   ✓ Coletados {len(doc_links)} processo(s):")
+    for dl in doc_links:
+        print(f"      - {dl.get('processo', 'N/A')}: {dl.get('href', 'N/A')[:50]}...")
+    
+    return doc_links
 
 def get_all_document_links(driver):
     """
