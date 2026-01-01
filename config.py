@@ -66,3 +66,27 @@ LOCATORS = {
 # =============================================================================
 _year_env = os.getenv("FILTER_YEAR", "")
 FILTER_YEAR = int(_year_env) if _year_env.strip().isdigit() else None
+
+# =============================================================================
+# PROCESSO PORTAL SETTINGS
+# =============================================================================
+PROCESSO_BASE_URL = "https://acesso.processo.rio"
+PROCESSO_TRANSPARENCY_URL = "https://acesso.processo.rio/sigaex/public/app/transparencia/processo"
+
+# Target documents to extract
+TARGET_DOCUMENTS = [
+    {
+        "pattern": "Íntegra do contrato/demais instrumentos jurídicos celebrados",
+        "tipo": "contrato",
+        "priority": 1
+    },
+    {
+        "pattern": "Íntegra dos termos aditivos celebrados",
+        "tipo": "aditivo", 
+        "priority": 2
+    }
+]
+
+# Temp download folder (files deleted after extraction)
+TEMP_DOWNLOAD_PATH = os.path.join("data", "temp_downloads")
+EXTRACTED_TEXTS_PATH = os.path.join("data", "extracted_texts")
