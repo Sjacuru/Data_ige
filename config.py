@@ -47,6 +47,24 @@ DATA_RAW_PATH = os.path.join("data", "raw")
 DATA_PROCESSED_PATH = os.path.join("data", "processed")
 DATA_OUTPUTS_PATH = os.path.join("data", "outputs")
 
+from pathlib import Path
+
+# Project root (Data_ige)
+BASE_DIR = Path(__file__).resolve().parent
+
+# Data directories
+DATA_DIR = BASE_DIR / "data"
+
+DOWNLOADS_DIR = DATA_DIR / "downloads"
+PROCESSOS_DIR = DOWNLOADS_DIR / "processos"
+
+OUTPUTS_DIR = DATA_DIR / "outputs"
+EXTRACTIONS_DIR = DATA_DIR / "extractions"
+
+# Files
+ANALYSIS_SUMMARY_CSV = OUTPUTS_DIR / "analysis_summary.csv"
+
+
 # =============================================================================
 # XPATH LOCATORS (centralized for easy maintenance)
 # =============================================================================

@@ -14,6 +14,16 @@ from Contract_analisys.contract_extractor import (
     extract_text_from_pdf
 )
 
+from config import (
+    PROCESSOS_DIR,
+    ANALYSIS_SUMMARY_CSV,
+    EXTRACTIONS_DIR
+)
+
+PDF_FOLDER = PROCESSOS_DIR
+CSV_PATH = ANALYSIS_SUMMARY_CSV
+OUTPUT_FOLDER = EXTRACTIONS_DIR
+
 st.set_page_config(
     page_title="Contract Analyzer - Processo.rio",
     page_icon="📄",
@@ -28,9 +38,13 @@ if "extraction_results" not in st.session_state:
 if "processing" not in st.session_state:
     st.session_state.processing = False
 
-PDF_FOLDER = "DATA_IGE/data/downloads/processos" # Need to discover how to access this folder. DATA_IGE one folder above data, which is current working directory
-CSV_PATH = "DATA_IGE/data/outputs/analysis_summary.csv" # Need to discover how to access this folder. DATA_IGE one folder above data, which is current working directory
-OUTPUT_FOLDER = "data/extractions"
+
+st.sidebar.markdown("### Debug paths")
+st.sidebar.code(f"""
+PDF_FOLDER = {PDF_FOLDER}
+CSV_PATH = {CSV_PATH }
+OUTPUT_FOLDER = {OUTPUT_FOLDER}
+""")
 
 tab1, tab2, tab3, tab4 = st.tabs(["📊 Dashboard", "🔄 Extract Data", "📋 Results", "📥 Export"])
 
@@ -108,7 +122,7 @@ with tab2:
         
         if uploaded_pdfs:
             for pdf in uploaded_pdfs:
-                save_path = Path(PDF_FOLDER) / pdf.name
+                save_path = PDF_FOLDER / pdf.name
                 with open(save_path, "wb") as f:
                     f.write(pdf.getbuffer())
             st.success(f"Uploaded {len(uploaded_pdfs)} PDF files!")
@@ -132,8 +146,8 @@ with tab2:
                 
                 with st.spinner("Extracting contract data..."):
                     results = process_all_contracts(
-                        pdf_folder=PDF_FOLDER,
-                        csv_path=CSV_PATH,
+                        pdf_folder=str(PDF_FOLDER),
+                        csv_path=str(CSV_PATH),
                         progress_callback=update_progress
                     )
                 
@@ -299,8 +313,8 @@ with tab4:
             if st.button("Generate Excel", type="primary"):
                 with st.spinner("Generating Excel file..."):
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    excel_path = f"{OUTPUT_FOLDER}/contract_data_{timestamp}.xlsx"
-                    export_to_excel(results, excel_path)
+                    excel_path = OUTPUT_FOLDER / f"contract_data_{timestamp}.xlsx"
+                    export_to_excel(results, str(excel_path))
                 
                 st.success(f"Excel file created!")
                 
@@ -319,8 +333,8 @@ with tab4:
             if st.button("Generate JSON", type="primary"):
                 with st.spinner("Generating JSON file..."):
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    json_path = f"{OUTPUT_FOLDER}/contract_data_{timestamp}.json"
-                    export_to_json(results, json_path)
+                    json_path = OUTPUT_FOLDER / f"contract_data_{timestamp}.json"
+                    export_to_json(results, str(json_path))
                 
                 st.success(f"JSON file created!")
                 

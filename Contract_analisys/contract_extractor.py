@@ -1,24 +1,32 @@
+
 import os
 import json
 import re
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed # remove unused concurrent.futures imports
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
 import fitz
 import pandas as pd
-from openai import OpenAI
 
-AI_INTEGRATIONS_OPENAI_API_KEY = os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY")
-AI_INTEGRATIONS_OPENAI_BASE_URL = os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+from openai import OpenAI
+from langchain_groq import ChatGroq
+
+
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv(usecwd=True))
 
 # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
 # do not change this unless explicitly requested by the user
-openai_client = OpenAI(
-    api_key=AI_INTEGRATIONS_OPENAI_API_KEY,
-    base_url=AI_INTEGRATIONS_OPENAI_BASE_URL
-)
+os.getenv("GROQ_API_KEY") # Just for testing if the key is found
 
+MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
+model = ChatGroq(model_name=MODEL_NAME, 
+                  temperature=0.5, 
+                  max_tokens=512,
+                  #api_key=os.getenv("GROQ_API_KEY")) # If the apy_key is not passed here, it is read from the environment variable GROQ_API_KEY
+                  )
 
 def is_rate_limit_error(exception: BaseException) -> bool:
     error_msg = str(exception)
@@ -29,6 +37,7 @@ def is_rate_limit_error(exception: BaseException) -> bool:
         or "rate limit" in error_msg.lower()
         or (hasattr(exception, "status_code") and getattr(exception, "status_code", None) == 429)
     )
+
 
 
 def extract_text_from_pdf(pdf_path: str) -> dict:
@@ -113,7 +122,7 @@ Retorne APENAS o JSON válido, sem explicações adicionais."""
 
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
-    response = openai_client.chat.completions.create(
+    response = ChatGroq.chat.completions.create(
         model="gpt-5",
         messages=[
             {"role": "system", "content": "Você é um especialista em análise de contratos públicos brasileiros. Extraia informações estruturadas de contratos com precisão."},
@@ -169,7 +178,7 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
     }
 
 
-def load_analysis_summary(csv_path: str = "data/analysis_summary.csv") -> pd.DataFrame:
+def load_analysis_summary(csv_path: str) -> pd.DataFrame:
     """Load the analysis summary CSV file."""
     try:
         df = pd.read_csv(csv_path)
@@ -198,11 +207,11 @@ def find_processo_id_for_file(file_name: str, summary_df: pd.DataFrame) -> str:
 
 
 def process_all_contracts(
-    pdf_folder: str = "data/downloads/processos", # Hardcoded path to match app.py change
-    csv_path: str = "data/analysis_summary.csv", # Hardcoded path to match app.py change
-    max_workers: int = 2,
+    pdf_folder: str,
+    csv_path: str,
     progress_callback=None
 ) -> list:
+    
     """Process all contracts in the folder with progress tracking."""
     
     pdf_folder = Path(pdf_folder)
@@ -229,7 +238,7 @@ def process_all_contracts(
     return results
 
 
-def export_to_excel(results: list, output_path: str = "data/extractions/contract_data.xlsx") -> str:
+def export_to_excel(results: list, output_path: str) -> str:
     """Export extracted data to Excel format."""
     
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -274,7 +283,7 @@ def export_to_excel(results: list, output_path: str = "data/extractions/contract
     return output_path
 
 
-def export_to_json(results: list, output_path: str = "data/extractions/contract_data.json") -> str:
+def export_to_json(results: list, output_path: str) -> str:
     """Export full extracted data to JSON format."""
     
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -301,7 +310,7 @@ def export_to_json(results: list, output_path: str = "data/extractions/contract_
     return output_path
 
 
-def get_folder_stats(pdf_folder: str = "data/downloads/processos") -> dict: # Hardcoded path to match app.py change
+def get_folder_stats(pdf_folder: str) -> dict: 
     """Get statistics about the PDF folder."""
     pdf_folder = Path(pdf_folder)
     

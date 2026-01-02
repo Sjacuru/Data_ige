@@ -6,6 +6,8 @@ __pycache__/
 # Ignora a pasta do ambiente Conda se ela fosse criada dentro do projeto (o que não é o seu caso, mas é bom prevenir)
 venv/
 .venv/
+env/
+.env/
 
 # Ignora a pasta de ambientes Conda (se você criou o ambiente globalmente, não deve subir para o GitHub)
 # IMPORTANTE: Se o seu ambiente Conda NÃO estiver dentro do repositório, você NÃO precisa dessa linha.
