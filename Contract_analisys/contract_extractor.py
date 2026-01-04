@@ -1,189 +1,566 @@
+#%%
+"""
+Contract Extractor v2.0
+======================
+Extracts and analyzes contracts using AI.
 
+Components:
+- PDF text extraction (PyMuPDF)
+- AI-powered structured data extraction (Groq/LLaMA)
+- Cross-reference with analysis_summary.csv
+- Risk flag identification
+- Export to Excel/JSON
+"""
+import fitz  # PyMuPDF
+import pytesseract
+from PIL import Image
+import io
+
+from logging import exception
 import os
 import json
 import re
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed # remove unused concurrent.futures imports
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
+from pathlib import Path 
+from typing import Optional, Callable
+from datetime import datetime
 
+from concurrent.futures import ThreadPoolExecutor, as_completed # remove unused concurrent.futures imports
+
+from pdf2image import convert_from_path
 import fitz
 import pandas as pd
 
-from openai import OpenAI
 from langchain_groq import ChatGroq
 
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
 
 from dotenv import load_dotenv, find_dotenv
 
-load_dotenv(find_dotenv(usecwd=True))
+import platform
 
-# the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-# do not change this unless explicitly requested by the user
-os.getenv("GROQ_API_KEY") # Just for testing if the key is found
+# ============================================================
+# CONFIGURATION
+# ============================================================
 
-MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
+TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+TESSDATA_DIR = r"C:\Program Files\Tesseract-OCR\tessdata"
+POPPLER_PATH = r"C:\poppler-25.12.0\Library\bin"
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env") 
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY") 
+if not GROQ_API_KEY:
+    raise EnvironmentError("❌ GROQ_API_KEY not found in environment variables!")
+
+
+MODEL_NAME = "llama-3.3-70b-versatile"
 model = ChatGroq(model_name=MODEL_NAME, 
-                  temperature=0.5, 
-                  max_tokens=512,
-                  #api_key=os.getenv("GROQ_API_KEY")) # If the apy_key is not passed here, it is read from the environment variable GROQ_API_KEY
+                  temperature=0.3, 
+                  max_tokens=2048,
+                  api_key=os.getenv("GROQ_API_KEY") 
                   )
 
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+os.environ["TESSDATA_PREFIX"] = TESSDATA_DIR
+
+if not os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
+    raise FileNotFoundError("Tesseract executable not found!")
+
+# Risk keywords to flag in contracts
+# ============================================================
+# CONTRACT TYPE IDENTIFICATION (replaces RISK_KEYWORDS)
+# ============================================================
+
+TYPES_KEYWORDS = {
+    "prestacao_servicos": [
+        "prestação de serviços", "serviços continuados", "mão de obra",
+        "terceirização", "outsourcing", "serviços técnicos"
+    ],
+    "fornecimento": [
+        "fornecimento", "aquisição", "compra", "material de consumo",
+        "equipamentos", "bens permanentes", "material permanente"
+    ],
+    "obras": [
+        "obra", "construção", "reforma", "edificação", "infraestrutura",
+        "engenharia civil", "projeto executivo"
+    ],
+    "locacao": [
+        "locação", "aluguel", "arrendamento", "cessão de uso",
+        "comodato", "imóvel"
+    ],
+    "consultoria": [
+        "consultoria", "assessoria", "parecer técnico", "estudo",
+        "diagnóstico", "auditoria"
+    ],
+    "tecnologia": [
+        "software", "sistema", "licença", "tecnologia da informação",
+        "TI", "suporte técnico", "manutenção de sistemas"
+    ],
+    "saude": [
+        "saúde", "medicamento", "insumo hospitalar", "equipamento médico",
+        "serviço de saúde", "atendimento médico"
+    ],
+    "educacao": [
+        "educação", "ensino", "capacitação", "treinamento",
+        "material didático", "escola"
+    ]
+}
+
+def identify_contract_types(text: str) -> dict:
+    """
+    Identify contract types based on keywords in the text.
+    
+    Args:
+        text: Full contract text
+        
+    Returns:
+        dict with identified types and confidence
+    """
+    text_lower = text.lower()
+    found_types = {}
+    
+    for type_name, keywords in TYPES_KEYWORDS.items():
+        matches = []
+        for keyword in keywords:
+            count = text_lower.count(keyword)
+            if count > 0:
+                matches.append({"keyword": keyword, "count": count})
+        
+        if matches:
+            total_matches = sum(m["count"] for m in matches)
+            found_types[type_name] = {
+                "matches": matches,
+                "total_count": total_matches
+            }
+    
+    # Determine primary type (most matches)
+    primary_type = None
+    max_count = 0
+    
+    for type_name, data in found_types.items():
+        if data["total_count"] > max_count:
+            max_count = data["total_count"]
+            primary_type = type_name
+    
+    return {
+        "primary_type": primary_type.replace("_", " ").title() if primary_type else "Não identificado",
+        "types_found": list(found_types.keys()),
+        "confidence": "high" if max_count > 5 else "medium" if max_count > 2 else "low",
+        "details": found_types
+    }
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
 def is_rate_limit_error(exception: BaseException) -> bool:
-    error_msg = str(exception)
-    return (
-        "429" in error_msg
-        or "RATELIMIT_EXCEEDED" in error_msg
-        or "quota" in error_msg.lower()
-        or "rate limit" in error_msg.lower()
-        or (hasattr(exception, "status_code") and getattr(exception, "status_code", None) == 429)
+    """Return True if the exception indicates a rate limit error."""
+    error_msg = str(exception).lower()
+
+    keywords = (
+        "429",
+        "rate limit",
+        "ratelimit",
+        "quota",
+        "too many requests",
+        "rate_limit_exceeded",
     )
 
+    if any(k in error_msg for k in keywords):
+        return True
 
+    status_code = getattr(exception, "status_code", None)
+    return status_code == 429
+
+
+def extract_json_from_response(text: str) -> dict:
+    """
+    Extract JSON from AI response, handling markdown code blocks.
+    
+    Handles formats like:
+    - Pure JSON: {"key": "value"}
+    - Markdown: ```json\n{"key": "value"}\n```
+    - Mixed text with JSON embedded
+    """
+    if not text:
+        return {}
+    
+    # Try direct parse first
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    
+    # Try to extract from markdown code block
+    patterns = [
+        r'```json\s*([\s\S]*?)\s*```',  # ```json ... ```
+        r'```\s*([\s\S]*?)\s*```',       # ``` ... ```
+        r'\{[\s\S]*\}',                   # Raw JSON object
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            try:
+                json_str = match.group(1) if '```' in pattern else match.group(0)
+                return json.loads(json_str)
+            except (json.JSONDecodeError, IndexError):
+                continue
+    
+    return {"parse_error": "Could not extract valid JSON from response"}
+
+
+def identify_risk_flags(text: str) -> dict:
+    """
+    Identify risk flags in contract text.
+    
+    Returns:
+        dict with risk level and found keywords
+    """
+    text_lower = text.lower()
+    found_flags = {"high": [], "medium": [], "low": []}
+
+    for level, keywords in TYPES_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in text_lower:
+                found_flags[level].append(keyword)
+    
+    # Determine overall risk level
+    if found_flags["high"]:
+        overall_risk = "high"
+    elif found_flags["medium"]:
+        overall_risk = "medium"
+    elif found_flags["low"]:
+        overall_risk = "low"
+    else:
+        overall_risk = "none"
+    
+    total_flags = sum(len(v) for v in found_flags.values())
+    
+    return {
+        "risk_level": overall_risk,
+        "total_flags": total_flags,
+        "flags_detail": found_flags
+    }
+
+# ============================================================
+# PDF EXTRACTION
+# ============================================================
+
+def extract_paragraphs(text: str, min_length: int = 20) -> list:
+    """
+    Extract clean paragraphs from text.
+    
+    Args:
+        text: Raw text from PDF
+        min_length: Minimum paragraph length to include
+        
+    Returns:
+        List of cleaned paragraph strings
+    """
+    paragraphs = re.split(r'\n\s*\n', text)
+    cleaned = []
+
+    for p in paragraphs:
+        # Normalize whitespace
+        cleaned_p = ' '.join(p.split())
+        if len(cleaned_p) > min_length:
+            cleaned.append(cleaned_p)
+    return cleaned
+
+def setup_ocr():
+    """
+    Force and validate Tesseract OCR.
+    Must be called before any OCR operation.
+    """
+    if not os.path.exists(TESSERACT_PATH):
+        raise FileNotFoundError(f"Tesseract not found: {TESSERACT_PATH}")
+
+    pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+
+    # Validate execution (fast, no OCR yet)
+    try:
+        pytesseract.get_tesseract_version()
+    except Exception as e:
+        raise RuntimeError(f"Tesseract OCR not usable: {e}")
 
 def extract_text_from_pdf(pdf_path: str) -> dict:
-    """Extract text from a PDF file using PyMuPDF."""
     try:
+        setup_ocr()
+
         doc = fitz.open(pdf_path)
-        pages = []
-        full_text = ""
-        
-        for page_num in range(len(doc)):
-            page = doc[page_num]
+        native_text = ""
+        char_count_per_page = []
+
+        for page in doc:
             text = page.get_text("text")
-            pages.append({
-                "page_number": page_num + 1,
-                "text": text
-            })
-            full_text += text + "\n\n"
-        
+            native_text += text
+            char_count_per_page.append(len(text.strip()))
+
         doc.close()
-        
+
+        avg_chars = sum(char_count_per_page) / max(len(char_count_per_page), 1)
+
+        # 🔑 CRITICAL DECISION POINT
+        if avg_chars < 300:
+            print("🧠 Low text density detected → switching to full OCR (pdf2image)")
+            full_text = extract_text_with_pdf2image(pdf_path)
+            source = "ocr_pdf2image"
+        else:
+            print("📄 Native text layer sufficient")
+            full_text = native_text
+            source = "native"
+
+        paragraphs = extract_paragraphs(full_text)
+
         return {
             "success": True,
             "file_path": pdf_path,
             "file_name": Path(pdf_path).name,
-            "total_pages": len(pages),
-            "pages": pages,
-            "full_text": full_text.strip()
+            "total_pages": len(char_count_per_page),
+            "total_chars": len(full_text),
+            "full_text": full_text.strip(),
+            "paragraphs": paragraphs,
+            "paragraph_count": len(paragraphs),
+            "extraction_source": source
         }
+
     except Exception as e:
         return {
             "success": False,
             "file_path": pdf_path,
             "file_name": Path(pdf_path).name,
-            "error": str(e)
+            "error": str(e),
+            "error_type": type(e).__name__
         }
 
+def safe_ocr(img):
+    try:
+        return pytesseract.image_to_string(
+            img,
+            lang="por",
+            config="--psm 6 --oem 3"
+        )
+    except pytesseract.TesseractError:
+        # fallback to English if por is not available
+        return pytesseract.image_to_string(
+            img,
+            lang="eng",
+            config="--psm 6 --oem 3"
+        )
 
-def extract_paragraphs(text: str) -> list:
-    """Extract paragraphs from text for later analysis."""
-    paragraphs = re.split(r'\n\s*\n', text)
-    cleaned = []
-    for p in paragraphs:
-        cleaned_p = ' '.join(p.split())
-        if len(cleaned_p) > 20:
-            cleaned.append(cleaned_p)
-    return cleaned
+def extract_text_with_pdf2image(pdf_path: str) -> str:
+    """
+    OCR the entire PDF using pdf2image + Tesseract.
+    Returns full extracted text.
+    """
+    pages = convert_from_path(
+        pdf_path,
+        dpi=300,
+        poppler_path=POPPLER_PATH
+    )
 
+    full_text = []
+
+    for i, img in enumerate(pages, start=1):
+        text = safe_ocr(img)
+        full_text.append(text)
+
+    return "\n\n".join(full_text)
+
+# ============================================================
+# AI ANALYSIS
+# ============================================================
 
 @retry(
     stop=stop_after_attempt(5),
-    wait=wait_exponential(multiplier=1, min=2, max=64),
+    wait=wait_exponential(multiplier=2, min=4, max=120),
     retry=retry_if_exception(is_rate_limit_error),
     reraise=True
 )
-def analyze_contract_with_ai(text: str, processo_id: str = "") -> dict:
-    """Use OpenAI to extract structured contract information."""
-    
-    truncated_text = text[:15000] if len(text) > 15000 else text
-    
-    prompt = f"""Analise o seguinte texto de contrato brasileiro e extraia as informações estruturadas em formato JSON.
 
+def analyze_contract_with_ai(text: str, processo_id: str = "") -> dict:
+    """
+    Use AI to extract structured contract information.
+    
+    Args:
+        text: Full contract text
+        processo_id: Optional process identifier
+        
+    Returns:
+        dict with extracted contract fields
+    """
+    # Truncate to avoid token limits (adjust based on model)
+    
+    max_chars = 12000
+    truncated_text = text[:max_chars] if len(text) > max_chars else text
+    was_truncated = len(text) > max_chars
+
+    prompt = f"""Analise o seguinte texto de contrato e extraia as informações estruturadas
+    em formato JSON.
+
+IMPORTANTE:
+- Retorne APENAS um objeto JSON válido, sem texto adicional
+- Use null para campos não encontrados
+- Datas no formato DD-MM-YYYY
+- Valores monetários como string (ex: "R$ 1.234,56")
+    
 TEXTO DO CONTRATO:
 {truncated_text}
+Extraia este JSON:
+{{
+  "valor_contrato": null,  se não encontrar o valor total do contrato (string com o valor monetário) geralmente no início do contrato 
+  "moeda": null, se não encontrar a moeda do contrato (ex: "BRL", "USD")
+  "data_inicio": null, se não encontrar a data de início do contrato (formato DD-MM-YYYY)
+  "data_fim": null, se não encontrar a Data de término/vigência calcule com base na vigência adicionando o período de vigência à data de início - (formato DD-MM-YYYY se possível), pois a data de fim pode não estar explícita no contrato. 
+  "vigencia_meses": null, se não encontrar o período de vigência em meses (número) geralmente expresso como "vigência de XX meses" ou similar
+  "contratante": null, se não encontrar o nome da parte contratante (geralmente um órgão público municipal, estadual ou federal)
+  "contratante_cnpj": null, se não encontrar o CNPJ da parte contratante
+  "contratada": null, se não encontrar o nome da parte contratada
+  "contratada_cnpj": null, se não encontrar o CNPJ da parte contratada
+  "objeto": null, se não encontrar a descrição do objeto/finalidade do contrato
+  "clausulas_principais": [], se não encontrar as principais cláusulas do contrato (array de strings com resumos)
+  "tipo_contrato": null, se não encontrar o tipo do contrato (ex: "Prestação de Serviços", "Fornecimento", "Obra", etc.)
+  "modalidade_licitacao": null, se não encontrar a modalidade de licitação se aplicável
+  "numero_contrato": null, se não encontrar o número/identificador do contrato
+  "processo_administrativo": null, se não encontrar o número do processo administrativo relacionado ao contrato (formto: XXX-XXX-0000/00000 or 0000/###/000000 or ###/000000)
+  "numero_processo": null se não encontrar o número do processo relacionado ao contrato (string), geralmente encontrado no cabeçalho ou no início do contrato
+  "foi_truncado": {"true" if was_truncated else "false"}
+}}"""
 
-Extraia as seguintes informações (use null se não encontrar):
-1. "valor_contrato": Valor total do contrato (string com o valor monetário)
-2. "moeda": Moeda do contrato (ex: "BRL", "USD")
-3. "data_inicio": Data de início do contrato (formato YYYY-MM-DD se possível)
-4. "data_fim": Data de término/vigência (formato YYYY-MM-DD se possível)
-5. "vigencia_meses": Período de vigência em meses (número)
-6. "contratante": Nome da parte contratante
-7. "contratante_cnpj": CNPJ do contratante
-8. "contratada": Nome da parte contratada
-9. "contratada_cnpj": CNPJ da contratada
-10. "objeto": Descrição do objeto/finalidade do contrato (resumo)
-11. "clausulas_principais": Lista das principais cláusulas identificadas (array de strings com resumos)
-12. "tipo_contrato": Tipo do contrato (ex: "Prestação de Serviços", "Fornecimento", "Obra", etc.)
-13. "modalidade_licitacao": Modalidade de licitação se aplicável
-14. "numero_contrato": Número/identificador do contrato
-
-Retorne APENAS o JSON válido, sem explicações adicionais."""
-
-    # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-    # do not change this unless explicitly requested by the user
-    response = ChatGroq.chat.completions.create(
-        model="gpt-5",
-        messages=[
-            {"role": "system", "content": "Você é um especialista em análise de contratos públicos brasileiros. Extraia informações estruturadas de contratos com precisão."},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=4096
-    )
-    
     try:
-        result = json.loads(response.choices[0].message.content or "{}")
-    except json.JSONDecodeError:
-        result = {"error": "Failed to parse AI response"}
-    
-    result["processo_id"] = processo_id
-    return result
+        response = model.invoke(prompt)
 
+        content = (
+            response.content
+            if hasattr(response, "content")
+            else str(response)
+        )
+
+        extracted = extract_json_from_response(content)
+        
+        if not extracted or not isinstance(extracted, dict):
+            return {
+                "error": "AI returned invalid or empty JSON",
+                "raw_response": content[:500]
+            }
+        
+    except Exception as e:
+        result = {
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+    
+    # Add metadata
+    extracted["processo_id"] = processo_id
+    extracted["text_truncated"] = was_truncated
+    extracted["analysis_timestamp"] = datetime.now().isoformat()
+
+    return extracted
+
+# ============================================================
+# CONTRACT PROCESSING
+# ============================================================
 
 def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
-    """Process a single contract PDF and extract all information."""
+    """
+    Process a single contract PDF through the full pipeline.
     
+    Pipeline:
+    1. Extract text from PDF
+    2. Parse into paragraphs
+    3. Identify contract types
+    4. AI analysis for structured data
+    5. Validate extracted data
+    
+    Args:
+        pdf_path: Path to the PDF file
+        processo_id: Optional process identifier
+        
+    Returns:
+        dict with all extraction and analysis results
+    """
+    # Step 1: Extract text from PDF
     extraction = extract_text_from_pdf(pdf_path)
     
     if not extraction["success"]:
         return {
             "success": False,
-            "file_name": extraction["file_name"],
+            "file_name": extraction.get("file_name", Path(pdf_path).name),
+            "file_path": pdf_path,
             "processo_id": processo_id,
-            "error": extraction.get("error", "Unknown error")
+            "error": extraction.get("error", "Unknown extraction error"),
+            "error_stage": "pdf_extraction"
         }
     
-    paragraphs = extract_paragraphs(extraction["full_text"])
+    # Step 2: Get paragraphs (already computed in extract_text_from_pdf)
+    # Use the paragraphs already computed inside extract_text_from_pdf
+    paragraphs = extraction.get("paragraphs", [])  # fallback if old version
     
+    # Step 3: Identify contract types
+    type_analysis = identify_contract_types(extraction["full_text"])
+
+    # Step 4: AI analysis...
     ai_error = None
+    ai_analysis = None
+
     try:
         ai_analysis = analyze_contract_with_ai(extraction["full_text"], processo_id)
-        if "error" in ai_analysis and ai_analysis["error"]:
-            ai_error = ai_analysis["error"]
+        
+        # Validate AI response
+        if not ai_analysis or not isinstance(ai_analysis, dict):
+            ai_error = "AI returned empty or invalid data"
+            ai_analysis = {"error": ai_error}
+        elif "error" in ai_analysis:
+            ai_error = ai_analysis.get("error")
+        else:
+    
+            # Step 5: Check for required fields (warning, not error)
+            required_fields = ["valor_contrato", "contratada", "objeto"]
+            missing = [f for f in required_fields if not ai_analysis.get(f)]
+            if missing:
+                ai_analysis["missing_fields"] = missing
+                ai_analysis["extraction_warning"] = f"Missing fields: {missing}"
+                
     except Exception as e:
-        ai_analysis = {"error": str(e), "processo_id": processo_id}
         ai_error = str(e)
-
+        ai_analysis = {
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "processo_id": processo_id
+        }
+    
+    # Build result
     return {
         "success": ai_error is None,
         "file_name": extraction["file_name"],
         "file_path": extraction["file_path"],
         "processo_id": processo_id,
-        "total_pages": extraction["total_pages"],
-        "full_text": extraction["full_text"],
+        "total_pages": extraction.get("total_pages", 0),
+        "total_chars": extraction.get("total_chars", 0),
+        "full_text": extraction.get("full_text", ""),
         "paragraphs": paragraphs,
         "paragraph_count": len(paragraphs),
-        "extracted_data": ai_analysis
+        "extraction_source": extraction.get("extraction_source", "unknown"),
+        "type_analysis": type_analysis,
+        "extracted_data": ai_analysis,
+        "error": ai_error,
+        "error_stage": "ai_analysis" if ai_error else None
     }
 
+# ============================================================
+# CSV CROSS-REFERENCE
+# ============================================================
 
 def load_analysis_summary(csv_path: str) -> pd.DataFrame:
     """Load the analysis summary CSV file."""
     try:
-        df = pd.read_csv(csv_path)
+        df = pd.read_csv(csv_path, dtype=str)
         return df
     except FileNotFoundError:
+        print(f"⚠️ CSV not found: {csv_path}")
         return pd.DataFrame()
     except Exception as e:
         print(f"Error loading CSV: {e}")
@@ -191,52 +568,123 @@ def load_analysis_summary(csv_path: str) -> pd.DataFrame:
 
 
 def find_processo_id_for_file(file_name: str, summary_df: pd.DataFrame) -> str:
-    """Try to match a PDF file name with a Processo ID from the summary."""
+    """
+    Match a PDF file name with data from the analysis summary.
+    
+    Returns:
+        dict with matched processo_id and additional data
+    """
+    result = {
+        "processo_id": "",
+        "empresa": "",
+        "valor_csv": "",
+        "risco_csv": "",
+        "matched": False
+    }
+
     if summary_df.empty:
-        return ""
+        return result
     
     file_stem = Path(file_name).stem.upper()
     
+    # Try to match by Processo column
     if "Processo" in summary_df.columns:
         for _, row in summary_df.iterrows():
             processo = str(row.get("Processo", "")).upper()
             if processo and (processo in file_stem or file_stem in processo):
-                return row.get("Processo", "")
-    
-    return ""
+                result.update({
+                    "processo_id": row.get("Processo", ""),
+                    "empresa": row.get("Empresa", ""),
+                    "valor_csv": row.get("Total Contratado", ""),
+                    "risco_csv": row.get("Nível de Risco", ""),
+                    "matched": True
+                })
+                break
 
+
+
+    # Also try matching by ID (CNPJ)
+    if not result["matched"] and "ID" in summary_df.columns:
+        for _, row in summary_df.iterrows():
+            cnpj = str(row.get("ID", "")).replace(".", "").replace("/", "").replace("-", "")
+            if cnpj and cnpj in file_stem.replace(".", "").replace("/", "").replace("-", ""):
+                result.update({
+                    "processo_id": row.get("Processo", ""),
+                    "empresa": row.get("Empresa", ""),
+                    "valor_csv": row.get("Total Contratado", ""),
+                    "risco_csv": row.get("Nível de Risco", ""),
+                    "matched": True
+                })
+                break
+
+    return result
+
+# ============================================================
+# BATCH PROCESSING
+# ============================================================
 
 def process_all_contracts(
     pdf_folder: str,
     csv_path: str,
-    progress_callback=None
+    progress_callback: Optional[Callable] = None
 ) -> list:
     
-    """Process all contracts in the folder with progress tracking."""
+    """
+    Process all contracts in a folder with progress tracking.
+    
+    Args:
+        pdf_folder: Path to folder containing PDFs
+        csv_path: Path to analysis_summary.csv
+        progress_callback: Optional function(current, total, filename)
+        
+    Returns:
+        List of processing results
+    """
     
     pdf_folder = Path(pdf_folder)
+
     if not pdf_folder.exists():
+        print(f"❌ Folder not found: {pdf_folder}")
         return []
     
-    pdf_files = list(pdf_folder.glob("*.pdf"))
+    pdf_files = sorted(pdf_folder.glob("*.pdf"))
+
     if not pdf_files:
+        print(f"⚠️ No PDF files found in: {pdf_folder}")
         return []
     
+    # Load CSV for cross-reference
     summary_df = load_analysis_summary(csv_path)
+    print(f"📊 Loaded {len(summary_df)} records from CSV")
     
     results = []
     total = len(pdf_files)
     
     for i, pdf_path in enumerate(pdf_files):
-        processo_id = find_processo_id_for_file(pdf_path.name, summary_df)
+        # Find matching data from CSV
+        match_data = find_processo_id_for_file(pdf_path.name, summary_df)
+        processo_id = match_data["processo_id"]
+
+        # Process the contract
         result = process_single_contract(str(pdf_path), processo_id)
+        
+        # Add cross-reference data
+        result["csv_match"] = match_data
+        
         results.append(result)
         
+        # Progress callback
         if progress_callback:
             progress_callback(i + 1, total, pdf_path.name)
-    
+        else:
+            status = "✅" if result["success"] else "❌"
+            print(f"{status} [{i+1}/{total}] {pdf_path.name}")
+
     return results
 
+# ============================================================
+# EXPORT FUNCTIONS
+# ============================================================
 
 def export_to_excel(results: list, output_path: str) -> str:
     """Export extracted data to Excel format."""
@@ -245,21 +693,17 @@ def export_to_excel(results: list, output_path: str) -> str:
     
     rows = []
     for r in results:
-        if not r.get("success"):
-            error_msg = r.get("error") or r.get("ai_error") or "Unknown error"
-            rows.append({
-                "Arquivo": r.get("file_name", ""),
-                "Processo_ID": r.get("processo_id", ""),
-                "Status": "Erro",
-                "Erro": error_msg,
-            })
-            continue
-        
         data = r.get("extracted_data", {})
-        rows.append({
+        risk = r.get("type_analysis", {})
+        csv_match = r.get("csv_match", {})
+        
+        row = {
             "Arquivo": r.get("file_name", ""),
             "Processo_ID": r.get("processo_id", ""),
-            "Status": "Sucesso",
+            "Status": "Sucesso" if r.get("success") else "Erro",
+            "Erro": r.get("error") if not r.get("success") else None,
+            
+            # AI Extracted Data
             "Valor_Contrato": data.get("valor_contrato"),
             "Moeda": data.get("moeda"),
             "Data_Inicio": data.get("data_inicio"),
@@ -273,13 +717,29 @@ def export_to_excel(results: list, output_path: str) -> str:
             "Tipo_Contrato": data.get("tipo_contrato"),
             "Modalidade_Licitacao": data.get("modalidade_licitacao"),
             "Numero_Contrato": data.get("numero_contrato"),
+            
+            # Risk Analysis
+            "Nivel_Risco": risk.get("risk_level", ""),
+            "Total_Flags": risk.get("total_flags", 0),
+            "Flags_Alta": ", ".join(risk.get("flags_detail", {}).get("high", [])),
+            "Flags_Media": ", ".join(risk.get("flags_detail", {}).get("medium", [])),
+            
+            # CSV Cross-reference
+            "CSV_Empresa": csv_match.get("empresa", ""),
+            "CSV_Valor": csv_match.get("valor_csv", ""),
+            "CSV_Risco": csv_match.get("risco_csv", ""),
+            "CSV_Match": "Sim" if csv_match.get("matched") else "Não",
+            
+            # Metadata
             "Total_Paginas": r.get("total_pages"),
             "Total_Paragrafos": r.get("paragraph_count"),
-        })
+        }
+        rows.append(row)
     
     df = pd.DataFrame(rows)
     df.to_excel(output_path, index=False, engine='openpyxl')
     
+    print(f"📁 Excel exported: {output_path}")
     return output_path
 
 
@@ -290,25 +750,20 @@ def export_to_json(results: list, output_path: str) -> str:
     
     export_data = []
     for r in results:
-        error_msg = None
-        if not r.get("success"):
-            error_msg = r.get("error") or r.get("ai_error") or "Unknown error"
-        export_data.append({
-            "file_name": r.get("file_name"),
-            "processo_id": r.get("processo_id"),
-            "success": r.get("success"),
-            "total_pages": r.get("total_pages"),
-            "paragraph_count": r.get("paragraph_count"),
-            "paragraphs": r.get("paragraphs", []),
-            "extracted_data": r.get("extracted_data", {}),
-            "error": error_msg
-        })
+        # Remove full_text to reduce file size (optional)
+        export_item = {k: v for k, v in r.items() if k != "full_text"}
+        export_item["text_preview"] = r.get("full_text", "")[:500] + "..."
+        export_data.append(export_item)
     
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(export_data, f, ensure_ascii=False, indent=2)
     
+    print(f"📁 JSON exported: {output_path}")
     return output_path
 
+# ============================================================
+# UTILITY FUNCTIONS
+# ============================================================
 
 def get_folder_stats(pdf_folder: str) -> dict: 
     """Get statistics about the PDF folder."""
@@ -330,3 +785,42 @@ def get_folder_stats(pdf_folder: str) -> dict:
         "total_size_mb": round(total_size, 2),
         "files": [f.name for f in pdf_files]
     }
+
+
+# ============================================================
+# MAIN ENTRY POINT (for testing)
+# ============================================================
+
+if __name__ == "__main__":
+    # Test configuration
+    PDF_FOLDER = "data/downloads/processos"
+    CSV_PATH = "data/outputs/analysis_summary.csv"
+    OUTPUT_DIR = "data/extractions"
+    
+    print("=" * 60)
+    print("🔍 Contract Extractor v2.0")
+    print("=" * 60)
+    
+    # Check folder
+    stats = get_folder_stats(PDF_FOLDER)
+    print(f"\n📂 Folder: {PDF_FOLDER}")
+    print(f"   Files: {stats['total_files']}")
+    print(f"   Size: {stats['total_size_mb']} MB")
+    
+    if stats["total_files"] == 0:
+        print("\n⚠️ No PDF files to process!")
+    else:
+        # Process all contracts
+        print(f"\n🚀 Processing {stats['total_files']} contracts...")
+        results = process_all_contracts(PDF_FOLDER, CSV_PATH)
+        
+        # Summary
+        success = sum(1 for r in results if r["success"])
+        print(f"\n📊 Results: {success}/{len(results)} successful")
+        
+        # Export
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        export_to_excel(results, f"{OUTPUT_DIR}/contracts_{timestamp}.xlsx")
+        export_to_json(results, f"{OUTPUT_DIR}/contracts_{timestamp}.json")
+        
+        print("\n✅ Done!")

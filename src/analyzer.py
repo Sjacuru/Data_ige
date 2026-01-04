@@ -69,7 +69,6 @@ def analyze_contract(contract_data, instructions=None):
     
     return results
 
-
 def get_default_instructions():
     """
     Return default analysis instructions.
@@ -83,7 +82,6 @@ def get_default_instructions():
         "flag_expired": True,
         "flag_high_values": True
     }
-
 
 def generate_summary(contract_data, analysis_results):
     """

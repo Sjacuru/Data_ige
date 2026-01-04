@@ -4,10 +4,11 @@ Extracts text and data from PDFs, Word docs, and HTML.
 """
 
 import os
-from PyPDF2 import PdfReader
 import requests
+import re
 from bs4 import BeautifulSoup
-
+from pdf2image import convert_from_path
+import pytesseract
 
 def extract_text_from_pdf(filepath):
     """
@@ -22,11 +23,11 @@ def extract_text_from_pdf(filepath):
     try:
         print(f"\n→ Extraindo texto de: {filepath}")
         
-        reader = PdfReader(filepath)
+        pages = convert_from_path(filepath)
         text_content = []
-        
-        for page_num, page in enumerate(reader.pages, 1):
-            page_text = page.extract_text()
+
+        for page_num, page_image in enumerate(pages, 1):
+            page_text = pytesseract.image_to_string(page_image, lang='por')  
             if page_text:
                 text_content.append(page_text)
                 print(f"  Página {page_num}: {len(page_text)} caracteres")
@@ -35,11 +36,13 @@ def extract_text_from_pdf(filepath):
         print(f"✓ Total extraído: {len(full_text)} caracteres")
         
         return full_text
+    except Exception as e:
+        print(f"✗ Erro ao extrair texto do PDF: {e}")
         
+        return None        
     except Exception as e:
         print(f"✗ Erro ao extrair texto do PDF: {e}")
         return None
-
 
 def extract_text_from_url(url):
     """
@@ -72,7 +75,6 @@ def extract_text_from_url(url):
         print(f"✗ Erro ao extrair texto da URL: {e}")
         return None
 
-
 def parse_contract_data(text):
     """
     Parse extracted text to find contract information.
@@ -84,7 +86,7 @@ def parse_contract_data(text):
         Dictionary with parsed contract data
     """
     # This is a template - customize based on your document structure
-    import re
+    
     
     contract_data = {
         "raw_text": text,
