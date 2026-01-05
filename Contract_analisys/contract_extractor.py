@@ -36,6 +36,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 
 from dotenv import load_dotenv, find_dotenv
 
+from text_preprocessor import preprocess_contract_text
+
 import platform
 
 # ============================================================
@@ -303,16 +305,24 @@ def extract_text_from_pdf(pdf_path: str) -> dict:
 
         avg_chars = sum(char_count_per_page) / max(len(char_count_per_page), 1)
 
-        # 🔑 CRITICAL DECISION POINT
+        # Decide extraction method
         if avg_chars < 300:
             print("🧠 Low text density detected → switching to full OCR (pdf2image)")
-            full_text = extract_text_with_pdf2image(pdf_path)
+            raw_text = extract_text_with_pdf2image(pdf_path)
             source = "ocr_pdf2image"
         else:
             print("📄 Native text layer sufficient")
-            full_text = native_text
+            raw_text = native_text
             source = "native"
 
+        # ═══════════════════════════════════════════════════════
+        # NEW: Preprocess the text (clean, structure)
+        # ═══════════════════════════════════════════════════════
+        preprocessing = preprocess_contract_text(raw_text)
+        print(f"📝 Preprocessing: {preprocessing.original_length:,} → {preprocessing.final_length:,} chars ({preprocessing.reduction_percent:.1f}% reduction)")
+        
+        # Use preprocessed text
+        full_text = preprocessing.structured_text
         paragraphs = extract_paragraphs(full_text)
 
         return {
@@ -320,11 +330,20 @@ def extract_text_from_pdf(pdf_path: str) -> dict:
             "file_path": pdf_path,
             "file_name": Path(pdf_path).name,
             "total_pages": len(char_count_per_page),
-            "total_chars": len(full_text),
-            "full_text": full_text.strip(),
+            "total_chars": len(full_text),  # Now reflects cleaned text
+            "full_text": full_text,          # Now preprocessed
+            "raw_text": raw_text,            # NEW: Keep original for debugging
             "paragraphs": paragraphs,
             "paragraph_count": len(paragraphs),
-            "extraction_source": source
+            "extraction_source": source,
+            # NEW: Preprocessing metadata (optional, for debugging)
+            "preprocessing": {
+                "original_chars": preprocessing.original_length,
+                "final_chars": preprocessing.final_length,
+                "reduction_percent": preprocessing.reduction_percent,
+                "sections_found": len(preprocessing.sections_found),
+                "metadata_removed": len(preprocessing.metadata_removed)
+            }
         }
 
     except Exception as e:
