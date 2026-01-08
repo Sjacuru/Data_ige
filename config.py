@@ -108,3 +108,47 @@ TARGET_DOCUMENTS = [
 # Temp download folder (files deleted after extraction)
 TEMP_DOWNLOAD_PATH = os.path.join("data", "temp_downloads")
 EXTRACTED_TEXTS_PATH = os.path.join("data", "extracted_texts")
+
+# =============================================================================
+# DOWEB (DIÁRIO OFICIAL) SETTINGS
+# =============================================================================
+
+DOWEB_BASE_URL = "https://doweb.rio.rj.gov.br"
+DOWEB_SEARCH_URL = "https://doweb.rio.rj.gov.br/buscanova/#/p=1&q={processo}"
+
+# Temp folder for downloaded PDFs (deleted after processing)
+DOWEB_TEMP_PATH = os.path.join("data", "temp_doweb")
+
+# Locators for DOWEB navigation
+DOWEB_LOCATORS = {
+    # Home page
+    "search_input": "input#input2",
+    "search_button_home": "input#btn-autenticidade",
+    
+    # Search results page
+    "results_count": "//div[contains(text(), 'resultados encontrados')]",
+    "result_cards": "//div[contains(@class, 'card') or contains(@class, 'result')]",
+    "publication_info": "//span[contains(text(), 'publicado em:')]",
+    "download_button": "//span[contains(text(), 'Download')]/parent::*",
+    "download_page_only": "//a[contains(text(), 'Baixar apenas a página')]",
+    
+    # Pagination
+    "pagination_links": "//ul[contains(@class, 'pagination')]//a",
+    "current_page": "//a[contains(@class, 'active') or .//span[contains(@class, 'current')]]",
+    "next_page": "//a[contains(text(), '›') or contains(text(), 'next')]",
+}
+
+# Processo number patterns
+PROCESSO_PATTERNS = {
+    "new": r"([A-Z]{2,4}-[A-Z]{2,4}-\d{4}/\d{4,6})",      # SME-PRO-2025/19222
+    "old": r"([A-Z]{2,4}/\d{5,6}/\d{4})",                  # SME/001234/2019
+    "old_prefix": r"\d{2,3}/([A-Z]{2,4}/\d{5,6}/\d{4})",  # 001/04/000123/2020
+}
+
+# Target publication types
+TARGET_EXTRATO_TYPES = [
+    "EXTRATO DO CONTRATO",
+    "EXTRATO DE TERMO ADITIVO",
+    "EXTRATO DE CONTRATO",
+    "EXTRATO DO TERMO",
+]

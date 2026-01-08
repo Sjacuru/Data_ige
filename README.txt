@@ -6,10 +6,11 @@ Este repositório contém projetos de automação e scripts utilitários priorit
 
 ## 🎯 Projetos Principais
 
-| Nome do Projeto             | Localização        | Descrição                                                                                  |
-| :---                        | :---               | :---                                                                                       |
-| **Automação com Selenium**  | `./Data_ige/`      | Scripts Python para interação e raspagem de dados via navegador web (Selenium WebDriver).  |
-| **Extração de Documentos**  | `./doc_extractor/` | Pipeline para extração de texto e metadados de PDFs, Word, Excel, HTML e outros formatos.  |
+| Nome do Projeto             | Localização                     | Descrição                                                                                  |
+| :---                        | :---                            | :---                                                                                       |
+| **Automação com Selenium**  | `./Data_ige/`                   | Scripts Python para interação e raspagem de dados via navegador web (Selenium WebDriver).  |
+| **Extração de Documentos**  | `./doc_extractor/`              | Pipeline para extração de texto e metadados de PDFs, Word, Excel, HTML e outros formatos.  |
+| **Análise de Contratos**    | `./Data_ige/Contract_analisys/` | Sistema de extração e análise de contratos com IA (Groq/LLaMA). |
 
 ---
 
@@ -130,14 +131,14 @@ Processamento paralelo para alta performance
 Exporta resultados em JSON ou TXT
 Formatos suportados:
 
-Formato	Extensões	Extração
-PDF	.pdf	Texto + metadados (autor, título, datas)
-Word	.docx, .doc	Parágrafos + tabelas + propriedades
-Excel	.xlsx, .xls	Todas as planilhas em formato texto
-CSV	.csv	Detecção automática de delimitador
-HTML	.html, .htm	Texto limpo (sem scripts/styles)
-Texto	.txt, .md	Conteúdo com detecção de encoding
-JSON	.json	Formatação pretty-print
+Formato	  Extensões	                Extração
+PDF	        .pdf	          Texto + metadados (autor, título, datas)
+Word	      .docx, .doc	      Parágrafos + tabelas + propriedades
+Excel	      .xlsx, .xls	      Todas as planilhas em formato texto
+CSV	        .csv	          Detecção automática de delimitador
+HTML	      .html, .htm	      Texto limpo (sem scripts/styles)
+Texto	      .txt, .md	        Conteúdo com detecção de encoding
+JSON	      .json	                Formatação pretty-print
 
 Como executar:
 
@@ -209,8 +210,18 @@ output/extraction_YYYYMMDD_HHMMSS.json ou .txt
 │ └── Extrai texto de todos os documentos                      │ 
 │ └── Ideal para análise posterior com IA                      │ 
 └──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐ 
+│ OPÇÃO 4: Análise de Contratos com Dashboard 🆕               │ 
+│                                                               │ 
+│ 1. python extract_processo_documents.py                       │ 
+│ └── Baixa PDFs do processo.rio                                │   
+│                                                               │ 
+│ 2. streamlit run app.py                                       │   
+│ └── Abre dashboard para análise                               │ 
+│ └── Processa PDFs individuais ou em lote                      │ 
+│ └── Exporta resultados em Excel/JSON                          │ 
+└──────────────────────────────────────────────────────────────┘
 
-⚙️ Configuração
 
 Arquivo .env
 Arquivo config.py
@@ -218,12 +229,15 @@ BASE_URL: URL da página inicial
 CONTRACTS_URL: URL da página de contratos
 TIMEOUT_SECONDS: Tempo máximo de espera (padrão: 30)
 FILTER_YEAR: Ano para filtrar contratos
+PROCESSOS_DIR: Diretório de PDFs baixados
+EXTRACTIONS_DIR: Diretório de resultados
 💻 Instalação
 Pré-requisitos
 Windows 10/11
 Google Chrome browser
 Anaconda ou Miniconda
-
+Tesseract OCR (para análise de contratos)
+Poppler (para pdf2image)
 1. Criar ambiente Conda
 conda create --name ige python=3.11
 conda activate ige
@@ -231,43 +245,69 @@ conda activate ige
 git clone https://github.com/sjacuru/Data_ige.git
 cd Data_ige
 3. Instalar dependências
-Para Data_ige (Selenium):
+Para Data_ige (Selenium + Análise de Contratos):
 
 pip install selenium webdriver-manager pandas openpyxl python-dotenv
+pip install streamlit pymupdf langchain-groq tenacity pdf2image pytesseract
 Para doc_extractor:
 
 cd doc_extractor
 pip install -r requirements.txt
-
 Ou instalar manualmente:
 
 pip install PyMuPDF python-docx openpyxl beautifulsoup4 pandas
-
-4. Configurar variáveis de ambiente
+4. Instalar Tesseract OCR (Windows)
+Baixar instalador: https://github.com/UB-Mannheim/tesseract/wiki
+Instalar em C:\Program Files\Tesseract-OCR\
+Adicionar ao PATH ou configurar em contract_extractor.py
+5. Instalar Poppler (Windows)
+Baixar: https://github.com/oschwartz10612/poppler-windows/releases
+Extrair para C:\poppler-XX.XX.X\
+Configurar caminho em contract_extractor.py
+6. Configurar variáveis de ambiente
 Criar arquivo .env na raiz do projeto:
 
+
+
 📊 Comparação dos Scripts
-Característica	      main.py	      download_csv.py	      process_from_csv.py	      extract_documents.py
-Propósito	      Raspagem completa	   Baixar CSV	         Processar do CSV	         Extrair documentos
-Entrada	           Portal web	      Portal web	            Arquivo CSV	               Arquivos locais
-Saída	Excel          + CSV	               CSV	                  CSV	                    JSON / TXT
-Velocidade	         Lento    	        Rápido	                 Médio	                       Rápido
-Coleta empresas	   Scroll	      Download direto	        Lê do arquivo	                  N/A
-Coleta processos	     ✅	               ❌	                  ✅	                         N/A
-Extrai texto	        ✅	               ❌	                  ❌	                           ✅
-Análise IA	           ✅	               ❌    	               ❌	                           ❌
-Processamento paralelo ❌	               ❌	                  ❌	                           ✅
-Interrompível	        ✅	               ❌	                  ✅	                           ✅
+Característica	      main.py	      download_csv.py	      process_from_csv.py	      extract_documents.py          app.py
+Propósito	      Raspagem completa	   Baixar CSV	         Processar do CSV	         Extrair documentos         Dashboard análise
+Entrada	           Portal web	      Portal web	            Arquivo CSV	               Arquivos locais          PDFs locais
+Saída	Excel          + CSV	             CSV	                   CSV	                     JSON / TXT           Excel / JSON
+Velocidade	          Lento    	        Rápido	                Médio	                       Rápido               Médio
+Coleta empresas	      Scroll	      Download direto	        Lê do arquivo	                     N/A                  N/A
+Coleta processos	      ✅	               ❌	                  ✅	                           N/A                 N/A
+Extrai texto	          ✅	               ❌	                  ❌	                           ✅                  ✅
+Análise IA	            ✅	               ❌    	              ❌	                           ❌                  ✅
+OCR	                    ❌	               ❌	                  ❌	                           ❌	                ✅
+Pré-processamento	      ❌	               ❌	                  ❌	                           ❌	                ✅
+Processamento paralelo  ❌	               ❌	                  ❌	                           ✅                  ❌
+Interface gráfica	      ❌	               ❌	                  ❌	                           ❌	                ✅
+Interrompível	          ✅	               ❌	                  ✅	                           ✅                  ✅
 
 🚨 Problemas Conhecidos
-
 Path discovery pode misturar branches: Em empresas com múltiplos Órgãos, os caminhos podem ser construídos incorretamente. Solução em desenvolvimento.
 
 Timeout em conexões lentas: Aumentar TIMEOUT_SECONDS no config.py se necessário.
 
 Vaadin não reseta estado: O script navega para HOME antes de CONTRACTS_URL para garantir reset completo.
 
-PDFs escaneados: O extract_documents.py não realiza OCR. PDFs baseados em imagem retornarão texto vazio.
+PDFs escaneados: O extract_documents.py não realiza OCR. Use app.py com contract_extractor.py para PDFs escaneados.
+
+Rate limit da API Groq: O sistema possui retry automático (até 5 tentativas). Aguarde alguns segundos entre processamentos em lote.
+
+Tesseract não encontrado: Verifique se o Tesseract está instalado e o caminho configurado em contract_extractor.py.
+
+📅 Atualizações mais Recentes
+
+✅ Adicionado módulo Contract_analisys para análise de contratos
+✅ Adicionado dashboard Streamlit (app.py)
+✅ Adicionado pré-processamento de texto OCR
+✅ Adicionada extração com IA (Groq/LLaMA)
+✅ Adicionado suporte a OCR para PDFs escaneados
+✅ Corrigidos bugs de extração de PDF
+✅ Melhorado tratamento de erros
+🔄 Em desenvolvimento: Análise de conformidade legal
 
 📝 Licença
 MIT License
