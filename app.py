@@ -31,13 +31,21 @@ try:
         export_to_json,
         get_folder_stats,
         load_analysis_summary,
-        identify_contract_types,  # Renamed from identify_risk_flags
-        TYPES_KEYWORDS,  # Renamed from RISK_KEYWORDS
+        identify_contract_types,
+        TYPES_KEYWORDS,
     )
     EXTRACTOR_LOADED = True
 except ImportError as e:
     EXTRACTOR_LOADED = False
     IMPORT_ERROR = str(e)
+
+# Conformity module (NEW)
+try:
+    from conformity.models.conformity_result import ConformityStatus
+    CONFORMITY_LOADED = True
+except ImportError:
+    CONFORMITY_LOADED = False
+    ConformityStatus = None
 
 # ============================================================
 # CONFIGURATION
@@ -125,21 +133,100 @@ def create_results_dataframe(results: list) -> pd.DataFrame:
         data = r.get("extracted_data", {})
         types_info = r.get("type_analysis", {})
         csv_match = r.get("csv_match", {})
+        conformity = r.get("conformity", {})
         
         rows.append({
             "Status": get_status_emoji(r.get("success", False)),
             "Arquivo": r.get("file_name", ""),
-            "Processo": r.get("processo_id", "") or "N/A",
+            "Processo": r.get("processo_id", "") or data.get("processo_administrativo", "") or "N/A",
             "Valor": format_currency(data.get("valor_contrato")),
             "Contratada": data.get("contratada", "N/A") or "N/A",
             "Tipo": data.get("tipo_contrato", "N/A") or "N/A",
             "Tipos Identificados": types_info.get("primary_type", "N/A"),
+            "Conformidade": get_conformity_badge(conformity) if conformity else "⏳ Pendente",  # NEW
             "Páginas": r.get("total_pages", 0),
             "CSV Match": "✅" if csv_match.get("matched") else "❌",
             "Erro": r.get("error", "") or "",
         })
     
     return pd.DataFrame(rows)
+
+def get_conformity_badge(conformity_data: dict) -> str:
+    """
+    Get conformity status badge.
+    
+    Returns emoji + status text.
+    """
+    if not conformity_data:
+        return "⏳ Pendente"
+    
+    if conformity_data.get("error"):
+        return "⚠️ Erro"
+    
+    status = conformity_data.get("overall_status", "")
+    
+    if status == "CONFORME":
+        return "✅ Conforme"
+    elif status == "PARCIAL":
+        return "⚠️ Parcial"
+    elif status == "NÃO CONFORME":
+        return "❌ Não Conforme"
+    else:
+        return "❓ Desconhecido"
+
+
+def get_conformity_color(status: str) -> str:
+    """Get color for conformity status."""
+    if "CONFORME" in status and "NÃO" not in status:
+        return "green"
+    elif "PARCIAL" in status:
+        return "orange"
+    elif "NÃO CONFORME" in status:
+        return "red"
+    else:
+        return "gray"
+
+
+def render_conformity_badge(conformity_data: dict):
+    """Render a conformity status badge."""
+    if not conformity_data:
+        st.info("⏳ Verificação de conformidade pendente")
+        return
+    
+    if conformity_data.get("error"):
+        st.warning(f"⚠️ Erro na verificação: {conformity_data.get('error')}")
+        return
+    
+    status = conformity_data.get("overall_status", "DESCONHECIDO")
+    score = conformity_data.get("conformity_score", 0)
+    
+    # Status badge
+    if status == "CONFORME":
+        st.success(f"✅ **CONFORME** — Score: {score:.0f}%")
+    elif status == "PARCIAL":
+        st.warning(f"⚠️ **PARCIAL** — Score: {score:.0f}%")
+    else:
+        st.error(f"❌ **NÃO CONFORME** — Score: {score:.0f}%")
+    
+    # Publication info
+    pub_check = conformity_data.get("publication_check", {})
+    if pub_check:
+        if pub_check.get("was_published"):
+            pub_date = pub_check.get("publication_date", "N/A")
+            link = pub_check.get("download_link", "")
+            
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.caption(f"📰 Publicado em: {pub_date}")
+                if pub_check.get("published_on_time"):
+                    st.caption(f"✓ Dentro do prazo ({pub_check.get('days_to_publish')} dias)")
+                else:
+                    st.caption(f"✗ Fora do prazo ({pub_check.get('days_to_publish')} dias)")
+            with col2:
+                if link:
+                    st.link_button("🔗 Ver D.O.", link)
+        else:
+            st.caption("📰 Publicação não encontrada no D.O. Rio")
 
 
 # ============================================================
@@ -318,6 +405,32 @@ def render_single_file_tab(stats: dict):
                 - **Processo ID:** {result.get('processo_id', 'N/A') or 'N/A'}
                 """)
                 
+                st.divider()
+                st.subheader("🔍 Verificação de Conformidade")
+                
+                conformity = result.get("conformity")
+                if conformity:
+                    render_conformity_badge(conformity)
+                    
+                    # Detailed checks expander
+                    with st.expander("Ver detalhes da verificação"):
+                        field_checks = conformity.get("field_checks", [])
+                        if field_checks:
+                            for check in field_checks:
+                                status_icon = "✓" if check.get("status") == "APROVADO" else "✗" if check.get("status") == "REPROVADO" else "◐"
+                                match_pct = check.get("match_percentage", 0)
+                                st.markdown(f"{status_icon} **{check.get('field_label')}**: {check.get('match_level')} ({match_pct:.0f}%)")
+                                
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.caption(f"Contrato: {check.get('contract_value', 'N/A')}")
+                                with col2:
+                                    st.caption(f"Publicação: {check.get('publication_value', 'N/A')}")
+                        else:
+                            st.caption("Nenhuma verificação de campo disponível")
+                else:
+                    st.info("Verificação de conformidade não realizada ou não disponível")
+
                 # Types analysis
                 types_info = result.get("type_analysis", {})
                 if types_info:
@@ -679,10 +792,11 @@ def main():
     stats, summary_df = render_sidebar()
     
     # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📄 Arquivo Individual",
         "📦 Processamento em Lote",
         "📊 Resultados",
+        "🔍 Conformidade",  # NEW
         "❓ Ajuda"
     ])
     
@@ -696,7 +810,212 @@ def main():
         render_results_tab()
     
     with tab4:
+        render_conformity_tab() 
+    
+    with tab5:
         render_help_tab()
+
+def render_conformity_tab():
+    """Render the conformity analysis tab."""
+    st.header("🔍 Análise de Conformidade")
+    
+    st.markdown("""
+    Esta aba mostra o resultado da verificação de conformidade dos contratos.
+    
+    A verificação é executada **automaticamente** após a extração de cada contrato e inclui:
+    - ✅ Verificação de publicação no D.O. Rio
+    - ✅ Verificação do prazo de publicação (20 dias)
+    - ✅ Comparação dos dados do contrato com a publicação
+    """)
+    
+    st.divider()
+    
+    # Check if we have results
+    if not st.session_state.results:
+        st.info("Nenhum resultado disponível. Processe alguns contratos primeiro.")
+        return
+    
+    # Filter results with conformity data
+    results_with_conformity = [
+        r for r in st.session_state.results 
+        if r.get("conformity") and not r.get("conformity", {}).get("error")
+    ]
+    
+    results_without_conformity = [
+        r for r in st.session_state.results 
+        if not r.get("conformity") or r.get("conformity", {}).get("error")
+    ]
+    
+    # Summary metrics
+    st.subheader("📊 Resumo")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    total = len(st.session_state.results)
+    verified = len(results_with_conformity)
+    
+    conforme = sum(1 for r in results_with_conformity 
+                   if r.get("conformity", {}).get("overall_status") == "CONFORME")
+    parcial = sum(1 for r in results_with_conformity 
+                  if r.get("conformity", {}).get("overall_status") == "PARCIAL")
+    nao_conforme = sum(1 for r in results_with_conformity 
+                       if r.get("conformity", {}).get("overall_status") == "NÃO CONFORME")
+    
+    with col1:
+        st.metric("Total Contratos", total)
+    with col2:
+        st.metric("✅ Conforme", conforme)
+    with col3:
+        st.metric("⚠️ Parcial", parcial)
+    with col4:
+        st.metric("❌ Não Conforme", nao_conforme)
+    
+    # Pending verification info
+    if results_without_conformity:
+        st.warning(f"⏳ {len(results_without_conformity)} contrato(s) aguardando verificação ou com erro")
+    
+    st.divider()
+    
+    # Detailed results
+    st.subheader("📋 Resultados Detalhados")
+    
+    # Status filter
+    status_filter = st.selectbox(
+        "Filtrar por status",
+        ["Todos", "✅ Conforme", "⚠️ Parcial", "❌ Não Conforme", "⏳ Pendente"]
+    )
+    
+    # Build filtered list
+    filtered_results = []
+    
+    for r in st.session_state.results:
+        conformity = r.get("conformity", {})
+        status = conformity.get("overall_status", "") if conformity else ""
+        
+        if status_filter == "Todos":
+            filtered_results.append(r)
+        elif status_filter == "✅ Conforme" and status == "CONFORME":
+            filtered_results.append(r)
+        elif status_filter == "⚠️ Parcial" and status == "PARCIAL":
+            filtered_results.append(r)
+        elif status_filter == "❌ Não Conforme" and status == "NÃO CONFORME":
+            filtered_results.append(r)
+        elif status_filter == "⏳ Pendente" and not status:
+            filtered_results.append(r)
+    
+    st.caption(f"Mostrando {len(filtered_results)} de {total} contratos")
+    
+    # Display each result
+    for r in filtered_results:
+        file_name = r.get("file_name", "Arquivo desconhecido")
+        processo = r.get("processo_id", "") or r.get("extracted_data", {}).get("processo_administrativo", "N/A")
+        conformity = r.get("conformity", {})
+        
+        # Get status for header
+        if conformity and not conformity.get("error"):
+            status = conformity.get("overall_status", "DESCONHECIDO")
+            score = conformity.get("conformity_score", 0)
+            
+            if status == "CONFORME":
+                icon = "✅"
+            elif status == "PARCIAL":
+                icon = "⚠️"
+            else:
+                icon = "❌"
+            
+            header = f"{icon} {file_name} — {status} ({score:.0f}%)"
+        else:
+            header = f"⏳ {file_name} — Pendente"
+        
+        with st.expander(header):
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                st.markdown(f"**Processo:** {processo}")
+                
+                # Contract data
+                data = r.get("extracted_data", {})
+                st.markdown(f"**Valor:** {data.get('valor_contrato', 'N/A')}")
+                st.markdown(f"**Contratada:** {data.get('contratada', 'N/A')}")
+            
+            with col2:
+                if conformity and not conformity.get("error"):
+                    pub = conformity.get("publication_check", {})
+                    if pub and pub.get("was_published"):
+                        st.markdown(f"**Publicado em:** {pub.get('publication_date', 'N/A')}")
+                        st.markdown(f"**Edição:** {pub.get('edition_number', 'N/A')}")
+                        if pub.get("download_link"):
+                            st.link_button("🔗 Ver no D.O.", pub.get("download_link"))
+                    else:
+                        st.warning("Publicação não encontrada")
+            
+            # Field checks
+            if conformity and conformity.get("field_checks"):
+                st.markdown("---")
+                st.markdown("**Verificações:**")
+                
+                checks_df = []
+                for check in conformity.get("field_checks", []):
+                    checks_df.append({
+                        "Campo": check.get("field_label", ""),
+                        "Status": "✓" if check.get("status") == "APROVADO" else "✗",
+                        "Match": f"{check.get('match_percentage', 0):.0f}%",
+                        "Nível": check.get("match_level", ""),
+                    })
+                
+                if checks_df:
+                    st.dataframe(
+                        pd.DataFrame(checks_df),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+    
+    st.divider()
+    
+    # Export conformity report
+    st.subheader("📤 Exportar Relatório")
+    
+    if st.button("📊 Exportar Relatório de Conformidade", use_container_width=True):
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Build report data
+        report_rows = []
+        for r in st.session_state.results:
+            conformity = r.get("conformity", {})
+            data = r.get("extracted_data", {})
+            pub = conformity.get("publication_check", {}) if conformity else {}
+            
+            report_rows.append({
+                "Arquivo": r.get("file_name", ""),
+                "Processo": r.get("processo_id", "") or data.get("processo_administrativo", ""),
+                "Status_Extração": "OK" if r.get("success") else "ERRO",
+                "Status_Conformidade": conformity.get("overall_status", "PENDENTE") if conformity else "PENDENTE",
+                "Score": conformity.get("conformity_score", 0) if conformity else 0,
+                "Publicado": "SIM" if pub.get("was_published") else "NÃO",
+                "Data_Publicação": pub.get("publication_date", ""),
+                "Prazo_OK": "SIM" if pub.get("published_on_time") else "NÃO",
+                "Dias_Para_Publicar": pub.get("days_to_publish", ""),
+                "Link_DO": pub.get("download_link", ""),
+                "Valor_Contrato": data.get("valor_contrato", ""),
+                "Contratada": data.get("contratada", ""),
+            })
+        
+        report_df = pd.DataFrame(report_rows)
+        
+        # Save Excel
+        excel_path = OUTPUT_DIR / f"conformity_report_{timestamp}.xlsx"
+        report_df.to_excel(excel_path, index=False)
+        
+        st.success(f"✅ Relatório exportado: {excel_path}")
+        
+        # Download button
+        csv_data = report_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            "⬇️ Download CSV",
+            data=csv_data,
+            file_name=f"conformity_report_{timestamp}.csv",
+            mime="text/csv"
+        )
 
 if __name__ == "__main__":
     main()
