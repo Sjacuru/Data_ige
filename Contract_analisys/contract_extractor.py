@@ -44,6 +44,8 @@ import platform
 # CONFIGURATION
 # ============================================================
 
+CONFORMITY_ENABLED = True  # Set to False to disable conformity checks
+
 TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 TESSDATA_DIR = r"C:\Program Files\Tesseract-OCR\tessdata"
 POPPLER_PATH = r"C:\poppler-25.12.0\Library\bin"
@@ -156,6 +158,8 @@ def identify_contract_types(text: str) -> dict:
 # ============================================================
 # HELPER FUNCTIONS
 # ============================================================
+
+
 
 def is_rate_limit_error(exception: BaseException) -> bool:
     """Return True if the exception indicates a rate limit error."""
@@ -389,6 +393,15 @@ def extract_text_with_pdf2image(pdf_path: str) -> str:
 
     return "\n\n".join(full_text)
 
+def get_conformity_checker():
+    """Lazy import of conformity module."""
+    try:
+        from conformity.integration import check_publication_conformity
+        return check_publication_conformity
+    except ImportError as e:
+        print(f"⚠️ Conformity module not available: {e}")
+        return None
+
 # ============================================================
 # AI ANALYSIS
 # ============================================================
@@ -483,6 +496,71 @@ Extraia este JSON:
 # CONTRACT PROCESSING
 # ============================================================
 
+def run_conformity_check(
+    extracted_data: dict,
+    processo_id: str = "",
+    headless: bool = True
+) -> Optional[dict]:
+    """
+    Run publication conformity check for extracted contract.
+    
+    Args:
+        extracted_data: Data extracted from contract by AI
+        processo_id: Processo number (if known)
+        headless: Run browser in headless mode
+        
+    Returns:
+        Conformity result dict or None if check failed/disabled
+    """
+    if not CONFORMITY_ENABLED:
+        print("⏭️ Conformity check disabled")
+        return None
+    
+    check_publication = get_conformity_checker()
+    if not check_publication:
+        print("⚠️ Conformity checker not available")
+        return None
+    
+    # Build contract data dict for conformity check
+    contract_data = {
+        "processo_administrativo": extracted_data.get("processo_administrativo") or processo_id,
+        "numero_processo": extracted_data.get("numero_processo") or processo_id,
+        "numero_contrato": extracted_data.get("numero_contrato"),
+        "valor_contrato": extracted_data.get("valor_contrato"),
+        "data_assinatura": extracted_data.get("data_assinatura"),
+        "data_inicio": extracted_data.get("data_inicio"),
+        "data_fim": extracted_data.get("data_fim"),
+        "contratante": extracted_data.get("contratante"),
+        "contratante_cnpj": extracted_data.get("contratante_cnpj"),
+        "contratada": extracted_data.get("contratada"),
+        "contratada_cnpj": extracted_data.get("contratada_cnpj"),
+        "objeto": extracted_data.get("objeto"),
+        "vigencia_meses": extracted_data.get("vigencia_meses"),
+        "modalidade_licitacao": extracted_data.get("modalidade_licitacao"),
+        "tipo_contrato": extracted_data.get("tipo_contrato"),
+    }
+    
+    # Check if we have enough data
+    processo = contract_data.get("processo_administrativo") or contract_data.get("numero_processo")
+    if not processo:
+        print("⚠️ No processo number found - skipping conformity check")
+        return None
+    
+    print(f"\n🔍 Running conformity check for {processo}...")
+    
+    try:
+        result = check_publication(
+            contract_data=contract_data,
+            processo=processo,
+            headless=headless
+        )
+        
+        return result.to_dict()
+        
+    except Exception as e:
+        print(f"❌ Conformity check failed: {e}")
+        return {"error": str(e), "processo": processo}
+
 def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
     """
     Process a single contract PDF through the full pipeline.
@@ -493,6 +571,7 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
     3. Identify contract types
     4. AI analysis for structured data
     5. Validate extracted data
+    6. NEW: Conformity check (publication verification)
     
     Args:
         pdf_path: Path to the PDF file
@@ -511,32 +590,30 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
             "file_path": pdf_path,
             "processo_id": processo_id,
             "error": extraction.get("error", "Unknown extraction error"),
-            "error_stage": "pdf_extraction"
+            "error_stage": "pdf_extraction",
+            "conformity": None  # NEW
         }
     
-    # Step 2: Get paragraphs (already computed in extract_text_from_pdf)
-    # Use the paragraphs already computed inside extract_text_from_pdf
-    paragraphs = extraction.get("paragraphs", [])  # fallback if old version
+    # Step 2: Get paragraphs
+    paragraphs = extraction.get("paragraphs", [])
     
     # Step 3: Identify contract types
     type_analysis = identify_contract_types(extraction["full_text"])
 
-    # Step 4: AI analysis...
+    # Step 4: AI analysis
     ai_error = None
     ai_analysis = None
 
     try:
         ai_analysis = analyze_contract_with_ai(extraction["full_text"], processo_id)
         
-        # Validate AI response
         if not ai_analysis or not isinstance(ai_analysis, dict):
             ai_error = "AI returned empty or invalid data"
             ai_analysis = {"error": ai_error}
         elif "error" in ai_analysis:
             ai_error = ai_analysis.get("error")
         else:
-    
-            # Step 5: Check for required fields (warning, not error)
+            # Step 5: Check for required fields
             required_fields = ["valor_contrato", "contratada", "objeto"]
             missing = [f for f in required_fields if not ai_analysis.get(f)]
             if missing:
@@ -552,7 +629,7 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
         }
     
     # Build result
-    return {
+    result = {
         "success": ai_error is None,
         "file_name": extraction["file_name"],
         "file_path": extraction["file_path"],
@@ -568,6 +645,32 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
         "error": ai_error,
         "error_stage": "ai_analysis" if ai_error else None
     }
+    
+    # ================================================================
+    # Step 6: NEW - Run conformity check if extraction was successful
+    # ================================================================
+    if result["success"] and ai_analysis and not ai_analysis.get("error"):
+        print("\n" + "=" * 50)
+        print("📋 CONFORMITY CHECK")
+        print("=" * 50)
+        
+        conformity_result = run_conformity_check(
+            extracted_data=ai_analysis,
+            processo_id=processo_id,
+            headless=True
+        )
+        
+        result["conformity"] = conformity_result
+        
+        if conformity_result and not conformity_result.get("error"):
+            status = conformity_result.get("overall_status", "UNKNOWN")
+            score = conformity_result.get("conformity_score", 0)
+            print(f"   Status: {status}")
+            print(f"   Score: {score}%")
+    else:
+        result["conformity"] = None
+    
+    return result
 
 # ============================================================
 # CSV CROSS-REFERENCE
@@ -752,6 +855,13 @@ def export_to_excel(results: list, output_path: str) -> str:
             # Metadata
             "Total_Paginas": r.get("total_pages"),
             "Total_Paragrafos": r.get("paragraph_count"),
+
+            # Conformity data (NEW)
+            "Conformidade_Status": r.get("conformity", {}).get("overall_status") if r.get("conformity") else None,
+            "Conformidade_Score": r.get("conformity", {}).get("conformity_score") if r.get("conformity") else None,
+            "Publicado": r.get("conformity", {}).get("publication_check", {}).get("was_published") if r.get("conformity") else None,
+            "Data_Publicacao": r.get("conformity", {}).get("publication_check", {}).get("publication_date") if r.get("conformity") else None,
+            "Link_Publicacao": r.get("conformity", {}).get("publication_check", {}).get("download_link") if r.get("conformity") else None,
         }
         rows.append(row)
     

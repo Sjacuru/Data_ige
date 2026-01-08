@@ -1,0 +1,80 @@
+{
+  "processo": "SME-PRO-2025/19222",
+  "analysis_timestamp": "2026-01-09T00:35:32.481284",
+  "overall_status": "CONFORME",
+  "conformity_score": 100.0,
+  "summary": {
+    "checks_total": 5,
+    "checks_passed": 5,
+    "checks_failed": 0,
+    "checks_partial": 0
+  },
+  "publication_check": {
+    "was_published": true,
+    "publication_date": "07/01/2026",
+    "edition_number": "200",
+    "page_number": "86",
+    "download_link": "https://doweb.rio.rj.gov.br/portal/edicoes/download/13857/86",
+    "timing": {
+      "contract_signature_date": "28/10/2025",
+      "days_to_publish": 71,
+      "deadline_days": 20,
+      "published_on_time": false
+    },
+    "status": "REPROVADO",
+    "observation": "Publicado em 71 dias (FORA do prazo de 20 dias)"
+  },
+  "field_checks": [
+    {
+      "field_name": "valor",
+      "field_label": "Valor do Contrato",
+      "contract_value": "R$ 572.734,00",
+      "publication_value": "R$ 572.734,00 (quinhentos e setenta e dois mil, setecentos e trinta e quatro reais)",
+      "status": "APROVADO",
+      "match_level": "EXATO",
+      "match_percentage": 100.0,
+      "observation": "Valores idênticos"
+    },
+    {
+      "field_name": "numero_contrato",
+      "field_label": "Número do Contrato",
+      "contract_value": "215/2025",
+      "publication_value": "215/2025",
+      "status": "APROVADO",
+      "match_level": "EXATO",
+      "match_percentage": 100.0,
+      "observation": ""
+    },
+    {
+      "field_name": "objeto",
+      "field_label": "Objeto do Contrato",
+      "contract_value": "Qualificação de lideranças mediante participação do Programa FabLearn",
+      "publication_value": "Qualificação de lideranças mediante a participação do Programa FabLearn",
+      "status": "APROVADO",
+      "match_level": "ALTO",
+      "match_percentage": 98.6,
+      "observation": ""
+    },
+    {
+      "field_name": "partes",
+      "field_label": "Partes Contratantes",
+      "contract_value": "PCRJ/SME ASSOCIACAO COLUMBIA GLOBAL CENTER/BRASIL",
+      "publication_value": "PCRJ/SME e ASSOCIACAO COLUMBIA GLOBAL CENTER/BRASIL",
+      "status": "APROVADO",
+      "match_level": "ALTO",
+      "match_percentage": 98.0,
+      "observation": ""
+    },
+    {
+      "field_name": "prazo",
+      "field_label": "Prazo de Vigência",
+      "contract_value": "30/12/2025 29/12/2026",
+      "publication_value": "30/12/2025 a 29/12/2026",
+      "status": "APROVADO",
+      "match_level": "ALTO",
+      "match_percentage": 95.5,
+      "observation": ""
+    }
+  ],
+  "error": null
+}
