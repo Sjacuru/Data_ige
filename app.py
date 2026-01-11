@@ -24,7 +24,6 @@ import time
 
 try:
     from Contract_analisys.contract_extractor import (
-        extract_text_from_pdf,
         process_single_contract,
         process_all_contracts,
         export_to_excel,
@@ -185,7 +184,6 @@ def get_conformity_color(status: str) -> str:
         return "red"
     else:
         return "gray"
-
 
 def render_conformity_badge(conformity_data: dict):
     """Render a conformity status badge."""
@@ -796,7 +794,7 @@ def main():
         "📄 Arquivo Individual",
         "📦 Processamento em Lote",
         "📊 Resultados",
-        "🔍 Conformidade",  # NEW
+        "🔍 Conformidade", 
         "❓ Ajuda"
     ])
     

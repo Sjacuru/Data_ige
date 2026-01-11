@@ -1,4 +1,4 @@
-#%%
+
 """
 Contract Extractor v2.0
 ======================
@@ -27,7 +27,6 @@ from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed # remove unused concurrent.futures imports
 
 from pdf2image import convert_from_path
-import fitz
 import pandas as pd
 
 from langchain_groq import ChatGroq

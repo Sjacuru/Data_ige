@@ -7,42 +7,55 @@ import os
 import requests
 import re
 from bs4 import BeautifulSoup
-from pdf2image import convert_from_path
+from pdf2image import convert_from_path, pdfinfo_from_path
 import pytesseract
+import traceback
 
 def extract_text_from_pdf(filepath):
     """
     Extract text content from a PDF file.
-    
+
     Args:
         filepath: Path to the PDF file
-        
+
     Returns:
         Extracted text as string, or None if failed
     """
     try:
         print(f"\n→ Extraindo texto de: {filepath}")
-        
-        pages = convert_from_path(filepath)
+
+        # Get total number of pages without loading them
+        info = pdfinfo_from_path(filepath)
+        total_pages = info["Pages"]
+
         text_content = []
 
-        for page_num, page_image in enumerate(pages, 1):
-            page_text = pytesseract.image_to_string(page_image, lang='por')  
-            if page_text:
+        # Process one page at a time to avoid high memory usage
+        for page_num in range(1, total_pages + 1):
+            pages = convert_from_path(
+                filepath,
+                first_page=page_num,
+                last_page=page_num
+            )  # loads only one page
+
+            page_image = pages[0]
+            page_text = pytesseract.image_to_string(page_image, lang='por')
+
+            if page_text.strip():
                 text_content.append(page_text)
                 print(f"  Página {page_num}: {len(page_text)} caracteres")
-        
+            else:
+                print(f"  Página {page_num}: sem texto detectado")
+
         full_text = "\n\n".join(text_content)
         print(f"✓ Total extraído: {len(full_text)} caracteres")
-        
+
         return full_text
+
     except Exception as e:
         print(f"✗ Erro ao extrair texto do PDF: {e}")
-        
-        return None        
-    except Exception as e:
-        print(f"✗ Erro ao extrair texto do PDF: {e}")
-        return None
+        traceback.print_exc()
+        return None 
 
 def extract_text_from_url(url):
     """

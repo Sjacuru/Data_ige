@@ -6,6 +6,7 @@ Orchestrates the full workflow: retrieve, identify, analyze, answer.
 import sys
 import time
 from src.reporter import save_companies_with_links  
+from src.document_extractor import DocumentExtractor, extract_processo_documents
 
 # Add src to path
 sys.path.insert(0, 'src')
@@ -42,9 +43,94 @@ from src.reporter import (
     create_summary_dataframe,
     save_companies_with_links
 )
-from config import CHROME_HEADLESS, FILTER_YEAR
+from config import CHROME_HEADLESS, FILTER_YEAR  # ✅ Original - no changes
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# NEW HELPER FUNCTIONS (additions only - nothing removed)
+# ═══════════════════════════════════════════════════════════════════════
+
+# Feature flag - set to True to enable CAPTCHA handling for processo pages
+USE_DOCUMENT_EXTRACTOR = True  # Set to False to use original behavior only
+
+def is_processo_page(url):
+    """
+    Check if URL is a processo.rio page that needs special handling.
+    
+    Args:
+        url: URL to check
+        
+    Returns:
+        bool: True if it's a processo page requiring CAPTCHA handling
+    """
+    if not url:
+        return False
+    
+    url_lower = url.lower()
+    
+    # Direct PDF links don't need special handling
+    if url_lower.endswith('.pdf'):
+        return False
+    
+    # Check for processo.rio patterns
+    processo_patterns = [
+        'processo.rio',
+        '/processo/',
+        '/consulta/',
+        'visualizar.action',
+    ]
+    
+    return any(pattern in url_lower for pattern in processo_patterns)
+
+
+def process_with_document_extractor(driver, processo_url, empresa_info):
+    """
+    Process a processo URL with CAPTCHA handling using DocumentExtractor.
+    
+    Args:
+        driver: Selenium WebDriver
+        processo_url: URL to processo page
+        empresa_info: Dict with empresa 'id' and 'name'
+    
+    Returns:
+        tuple: (text_content, extraction_metadata) or (None, None) on failure
+    """
+    print(f"\n   🔐 Usando DocumentExtractor (com tratamento de CAPTCHA)...")
+    
+    try:
+        results = extract_processo_documents(
+            driver=driver,
+            processo_url=processo_url,
+            empresa_info=empresa_info,
+            use_ai=False  # Set True for better quality (slower)
+        )
+        
+        if results:
+            # Combine all extracted texts
+            text_parts = []
+            for doc in results:
+                if doc.get('texto_extraido'):
+                    text_parts.append(doc['texto_extraido'])
+            
+            text_content = "\n\n---\n\n".join(text_parts) if text_parts else None
+            
+            if text_content:
+                print(f"   ✓ {len(results)} documento(s) extraído(s), {len(text_content):,} caracteres")
+                return text_content, {"source": "document_extractor", "docs": results}
+        
+        print(f"   ⚠ Nenhum documento encontrado na página")
+        return None, None
+        
+    except Exception as e:
+        print(f"   ❌ Erro no DocumentExtractor: {e}")
+        return None, None
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# ORIGINAL FUNCTIONS (preserved exactly as before, with additions marked)
+# ═══════════════════════════════════════════════════════════════════════
 
 def process_single_company(driver, company_data):
     """
@@ -126,20 +212,44 @@ def process_single_company(driver, company_data):
             
             report_data = company_data.copy()
             report_data["document_url"] = doc_link["href"]
-            report_data["document_text"] = doc_link["processo"]
+            report_data["document_text"] = doc_link["processo"]  # ✅ Original preserved
             
             print(f"   📎 Processo: {report_data['document_text']}")
             print(f"   🔗 URL: {report_data['document_url'][:60]}...")
             
             # Extract and analyze
             text_content = None
-            if doc_link['href'].lower().endswith('.pdf'):
-                filepath = download_document(doc_link['href'])
-                if filepath:
-                    text_content = extract_text_from_pdf(filepath)
-            else:
-                text_content = extract_text_from_url(doc_link['href'])
             
+            # ═══════════════════════════════════════════════════════
+            # NEW: Try DocumentExtractor for processo pages (if enabled)
+            # ═══════════════════════════════════════════════════════
+            used_document_extractor = False
+            
+            if USE_DOCUMENT_EXTRACTOR and is_processo_page(doc_link['href']):
+                empresa_info = {
+                    "id": company_id,
+                    "name": company_data.get('Company', '')
+                }
+                text_content, extraction_meta = process_with_document_extractor(
+                    driver, doc_link['href'], empresa_info
+                )
+                if text_content:
+                    used_document_extractor = True
+            
+            # ═══════════════════════════════════════════════════════
+            # ORIGINAL: Fallback to original extraction method
+            # ═══════════════════════════════════════════════════════
+            if not text_content:
+                if doc_link['href'].lower().endswith('.pdf'):
+                    filepath = download_document(doc_link['href'])
+                    if filepath:
+                        text_content = extract_text_from_pdf(filepath)
+                else:
+                    text_content = extract_text_from_url(doc_link['href'])
+            
+            # ═══════════════════════════════════════════════════════
+            # ORIGINAL: Analyze and generate report (unchanged)
+            # ═══════════════════════════════════════════════════════
             if text_content:
                 contract_data = parse_contract_data(text_content)
                 analysis_results = analyze_contract(contract_data)
@@ -153,10 +263,11 @@ def process_single_company(driver, company_data):
             report = generate_analysis_report(report_data, analysis_results)
             all_reports.append(report)
             
-            print(f"   ✓ Relatório gerado com document_text: {report.get('document_text', 'MISSING!')}")
+            print(f"   ✓ Relatório gerado com document_text: {report.get('document_text', 'MISSING!')}")  # ✅ Original preserved
     
     print(f"\n✓ {len(all_reports)} relatório(s) gerado(s) para esta empresa")
     return all_reports
+
 
 def main():
     """
@@ -165,6 +276,8 @@ def main():
     """
     print("\n" + "=" * 60)
     print("     CONTRATO ANALYZER - Iniciando...")
+    if USE_DOCUMENT_EXTRACTOR:
+        print("     (DocumentExtractor ATIVADO para páginas processo.rio)")
     print("=" * 60 + "\n")
     
     # Initialize driver
@@ -276,6 +389,7 @@ def main():
     finally:
         # Always close the browser
         close_driver(driver)
+
 
 # =============================================================================
 # BATCH PROCESSING (for future use)
