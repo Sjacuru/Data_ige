@@ -1,5 +1,6 @@
-"""
+""" 
 process_from_csv.py - Process companies from downloaded CSV file.
+Take only the CSV from the link.
 Reads company IDs from CSV and retrieves processo data.
 Separate from main scraper for AI Agent orchestration.
 """
