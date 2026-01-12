@@ -1,21 +1,30 @@
+
 """
 download_csv.py - Download CSV file from ContasRio portal.
-Separate from the main scraper for future AI Agent orchestration. 
-C:\Users\angel\Documents\GitHub\Data_ige\downloads
+Separate from the main scraper for future AI Agent orchestration.
+Download folder: see DOWNLOAD_FOLDER variable below.
 """
 
 import os
 import time
 import glob
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from webdriver_manager.chrome import ChromeDriverManager
+
+# Add project root to path
+import sys
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# Import centralized driver
+from core.driver import create_download_driver, close_driver
+
 
 # Import configuration
 from config import BASE_URL, CONTRACTS_URL, TIMEOUT_SECONDS
@@ -32,45 +41,8 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DRIVER SETUP
+# DRIVER SETUP was MOVED to core/driver.py
 # ═══════════════════════════════════════════════════════════════════════════════
-
-def initialize_download_driver(headless=False):
-    """
-    Initialize Chrome WebDriver with download settings.
-    """
-    try:
-        options = Options()
-        
-        if headless:
-            options.add_argument("--headless")
-        
-        # Set download preferences
-        prefs = {
-            "download.default_directory": DOWNLOAD_FOLDER,
-            "download.prompt_for_download": False,
-            "download.directory_upgrade": True,
-            "safebrowsing.enabled": True
-        }
-        options.add_experimental_option("prefs", prefs)
-        
-        # Stability options
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        
-        print("✓ Driver inicializado com sucesso!")
-        print(f"  Pasta de download: {DOWNLOAD_FOLDER}")
-        return driver
-        
-    except Exception as e:
-        print(f"✗ Erro ao inicializar o driver: {e}")
-        return None
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # NAVIGATION
@@ -305,7 +277,7 @@ def download_contracts_csv(year=None, headless=False):
     print("     DOWNLOAD CSV - ContasRio")
     print("=" * 60)
     
-    driver = initialize_download_driver(headless=headless)
+    driver = create_download_driver(download_dir=DOWNLOAD_FOLDER, headless=headless)
     if not driver:
         return None
     
@@ -357,9 +329,7 @@ def download_contracts_csv(year=None, headless=False):
         traceback.print_exc()
         
     finally:
-        if driver:
-            driver.quit()
-            print("\n✓ Driver fechado")
+        close_driver(driver)
     
     # ═══════════════════════════════════════════════════════════
     # SUMMARY

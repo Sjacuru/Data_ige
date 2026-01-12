@@ -15,8 +15,7 @@ from typing import Optional, List, Tuple
 import requests
 
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -25,12 +24,14 @@ from selenium.common.exceptions import (
     NoSuchElementException,
     StaleElementReferenceException,
 )
-from webdriver_manager.chrome import ChromeDriverManager
 
 # Add project root to path
 import sys
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+# Import centralized driver
+from core.driver import create_download_driver, close_driver
 
 # Import from config with fallback
 try:
@@ -61,52 +62,8 @@ from conformity.scraper.doweb_extractor import extract_publication_from_pdf
 
 
 # =========================================================================
-# DRIVER INITIALIZATION
+# DRIVER INITIALIZATION was MOVED to core/driver.py
 # =========================================================================
-
-def initialize_driver(headless: bool = False) -> Optional[webdriver.Chrome]:
-    """
-    Initialize Chrome WebDriver for DOWEB scraping.
-    """
-    try:
-        options = Options()
-        if headless:
-            options.add_argument("--headless")
-        
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        
-        # Ensure temp folder exists
-        temp_path = Path(DOWEB_TEMP_PATH).absolute()
-        temp_path.mkdir(parents=True, exist_ok=True)
-        
-        # Disable download prompts
-        prefs = {
-            "download.default_directory": str(temp_path),
-            "download.prompt_for_download": False,
-            "plugins.always_open_pdf_externally": True,
-        }
-        options.add_experimental_option("prefs", prefs)
-        
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        
-        print("✓ DOWEB Driver initialized")
-        return driver
-        
-    except Exception as e:
-        print(f"✗ Error initializing driver: {e}")
-        return None
-
-
-def close_driver(driver: webdriver.Chrome) -> None:
-    """Safely close the browser."""
-    if driver:
-        driver.quit()
-        print("✓ DOWEB Driver closed")
-
 
 # =========================================================================
 # TEMP FILE MANAGEMENT
@@ -574,7 +531,7 @@ def search_and_extract_publication(
     
     try:
         # Initialize driver
-        driver = initialize_driver(headless=headless)
+        driver = create_download_driver(download_dir=str(temp_folder), headless=headless)
         if not driver:
             return create_error_result(processo, "Failed to initialize driver", "initialization")
         
@@ -696,7 +653,6 @@ def search_and_extract_publication(
         clear_temp_folder(temp_folder)
         if driver:
             close_driver(driver)
-
 
 # =========================================================================
 # BATCH PROCESSING

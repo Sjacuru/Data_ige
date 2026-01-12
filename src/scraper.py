@@ -28,8 +28,6 @@ import numbers
 import re
 import time
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -39,7 +37,6 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     NoSuchElementException
 )
-from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime
 
 # Import configuration
@@ -50,43 +47,24 @@ from config import (
     BASE_URL, CONTRACTS_URL, VALUE_COLUMNS, LOCATORS
 )
 
+# Import from core modules                              
+from core.driver import create_driver, close_driver 
 
 # =============================================================================
-# DRIVER MANAGEMENT
+# DRIVER MANAGEMENT (wrapper for backward compatibility)
 # =============================================================================
 
 def initialize_driver(headless=False):
     """
-    Initialize Chrome WebDriver with proper settings.
+    Initialize Chrome WebDriver.
     
-    Args:
-        headless: If True, runs Chrome without visible window
-        
-    Returns:
-        WebDriver instance or None if failed
+    This is a wrapper around core.driver.create_driver() for backward compatibility.
     """
-    try:
-        options = Options()
-        if headless:
-            options.add_argument("--headless") # It makes Chrome run in headless mode 
-                                               # (means it doesn't open a visible window).
-        
-        # Recommended options for stability
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        
-        # Use webdriver-manager to handle driver automatically
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        
-        print("✓ Driver inicializado com sucesso!")
-        return driver
-        
-    except Exception as e:
-        print(f"✗ Erro ao inicializar o driver: {e}")
-        return None
+    return create_driver(headless=headless)
+
+# =============================================================================
+# DRIVER MANAGEMENT delegated to core/driver.py
+# =============================================================================
 
 # =============================================================================
 # WAIT HELPERS
@@ -1181,9 +1159,3 @@ def get_all_document_links(driver):
     except Exception as e:
         print(f"✗ Erro ao buscar links: {e}")
         return []
-
-def close_driver(driver):
-    """Safely close the browser."""
-    if driver:
-        driver.quit()
-        print("✓ Driver fechado.")

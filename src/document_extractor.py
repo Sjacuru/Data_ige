@@ -36,6 +36,9 @@ from selenium.common.exceptions import (
     ElementClickInterceptedException
 )
 
+# Import from core modules
+from core.captcha import CaptchaHandler
+
 # Import from existing modules
 from config import (
     TIMEOUT_SECONDS, 
@@ -103,118 +106,15 @@ class DocumentExtractor:
         self.driver = driver
         self.download_dir = download_dir or TEMP_DOWNLOAD_PATH
         self.use_ai_extractor = use_ai_extractor
+        self.captcha_handler = CaptchaHandler(driver)
         os.makedirs(self.download_dir, exist_ok=True)
         
     # ═══════════════════════════════════════════════════════════════════════
-    # CAPTCHA HANDLING
+    # CAPTCHA HANDLING is DELEGATED TO core/captcha.py for refactoring under the functions:
+    # - detect_captcha(self)
+    # - handle_captcha(self)
+    # - _play_alert_sound(self)
     # ═══════════════════════════════════════════════════════════════════════
-    
-    def detect_captcha(self):
-        """
-        Detect if CAPTCHA is present on the page.
-        
-        Returns:
-            bool: True if CAPTCHA detected
-        """
-        captcha_indicators = [
-            "//iframe[contains(@src, 'recaptcha')]",
-            "//div[contains(@class, 'g-recaptcha')]",
-            "//*[contains(text(), 'não sou um robô')]",
-            "//*[contains(text(), 'not a robot')]",
-            "//div[@class='recaptcha-checkbox-border']"
-        ]
-        
-        for xpath in captcha_indicators:
-            try:
-                element = self.driver.find_element(By.XPATH, xpath)
-                if element.is_displayed():
-                    return True
-            except NoSuchElementException:
-                continue
-        
-        return False
-    
-    def handle_captcha(self, auto_attempt=True):
-        """
-        Handle CAPTCHA challenge.
-        
-        Args:
-            auto_attempt: Try to click checkbox automatically first
-            
-        Returns:
-            bool: True if CAPTCHA was resolved
-        """
-        if not self.detect_captcha():
-            return True  # No CAPTCHA present
-        
-        print("\n⚠️  CAPTCHA DETECTADO!")
-        
-        if auto_attempt:
-            print("   → Tentando resolver automaticamente...")
-            try:
-                # Try to find and click the reCAPTCHA checkbox
-                iframe = WebDriverWait(self.driver, 5).until(
-                    EC.presence_of_element_located((
-                        By.XPATH, 
-                        "//iframe[contains(@src, 'recaptcha')]"
-                    ))
-                )
-                
-                # Switch to reCAPTCHA iframe
-                self.driver.switch_to.frame(iframe)
-                
-                # Click the checkbox
-                checkbox = WebDriverWait(self.driver, 5).until(
-                    EC.element_to_be_clickable((
-                        By.CSS_SELECTOR, 
-                        ".recaptcha-checkbox-border"
-                    ))
-                )
-                checkbox.click()
-                
-                # Switch back to main content
-                self.driver.switch_to.default_content()
-                
-                # Wait to see if challenge appears
-                time.sleep(3)
-                
-                # Check if solved (checkbox turns green)
-                if not self.detect_captcha():
-                    print("   ✓ CAPTCHA resolvido automaticamente!")
-                    return True
-                    
-            except Exception as e:
-                print(f"   ⚠ Auto-resolve falhou: {e}")
-                self.driver.switch_to.default_content()
-        
-        # Manual intervention required
-        print("\n" + "="*50)
-        print("   🔐 INTERVENÇÃO MANUAL NECESSÁRIA")
-        print("   Por favor, resolva o CAPTCHA no navegador.")
-        print("="*50)
-        
-        # Play alert sound (Windows)
-        self._play_alert_sound()
-        
-        input("\n   Pressione ENTER quando terminar...")
-        
-        # Verify resolution
-        time.sleep(1)
-        if self.detect_captcha():
-            print("   ⚠ CAPTCHA ainda presente. Tentando continuar...")
-            return False
-        
-        print("   ✓ CAPTCHA resolvido!")
-        return True
-    
-    def _play_alert_sound(self):
-        """Play alert sound to notify user (Windows only)."""
-        try:
-            import winsound
-            winsound.Beep(1000, 500)
-            winsound.Beep(1500, 500)
-        except:
-            pass  # Ignore if not on Windows or winsound not available
     
     # ═══════════════════════════════════════════════════════════════════════
     # PAGE NAVIGATION
@@ -248,20 +148,20 @@ class DocumentExtractor:
             )
             
             print("   → Página de verificação detectada")
-            
+
             # Handle CAPTCHA if present
-            if self.detect_captcha():
-                if not self.handle_captcha():
+            if self.captcha_handler.detect_captcha():            # 🆕 NEW
+                if not self.captcha_handler.handle():            # 🆕 NEW
                     return False
-            
+
             # Click Consultar button
             print("   → Clicando em 'Consultar'...")
             self.driver.execute_script("arguments[0].click();", consultar_btn)
             time.sleep(3)
             
             # May need to handle CAPTCHA again after clicking
-            if self.detect_captcha():
-                if not self.handle_captcha():
+            if self.captcha_handler.detect_captcha():            # 🆕 NEW
+                if not self.captcha_handler.handle():            # 🆕 NEW
                     return False
                     
         except TimeoutException:
@@ -436,8 +336,8 @@ class DocumentExtractor:
             
             # Handle potential CAPTCHA on download page
             time.sleep(2)
-            if self.detect_captcha():
-                if not self.handle_captcha():
+            if self.captcha_handler.detect_captcha():            # 🆕 NEW
+                if not self.captcha_handler.handle():            # 🆕 NEW
                     return None
             
             # Wait for download

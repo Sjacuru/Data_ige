@@ -11,9 +11,6 @@ import csv
 import time
 import re
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
@@ -23,7 +20,14 @@ from selenium.common.exceptions import (
     StaleElementReferenceException,
     NoSuchElementException
 )
-from webdriver_manager.chrome import ChromeDriverManager
+
+# Add project root to path
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+# Import centralized driver
+from core.driver import create_scraper_driver, close_driver
 
 # Import configuration
 from config import (
@@ -159,32 +163,8 @@ def read_company_ids_from_csv(filepath):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DRIVER SETUP
+# DRIVER SETUP was MOVED to core/driver.py
 # ═══════════════════════════════════════════════════════════════════════════════
-
-def initialize_driver(headless=False):
-    """
-    Initialize Chrome WebDriver.
-    """
-    try:
-        options = Options()
-        if headless:
-            options.add_argument("--headless")
-        
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size=1920,1080")
-        
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
-        
-        print("✓ Driver inicializado!")
-        return driver
-        
-    except Exception as e:
-        print(f"✗ Erro ao inicializar driver: {e}")
-        return None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -594,7 +574,8 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
     # ═══════════════════════════════════════════════════════════
     # STEP 3: Initialize driver
     # ═══════════════════════════════════════════════════════════
-    driver = initialize_driver(headless=headless)
+
+    driver = create_scraper_driver(headless=headless)
     if not driver:
         return None
     
@@ -646,8 +627,7 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
         
     finally:
         if driver:
-            driver.quit()
-            print("\n✓ Driver fechado")
+            close_driver(driver)
     
     # ═══════════════════════════════════════════════════════════
     # STEP 5: Save final results

@@ -20,9 +20,6 @@ from typing import List, Dict, Optional, Any
 import pandas as pd
 import fitz  # PyMuPDF
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -34,7 +31,10 @@ from selenium.common.exceptions import (
     StaleElementReferenceException
 )
 from selenium.webdriver.common.action_chains import ActionChains
-from webdriver_manager.chrome import ChromeDriverManager
+
+# Import from core modules                     
+from core.captcha import CaptchaHandler        
+from core.driver import create_driver, close_driver
 
 # ============================================================
 # CONFIGURATION
@@ -91,256 +91,6 @@ class ExtractedProcesso:
             self.extracted_at = datetime.now().isoformat()
 
 
-class CaptchaHandler:
-    """Handles CAPTCHA detection and resolution."""
-
-    def __init__(self, driver):
-        self.driver = driver
-        self.captcha_solved = False
-
-    def is_on_documents_page(self) -> bool:
-        """Check if we're already on the documents page."""
-        indicators = [
-            "Últimos documentos",
-            "Documento capturado",
-        ]
-        try:
-            page_text = self.driver.find_element(By.TAG_NAME, "body").text
-            for indicator in indicators:
-                if indicator in page_text:
-                    logger.info(f"   ✅ Página de documentos detectada")
-                    return True
-        except Exception:
-            pass
-        return False
-
-    def is_on_captcha_page(self) -> bool:
-        """Check if we're on the CAPTCHA page."""
-        indicators = [
-            "Verificação de segurança",
-            "Verificação de seguranca",
-        ]
-        try:
-            page_text = self.driver.find_element(By.TAG_NAME, "body").text
-            for indicator in indicators:
-                if indicator in page_text:
-                    return True
-        except Exception:
-            pass
-        return False
-
-    def click_consultar_button(self) -> bool:
-        """Click the Consultar button."""
-        logger.info("   🖱️ Clicando no botão 'Consultar'...")
-
-        selectors = [
-            ("css", "button.btn-primary.btn-block[type='submit']"),
-            ("css", "button.btn-primary[type='submit']"),
-            ("css", "button[type='submit'].btn-primary"),
-            ("xpath", "//button[contains(., 'Consultar')]"),
-            ("xpath", "//button[@type='submit'][contains(@class, 'btn-primary')]"),
-            ("xpath", "//button[.//i[contains(@class, 'fa-stamp')]]"),
-        ]
-
-        for selector_type, selector in selectors:
-            try:
-                if selector_type == "css":
-                    button = self.driver.find_element(By.CSS_SELECTOR, selector)
-                else:
-                    button = self.driver.find_element(By.XPATH, selector)
-
-                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", button)
-                time.sleep(0.3)
-
-                if not button.is_enabled():
-                    continue
-
-                try:
-                    button.click()
-                except (ElementClickInterceptedException, ElementNotInteractableException):
-                    self.driver.execute_script("arguments[0].click();", button)
-
-                logger.info("   ✅ Botão 'Consultar' clicado!")
-                return True
-
-            except NoSuchElementException:
-                continue
-            except Exception as e:
-                logger.debug(f"   Erro: {e}")
-                continue
-
-        logger.warning("   ⚠️ Botão 'Consultar' não encontrado")
-        return False
-
-    def click_recaptcha_checkbox(self) -> bool:
-        """Find and click the reCAPTCHA checkbox."""
-        logger.info("   🔍 Procurando checkbox do reCAPTCHA...")
-
-        try:
-            iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
-            recaptcha_iframe = None
-
-            for iframe in iframes:
-                src = iframe.get_attribute('src') or ''
-                if 'recaptcha' in src.lower() and 'anchor' in src.lower():
-                    recaptcha_iframe = iframe
-                    break
-
-            if not recaptcha_iframe:
-                logger.warning("   ⚠️ iframe do reCAPTCHA não encontrado")
-                return False
-
-            self.driver.switch_to.frame(recaptcha_iframe)
-
-            try:
-                checkbox = WebDriverWait(self.driver, 5).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR,
-                        ".recaptcha-checkbox-border, #recaptcha-anchor"
-                    ))
-                )
-
-                actions = ActionChains(self.driver)
-                actions.move_to_element(checkbox)
-                actions.pause(0.3)
-                actions.click()
-                actions.perform()
-
-                logger.info("   ✅ Clicou no checkbox do reCAPTCHA")
-                return True
-
-            finally:
-                self.driver.switch_to.default_content()
-
-        except Exception as e:
-            logger.error(f"   ❌ Erro ao clicar checkbox: {e}")
-            self.driver.switch_to.default_content()
-            return False
-
-    def is_image_challenge_visible(self) -> bool:
-        """Check if there's actually a visible image challenge."""
-        try:
-            # Look for bframe iframe (image challenge)
-            iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
-            for iframe in iframes:
-                src = iframe.get_attribute('src') or ''
-                if 'bframe' in src:
-                    # Check if it's actually visible
-                    if iframe.is_displayed():
-                        # Check size - challenge iframe is large
-                        size = iframe.size
-                        if size.get('height', 0) > 200 and size.get('width', 0) > 200:
-                            logger.info("   🖼️ Desafio de imagens VISÍVEL detectado")
-                            return True
-            return False
-        except Exception:
-            return False
-
-    def wait_for_manual_resolution(self) -> bool:
-        """Wait for manual CAPTCHA resolution."""
-        print("\n" + "=" * 60)
-        print("🔐 INTERVENÇÃO MANUAL NECESSÁRIA")
-        print("=" * 60)
-        print("\n📋 Resolva o CAPTCHA no navegador (desafio de imagens)")
-        print("   O script detectará automaticamente quando concluir")
-        print(f"\n⏱️  Tempo máximo: {CAPTCHA_MANUAL_TIMEOUT // 60} minutos")
-        print("=" * 60)
-
-        start_time = time.time()
-
-        while time.time() - start_time < CAPTCHA_MANUAL_TIMEOUT:
-            # Check if already on documents page
-            if self.is_on_documents_page():
-                print("\n\n✅ Página de documentos carregada!")
-                self.captcha_solved = True
-                return True
-
-            # Check if no longer on captcha page
-            if not self.is_on_captcha_page():
-                print("\n\n✅ Saiu da página de CAPTCHA!")
-                self.captcha_solved = True
-                return True
-
-            elapsed = int(time.time() - start_time)
-            remaining = CAPTCHA_MANUAL_TIMEOUT - elapsed
-            print(f"\r⏳ Aguardando... {remaining}s restantes    ", end='', flush=True)
-            time.sleep(2)
-
-        print("\n\n❌ Tempo esgotado!")
-        return False
-
-    def handle(self) -> bool:
-        """Main CAPTCHA handling logic - improved flow."""
-        logger.info("🔐 Verificando estado da página...")
-
-        # Step 1: Check if already on documents page
-        if self.is_on_documents_page():
-            logger.info("✅ Já na página de documentos")
-            self.captcha_solved = True
-            return True
-
-        # Step 2: Check if on CAPTCHA page
-        if not self.is_on_captcha_page():
-            logger.info("✅ Não está na página de CAPTCHA")
-            return True
-
-        logger.info("🔐 Página de CAPTCHA detectada")
-
-        # Step 3: Try clicking Consultar first (maybe checkbox already checked)
-        logger.info("   Tentando clicar em 'Consultar' diretamente...")
-        if self.click_consultar_button():
-            time.sleep(3)
-            if self.is_on_documents_page():
-                logger.info("✅ Sucesso! Página de documentos carregada")
-                self.captcha_solved = True
-                return True
-            logger.info("   Ainda na mesma página, tentando resolver CAPTCHA...")
-
-        # Step 4: Click reCAPTCHA checkbox
-        logger.info("🤖 Clicando no checkbox do reCAPTCHA...")
-        if self.click_recaptcha_checkbox():
-            time.sleep(2)  # Brief wait
-
-            # Step 5: IMMEDIATELY try to click Consultar
-            logger.info("   Tentando clicar em 'Consultar' após checkbox...")
-            if self.click_consultar_button():
-                time.sleep(3)
-
-                # Step 6: Check if we're on documents page
-                if self.is_on_documents_page():
-                    logger.info("✅ Sucesso! CAPTCHA resolvido e página carregada")
-                    self.captcha_solved = True
-                    return True
-
-                # Step 7: Still on same page? Check if there's an image challenge
-                if self.is_on_captcha_page():
-                    if self.is_image_challenge_visible():
-                        logger.info("   🖼️ Desafio de imagens requer intervenção manual")
-                        return self.wait_for_manual_resolution()
-                    else:
-                        # No image challenge visible, try clicking again
-                        logger.info("   Tentando clicar em 'Consultar' novamente...")
-                        time.sleep(2)
-                        if self.click_consultar_button():
-                            time.sleep(3)
-                            if self.is_on_documents_page():
-                                self.captcha_solved = True
-                                return True
-                else:
-                    # Not on captcha page anymore
-                    logger.info("✅ Saiu da página de CAPTCHA")
-                    self.captcha_solved = True
-                    return True
-
-        # Step 8: If nothing worked, check one more time
-        time.sleep(2)
-        if self.is_on_documents_page():
-            self.captcha_solved = True
-            return True
-
-        # Step 9: Last resort - ask for manual intervention
-        logger.info("⚠️ Todas as tentativas automáticas falharam")
-        return self.wait_for_manual_resolution()
-
 class ProcessoDocumentExtractor:
     """Extracts and downloads documents from processo.rio."""
 
@@ -356,41 +106,28 @@ class ProcessoDocumentExtractor:
 
     def setup_driver(self):
         """Initialize Chrome WebDriver."""
-        chrome_options = Options()
-
         if self.headless:
             logger.warning("⚠️ Modo headless pode falhar com CAPTCHA")
-
-        chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_argument("--window-size=1920,1080")
-
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
-
-        prefs = {
-            "download.default_directory": str(DOWNLOADS_DIR.absolute()),
-            "download.prompt_for_download": False,
-            "download.directory_upgrade": True,
-            "plugins.always_open_pdf_externally": True,
-        }
-        chrome_options.add_experimental_option("prefs", prefs)
-
-        service = Service(ChromeDriverManager().install())
-        self.driver = webdriver.Chrome(service=service, options=chrome_options)
-
-        self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-        self.driver.implicitly_wait(10)
+        
+        # Use shared driver with anti-detection and download settings
+        self.driver = create_driver(
+            headless=self.headless,
+            download_dir=str(DOWNLOADS_DIR.absolute()),
+            anti_detection=True
+        )
+        
+        if not self.driver:
+            raise RuntimeError("Failed to initialize Chrome WebDriver")
+        
         self.captcha_handler = CaptchaHandler(self.driver)
-
+        
         logger.info("✅ Chrome WebDriver inicializado")
 
     def close_driver(self):
         """Close the WebDriver."""
-        if self.driver:
-            self.driver.quit()
-            logger.info("WebDriver fechado")
+        close_driver(self.driver)
+        self.driver = None
+
 
     def load_input_data(self) -> pd.DataFrame:
         """Load the analysis summary."""
