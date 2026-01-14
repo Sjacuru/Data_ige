@@ -620,6 +620,96 @@ def create_extractor(driver, use_ai=False, download_dir=None):
         use_ai_extractor=use_ai
     )
 
+def download_processo_pdf(
+    driver,
+    processo_url,
+    output_dir,
+    empresa_info=None,
+    filename=None
+):
+    """
+    Download PDF from processo page WITHOUT extracting text.
+    Keeps the PDF file (unlike process_processo which deletes after extraction).
+    
+    Args:
+        driver: Selenium WebDriver instance
+        processo_url: URL to the processo page
+        output_dir: Directory to save the PDF
+        empresa_info: Optional dict with 'id' and 'name' keys
+        filename: Optional custom filename (auto-generated if None)
+    
+    Returns:
+        Dict with download result:
+        {
+            "success": bool,
+            "pdf_path": str or None,
+            "processo_url": str,
+            "error": str or None
+        }
+    """
+    from pathlib import Path
+    import shutil
+    
+    result = {
+        "success": False,
+        "pdf_path": None,
+        "processo_url": processo_url,
+        "empresa_id": empresa_info.get("id") if empresa_info else None,
+        "empresa_name": empresa_info.get("name") if empresa_info else None,
+        "error": None
+    }
+    
+    # Create output directory
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    
+    # Create extractor (use temp dir for initial download)
+    extractor = DocumentExtractor(driver=driver, use_ai_extractor=False)
+    
+    try:
+        # Access processo page (handles CAPTCHA)
+        if not extractor.access_processo_page(processo_url):
+            result["error"] = "Falha ao acessar página do processo"
+            return result
+        
+        # Find target documents
+        documents = extractor.find_target_documents()
+        
+        if not documents:
+            result["error"] = "Nenhum documento encontrado"
+            return result
+        
+        # Download first/primary document
+        doc = documents[0]  # Highest priority
+        pdf_temp_path = extractor.download_pdf(doc['href'])
+        
+        if not pdf_temp_path:
+            result["error"] = "Falha no download do PDF"
+            return result
+        
+        # Generate final filename
+        if not filename:
+            processo_id = doc.get('processo_id', 'unknown').replace('/', '-').replace('\\', '-')
+            empresa_id = (empresa_info.get('id', '') if empresa_info else '').replace('/', '-')
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{empresa_id}_{processo_id}_{timestamp}.pdf"
+        
+        # Move to output directory
+        final_path = os.path.join(output_dir, filename)
+        shutil.move(pdf_temp_path, final_path)
+        
+        result["success"] = True
+        result["pdf_path"] = final_path
+        result["documento_tipo"] = doc.get('tipo', 'unknown')
+        result["processo_id"] = doc.get('processo_id', 'unknown')
+        
+        print(f"   ✓ PDF salvo: {filename}")
+        
+    except Exception as e:
+        result["error"] = str(e)
+        print(f"   ✗ Erro: {e}")
+    
+    return result
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # STANDALONE TESTING

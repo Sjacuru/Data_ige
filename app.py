@@ -73,6 +73,17 @@ except ImportError as e:
     DOWNLOAD_CSV_IMPORT_ERROR = str(e)
     DOWNLOAD_FOLDER = None
 
+# ════════════════════════════════════════════════════════════════
+# 🆕 NEW IMPORTS: Download Contracts
+# ════════════════════════════════════════════════════════════════
+try:
+    from src.document_extractor import download_processo_pdf
+    DOWNLOAD_CONTRACTS_LOADED = True
+except ImportError as e:
+    DOWNLOAD_CONTRACTS_LOADED = False
+    DOWNLOAD_CONTRACTS_ERROR = str(e)
+
+
 # Check if driver is available
 try:
     from core.driver import is_driver_available
@@ -150,6 +161,12 @@ if "csv_download_trigger" not in st.session_state:
     st.session_state.csv_download_trigger = False
 if "comparison_result" not in st.session_state:
     st.session_state.comparison_result = None
+if "contracts_download_in_progress" not in st.session_state:
+    st.session_state.contracts_download_in_progress = False
+if "contracts_download_status" not in st.session_state:
+    st.session_state.contracts_download_status = None
+if "contracts_download_trigger" not in st.session_state:
+    st.session_state.contracts_download_trigger = False
 
 st.sidebar.markdown("### Debug paths")
 st.sidebar.code(f"""
@@ -327,6 +344,270 @@ def find_id_column(df, candidates=None):
     
     return None
 
+def get_processos_files():
+    """Get list of processos CSV files available for download."""
+    processos_dir = Path("scripts/outputs")
+    if not processos_dir.exists():
+        return []
+    
+    files = list(processos_dir.glob("processos_*.csv"))
+    # Sort by modification time, newest first
+    files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
+    return files
+
+
+def read_processos_csv(filepath):
+    """Read processos CSV and return list of URLs."""
+    try:
+        df = pd.read_csv(filepath, dtype=str)
+        
+        # Find URL column
+        url_col = None
+        for col in ['URL', 'url', 'Url', 'href', 'Link']:
+            if col in df.columns:
+                url_col = col
+                break
+        
+        if not url_col:
+            return [], "Coluna URL não encontrada"
+        
+        # Filter valid URLs
+        processos = []
+        for _, row in df.iterrows():
+            url = row.get(url_col, "")
+            if url and url.startswith("http"):
+                processos.append({
+                    "url": url,
+                    "id": row.get("ID", ""),
+                    "company": row.get("Company", ""),
+                    "processo": row.get("Processo", "")
+                })
+        
+        return processos, None
+        
+    except Exception as e:
+        return [], str(e)
+
+
+def run_contracts_download_process(processos_file: Path, headless: bool, max_downloads: int = None):
+    """
+    Execute the contracts download process with progress display.
+    """
+    from core.driver import create_driver, close_driver
+    
+    st.header("📥 Download de Contratos em Andamento")
+    
+    st.info(f"""
+    📄 **Arquivo:** `{processos_file.name}`
+    
+    O sistema irá:
+    1. Ler as URLs do arquivo CSV
+    2. Acessar cada página de processo
+    3. Resolver CAPTCHAs quando necessário
+    4. Baixar os PDFs dos contratos
+    """)
+    
+    # Read processos
+    processos, error = read_processos_csv(processos_file)
+    
+    if error:
+        st.error(f"Erro ao ler arquivo: {error}")
+        st.session_state.contracts_download_in_progress = False
+        return
+    
+    if not processos:
+        st.warning("Nenhum processo com URL válida encontrado")
+        st.session_state.contracts_download_in_progress = False
+        return
+    
+    # Apply limit if set
+    if max_downloads and max_downloads > 0:
+        processos = processos[:max_downloads]
+        st.caption(f"⚠️ Limitado a {max_downloads} downloads")
+    
+    total = len(processos)
+    st.write(f"**Total de processos:** {total}")
+    
+    # Progress elements
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    results_container = st.empty()
+    
+    # Initialize driver
+    status_text.text("🚀 Iniciando navegador...")
+    driver = create_driver(headless=headless)
+    
+    if not driver:
+        st.error("Falha ao inicializar navegador")
+        st.session_state.contracts_download_in_progress = False
+        return
+    
+    # Output directory
+    output_dir = Path("data/downloads/processos")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Process each URL
+    results = []
+    success_count = 0
+    error_count = 0
+    
+    try:
+        for i, proc in enumerate(processos):
+            progress = (i + 1) / total
+            progress_bar.progress(progress)
+            status_text.text(f"📥 [{i+1}/{total}] Baixando: {proc['processo'][:30]}...")
+            
+            try:
+                result = download_processo_pdf(
+                    driver=driver,
+                    processo_url=proc["url"],
+                    output_dir=str(output_dir),
+                    empresa_info={"id": proc["id"], "name": proc["company"]}
+                )
+                
+                results.append({
+                    "processo": proc["processo"],
+                    "status": "✅" if result["success"] else "❌",
+                    "arquivo": Path(result["pdf_path"]).name if result["pdf_path"] else "-",
+                    "erro": result.get("error", "")
+                })
+                
+                if result["success"]:
+                    success_count += 1
+                else:
+                    error_count += 1
+                    
+            except Exception as e:
+                error_count += 1
+                results.append({
+                    "processo": proc["processo"],
+                    "status": "❌",
+                    "arquivo": "-",
+                    "erro": str(e)[:50]
+                })
+            
+            # Update results table
+            with results_container.container():
+                df = pd.DataFrame(results[-10:])  # Show last 10
+                st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        progress_bar.progress(1.0)
+        status_text.text("✅ Download concluído!")
+        
+        # Store status
+        st.session_state.contracts_download_status = {
+            "success": True,
+            "total": total,
+            "downloaded": success_count,
+            "errors": error_count,
+            "output_dir": str(output_dir),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Summary
+        st.success(f"""
+        🎉 **Download finalizado!**
+        
+        - **Total processados:** {total}
+        - **Sucesso:** {success_count} ✅
+        - **Erros:** {error_count} ❌
+        - **Pasta:** `{output_dir}`
+        """)
+        
+        # Full results table
+        if results:
+            st.subheader("📋 Resultados Completos")
+            df_full = pd.DataFrame(results)
+            st.dataframe(df_full, use_container_width=True, height=300)
+        
+    except Exception as e:
+        st.error(f"Erro durante download: {e}")
+        st.session_state.contracts_download_status = {
+            "success": False,
+            "error": str(e)
+        }
+        
+    finally:
+        status_text.text("🔒 Fechando navegador...")
+        close_driver(driver)
+        st.session_state.contracts_download_in_progress = False
+    
+    # Back button
+    st.divider()
+    if st.button("🔙 Voltar para o Dashboard", type="primary", use_container_width=True):
+        st.rerun()
+
+
+def render_download_contracts_section():
+    """Render the download contracts section in sidebar."""
+    st.subheader("📥 Download Contratos")
+    
+    # Check dependencies
+    if not DOWNLOAD_CONTRACTS_LOADED:
+        st.error("Módulo não disponível")
+        with st.expander("Ver erro"):
+            st.code(DOWNLOAD_CONTRACTS_ERROR)
+        return
+    
+    if not DRIVER_AVAILABLE:
+        st.warning("Chrome não detectado")
+        return
+    
+    # Find processos files
+    processos_files = get_processos_files()
+    
+    if not processos_files:
+        st.warning("Nenhum arquivo de processos")
+        st.caption("Execute `process_from_csv.py` primeiro")
+        return
+    
+    # File selector
+    selected_file = st.selectbox(
+        "Arquivo de processos",
+        options=processos_files,
+        format_func=lambda x: f"{x.name} ({x.stat().st_size // 1024}KB)",
+        key="contracts_file_select"
+    )
+    
+    # Options
+    max_downloads = st.number_input(
+        "Limite (0 = todos)",
+        min_value=0,
+        max_value=1000,
+        value=0,
+        key="contracts_max_downloads"
+    )
+    
+    headless = st.checkbox(
+        "Modo invisível",
+        value=False,
+        key="contracts_headless"
+    )
+    
+    # Status from last run
+    if st.session_state.contracts_download_status:
+        status = st.session_state.contracts_download_status
+        if status.get("success"):
+            st.success(f"✓ Último: {status.get('downloaded', 0)}/{status.get('total', 0)}")
+        else:
+            st.error("✗ Último download falhou")
+    
+    # Download button
+    is_running = st.session_state.get("contracts_download_in_progress", False)
+    
+    if st.button(
+        "📥 Baixar PDFs" if not is_running else "⏳ Baixando...",
+        type="secondary",
+        use_container_width=True,
+        disabled=is_running,
+        key="start_contracts_download_btn"
+    ):
+        st.session_state.contracts_download_in_progress = True
+        st.session_state.contracts_download_trigger = True
+        st.session_state.contracts_selected_file = selected_file
+        st.session_state.contracts_max = max_downloads if max_downloads > 0 else None
+        st.session_state.contracts_headless = headless
+        st.rerun()
 
 def find_company_column(df, candidates=None):
     """
@@ -1159,6 +1440,8 @@ def render_sidebar():
         # 🆕 NEW: Compare section
         render_compare_section()
 
+        render_download_contracts_section()
+
         st.divider()
 
         # Session info
@@ -1900,6 +2183,17 @@ def main():
         run_csv_download_process(year, headless)
         return  # Don't render tabs while downloading
     
+    if st.session_state.get("contracts_download_trigger"):
+        st.session_state.contracts_download_trigger = False
+        
+        selected_file = st.session_state.get("contracts_selected_file")
+        max_downloads = st.session_state.get("contracts_max")
+        headless = st.session_state.get("contracts_headless", False)
+        
+        render_sidebar()
+        run_contracts_download_process(selected_file, headless, max_downloads)
+        return    
+
     # ════════════════════════════════════════════════════════
     # NORMAL RENDERING
     # ════════════════════════════════════════════════════════
