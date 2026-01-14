@@ -5,10 +5,10 @@ scraper.py:
 - filter_by_company: wait 3s
 - click_company_button: 5 retries, 3 click methods, verify level transition
 - get_all_document_links: search 'processo' href, extract from URL, return list
-- NEW: get_current_level, get_all_buttons_at_level, click_specific_button, has_processo_links
-- NEW: discover_all_paths, discover_paths_recursive (tree traversal)
-- NEW: reset_and_navigate_to_company (BASE_URL first, verify transitions)
-- NEW: follow_path_and_collect
+- get_current_level, get_all_buttons_at_level, click_specific_button, has_processo_links
+- discover_all_paths, discover_paths_recursive (tree traversal)
+- reset_and_navigate_to_company (BASE_URL first, verify transitions)
+- follow_path_and_collect
 - REMOVED: click_ug_button, click_next_level
 main.py:
 - process_single_company: reset first, discover paths, collect processos, return list

@@ -34,7 +34,7 @@ from config import BASE_URL, CONTRACTS_URL, TIMEOUT_SECONDS
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Folder to save downloaded files
-DOWNLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "downloads")
+DOWNLOAD_FOLDER = os.path.join(str(PROJECT_ROOT), "data", "outputs")
 
 # Ensure download folder exists
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
@@ -256,6 +256,33 @@ def rename_downloaded_file(filepath):
     except Exception as e:
         print(f"⚠ Erro ao renomear: {e}")
         return filepath
+    
+def copy_to_latest(filepath):
+    
+    """
+    Create a 'latest' copy for easy access and comparison.
+    
+    Args:
+        filepath: Path to the timestamped file
+        
+    Returns:
+        Path to the latest copy
+    """
+
+    if not filepath or not os.path.exists(filepath):
+        return None
+    
+    import shutil
+    
+    latest_path = os.path.join(DOWNLOAD_FOLDER, "contasrio_latest.csv")
+    
+    try:
+        shutil.copy2(filepath, latest_path)
+        print(f"✓ Cópia 'latest' criada: contasrio_latest.csv")
+        return latest_path
+    except Exception as e:
+        print(f"⚠ Erro ao criar cópia 'latest': {e}")
+        return None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -320,6 +347,12 @@ def download_contracts_csv(year=None, headless=False):
         if downloaded_file:
             downloaded_file = rename_downloaded_file(downloaded_file)
         
+        # ═══════════════════════════════════════════════════════════
+        # STEP 7: Create 'latest' copy for comparison feature
+        # ═══════════════════════════════════════════════════════════
+        if downloaded_file:
+            copy_to_latest(downloaded_file)
+        
     except KeyboardInterrupt:
         print("\n⚠️ Interrompido pelo usuário")
         
@@ -334,14 +367,16 @@ def download_contracts_csv(year=None, headless=False):
     # ═══════════════════════════════════════════════════════════
     # SUMMARY
     # ═══════════════════════════════════════════════════════════
+    
     print("\n" + "=" * 60)
     if downloaded_file:
         print(f"✓ DOWNLOAD CONCLUÍDO")
         print(f"  Arquivo: {downloaded_file}")
+        print(f"  Latest:  {os.path.join(DOWNLOAD_FOLDER, 'contasrio_latest.csv')}")
     else:
         print("✗ DOWNLOAD FALHOU")
     print("=" * 60)
-    
+
     return downloaded_file
 
 

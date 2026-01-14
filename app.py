@@ -1,6 +1,5 @@
-
 """
-TCMRio Contract Analysis Dashboard v2.0
+TCMRio Contract Analysis Dashboard v2.1
 =======================================
 Streamlit interface for contract extraction and analysis.
 
@@ -11,8 +10,10 @@ Features:
 - Results viewer with filtering
 - Export to Excel/JSON
 - Contract type identification
+- 🆕 Data collection from ContasRio (scraping)
 """
 
+import os
 import pytesseract
 import streamlit as st
 import pandas as pd
@@ -21,6 +22,7 @@ from pathlib import Path
 from datetime import datetime
 import subprocess
 import time
+import re
 
 try:
     from Contract_analisys.contract_extractor import (
@@ -38,13 +40,45 @@ except ImportError as e:
     EXTRACTOR_LOADED = False
     IMPORT_ERROR = str(e)
 
-# Conformity module (NEW)
+# Conformity module
 try:
     from conformity.models.conformity_result import ConformityStatus
     CONFORMITY_LOADED = True
 except ImportError:
     CONFORMITY_LOADED = False
     ConformityStatus = None
+
+# ════════════════════════════════════════════════════════════════
+# 🆕 NEW IMPORTS: Scraping module
+# ════════════════════════════════════════════════════════════════
+try:
+    from src.scraper import (
+        initialize_driver,
+        navigate_to_home,
+        navigate_to_contracts,
+        scroll_and_collect_rows,
+        parse_row_data,
+        close_driver
+    )
+    SCRAPER_LOADED = True
+except ImportError as e:
+    SCRAPER_LOADED = False
+    SCRAPER_IMPORT_ERROR = str(e)
+
+try:
+    from scripts.download_csv import download_contracts_csv, DOWNLOAD_FOLDER
+    DOWNLOAD_CSV_LOADED = True
+except ImportError as e:
+    DOWNLOAD_CSV_LOADED = False
+    DOWNLOAD_CSV_IMPORT_ERROR = str(e)
+    DOWNLOAD_FOLDER = None
+
+# Check if driver is available
+try:
+    from core.driver import is_driver_available
+    DRIVER_AVAILABLE = is_driver_available()
+except ImportError:
+    DRIVER_AVAILABLE = False
 
 # ============================================================
 # CONFIGURATION
@@ -53,7 +87,8 @@ except ImportError:
 from config import (
     PROCESSOS_DIR,
     ANALYSIS_SUMMARY_CSV,
-    EXTRACTIONS_DIR
+    EXTRACTIONS_DIR,
+    FILTER_YEAR  # 🆕 Added for scraping default year
 )
 
 PDF_FOLDER = PROCESSOS_DIR
@@ -61,6 +96,10 @@ CSV_PATH = ANALYSIS_SUMMARY_CSV
 OUTPUT_FOLDER = EXTRACTIONS_DIR
 OUTPUT_DIR = Path("data/extractions")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# 🆕 Scraping output directory
+SCRAPING_OUTPUT_DIR = Path("data/outputs")
+SCRAPING_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 st.set_page_config(
     page_title="Análise de Contratos - Processo.rio",
@@ -91,6 +130,26 @@ if "processing" not in st.session_state:
     st.session_state.processing = False
 if "last_export" not in st.session_state:
     st.session_state.last_export = None
+
+# ════════════════════════════════════════════════════════════════
+# 🆕 NEW SESSION STATE: Scraping
+# ════════════════════════════════════════════════════════════════
+if "scraping_in_progress" not in st.session_state:
+    st.session_state.scraping_in_progress = False
+if "scraped_companies" not in st.session_state:
+    st.session_state.scraped_companies = []
+if "scraping_status" not in st.session_state:
+    st.session_state.scraping_status = None
+if "scraping_trigger" not in st.session_state:
+    st.session_state.scraping_trigger = False
+if "csv_download_in_progress" not in st.session_state:
+    st.session_state.csv_download_in_progress = False
+if "csv_download_status" not in st.session_state:
+    st.session_state.csv_download_status = None
+if "csv_download_trigger" not in st.session_state:
+    st.session_state.csv_download_trigger = False
+if "comparison_result" not in st.session_state:
+    st.session_state.comparison_result = None
 
 st.sidebar.markdown("### Debug paths")
 st.sidebar.code(f"""
@@ -142,7 +201,7 @@ def create_results_dataframe(results: list) -> pd.DataFrame:
             "Contratada": data.get("contratada", "N/A") or "N/A",
             "Tipo": data.get("tipo_contrato", "N/A") or "N/A",
             "Tipos Identificados": types_info.get("primary_type", "N/A"),
-            "Conformidade": get_conformity_badge(conformity) if conformity else "⏳ Pendente",  # NEW
+            "Conformidade": get_conformity_badge(conformity) if conformity else "⏳ Pendente",
             "Páginas": r.get("total_pages", 0),
             "CSV Match": "✅" if csv_match.get("matched") else "❌",
             "Erro": r.get("error", "") or "",
@@ -150,12 +209,9 @@ def create_results_dataframe(results: list) -> pd.DataFrame:
     
     return pd.DataFrame(rows)
 
+
 def get_conformity_badge(conformity_data: dict) -> str:
-    """
-    Get conformity status badge.
-    
-    Returns emoji + status text.
-    """
+    """Get conformity status badge."""
     if not conformity_data:
         return "⏳ Pendente"
     
@@ -185,6 +241,7 @@ def get_conformity_color(status: str) -> str:
     else:
         return "gray"
 
+
 def render_conformity_badge(conformity_data: dict):
     """Render a conformity status badge."""
     if not conformity_data:
@@ -198,7 +255,6 @@ def render_conformity_badge(conformity_data: dict):
     status = conformity_data.get("overall_status", "DESCONHECIDO")
     score = conformity_data.get("conformity_score", 0)
     
-    # Status badge
     if status == "CONFORME":
         st.success(f"✅ **CONFORME** — Score: {score:.0f}%")
     elif status == "PARCIAL":
@@ -206,7 +262,6 @@ def render_conformity_badge(conformity_data: dict):
     else:
         st.error(f"❌ **NÃO CONFORME** — Score: {score:.0f}%")
     
-    # Publication info
     pub_check = conformity_data.get("publication_check", {})
     if pub_check:
         if pub_check.get("was_published"):
@@ -226,6 +281,646 @@ def render_conformity_badge(conformity_data: dict):
         else:
             st.caption("📰 Publicação não encontrada no D.O. Rio")
 
+def normalize_id(value):
+    """
+    Normalize ID/CNPJ for comparison.
+    Removes dots, dashes, slashes, spaces. Keeps only alphanumeric.
+    """
+    if not value:
+        return ""
+    # Convert to string, lowercase, remove common separators
+    normalized = str(value).lower().strip()
+    normalized = re.sub(r'[.\-/\s]', '', normalized)
+    return normalized
+
+
+def find_id_column(df, candidates=None):
+    """
+    Find the ID/CNPJ column in a DataFrame.
+    
+    Args:
+        df: DataFrame to search
+        candidates: List of possible column names
+        
+    Returns:
+        Column name if found, None otherwise
+    """
+    if candidates is None:
+        candidates = [
+            'ID', 'id', 'Id',
+            'CNPJ', 'cnpj', 'Cnpj',
+            'CPF/CNPJ', 'cpf/cnpj',
+            'Favorecido', 'favorecido',
+            'Código', 'codigo', 'Codigo',
+            'Identificador', 'identificador'
+        ]
+    
+    for col in candidates:
+        if col in df.columns:
+            return col
+    
+    # Fallback: first column that looks like an ID
+    for col in df.columns:
+        col_lower = col.lower()
+        if any(term in col_lower for term in ['id', 'cnpj', 'cpf', 'codigo', 'favorecido']):
+            return col
+    
+    return None
+
+
+def find_company_column(df, candidates=None):
+    """
+    Find the company name column in a DataFrame.
+    """
+    if candidates is None:
+        candidates = [
+            'Company', 'company',
+            'Nome', 'nome',
+            'Razão Social', 'razao_social', 'Razao Social',
+            'Empresa', 'empresa',
+            'Favorecido', 'favorecido',
+            'Nome Favorecido', 'nome_favorecido'
+        ]
+    
+    for col in candidates:
+        if col in df.columns:
+            return col
+    
+    # Fallback
+    for col in df.columns:
+        col_lower = col.lower()
+        if any(term in col_lower for term in ['nome', 'company', 'empresa', 'razao']):
+            return col
+    
+    return None
+
+
+def compare_data_sources(scraped_path: Path, portal_path: Path) -> dict:
+    """
+    Compare scraped data with portal CSV.
+    
+    Returns:
+        Dictionary with comparison results
+    """
+    result = {
+        "success": False,
+        "error": None,
+        "scraped_count": 0,
+        "portal_count": 0,
+        "matched_count": 0,
+        "only_in_scraped": [],
+        "only_in_portal": [],
+        "matched": [],
+        "scraped_columns": [],
+        "portal_columns": [],
+        "scraped_id_col": None,
+        "portal_id_col": None
+    }
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 1: Load files
+    # ═══════════════════════════════════════════════════════════
+    try:
+        if not scraped_path.exists():
+            result["error"] = f"Arquivo scraped não encontrado: {scraped_path.name}"
+            return result
+        
+        if not portal_path.exists():
+            result["error"] = f"Arquivo portal não encontrado: {portal_path.name}"
+            return result
+        
+        df_scraped = pd.read_csv(scraped_path, dtype=str)
+        df_portal = pd.read_csv(portal_path, dtype=str)
+        
+        result["scraped_count"] = len(df_scraped)
+        result["portal_count"] = len(df_portal)
+        result["scraped_columns"] = list(df_scraped.columns)
+        result["portal_columns"] = list(df_portal.columns)
+        
+    except Exception as e:
+        result["error"] = f"Erro ao carregar arquivos: {str(e)}"
+        return result
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 2: Find ID columns
+    # ═══════════════════════════════════════════════════════════
+    scraped_id_col = find_id_column(df_scraped)
+    portal_id_col = find_id_column(df_portal)
+    
+    result["scraped_id_col"] = scraped_id_col
+    result["portal_id_col"] = portal_id_col
+    
+    if not scraped_id_col:
+        result["error"] = f"Coluna ID não encontrada no arquivo scraped. Colunas: {result['scraped_columns']}"
+        return result
+    
+    if not portal_id_col:
+        result["error"] = f"Coluna ID não encontrada no arquivo portal. Colunas: {result['portal_columns']}"
+        return result
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 3: Find company name columns (optional, for display)
+    # ═══════════════════════════════════════════════════════════
+    scraped_name_col = find_company_column(df_scraped)
+    portal_name_col = find_company_column(df_portal)
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 4: Normalize IDs and create lookup sets
+    # ═══════════════════════════════════════════════════════════
+    df_scraped['_normalized_id'] = df_scraped[scraped_id_col].apply(normalize_id)
+    df_portal['_normalized_id'] = df_portal[portal_id_col].apply(normalize_id)
+    
+    scraped_ids = set(df_scraped['_normalized_id'].dropna().unique())
+    portal_ids = set(df_portal['_normalized_id'].dropna().unique())
+    
+    # ═══════════════════════════════════════════════════════════
+    # STEP 5: Compare
+    # ═══════════════════════════════════════════════════════════
+    matched_ids = scraped_ids & portal_ids
+    only_scraped_ids = scraped_ids - portal_ids
+    only_portal_ids = portal_ids - scraped_ids
+    
+    result["matched_count"] = len(matched_ids)
+    
+    # Get details for unmatched records
+    for norm_id in only_scraped_ids:
+        row = df_scraped[df_scraped['_normalized_id'] == norm_id].iloc[0]
+        result["only_in_scraped"].append({
+            "id": row.get(scraped_id_col, ""),
+            "name": row.get(scraped_name_col, "") if scraped_name_col else ""
+        })
+    
+    for norm_id in only_portal_ids:
+        row = df_portal[df_portal['_normalized_id'] == norm_id].iloc[0]
+        result["only_in_portal"].append({
+            "id": row.get(portal_id_col, ""),
+            "name": row.get(portal_name_col, "") if portal_name_col else ""
+        })
+    
+    # Sample of matched records
+    for norm_id in list(matched_ids)[:10]:
+        scraped_row = df_scraped[df_scraped['_normalized_id'] == norm_id].iloc[0]
+        portal_row = df_portal[df_portal['_normalized_id'] == norm_id].iloc[0]
+        result["matched"].append({
+            "scraped_id": scraped_row.get(scraped_id_col, ""),
+            "portal_id": portal_row.get(portal_id_col, ""),
+            "scraped_name": scraped_row.get(scraped_name_col, "") if scraped_name_col else "",
+            "portal_name": portal_row.get(portal_name_col, "") if portal_name_col else ""
+        })
+    
+    result["success"] = True
+    return result
+
+
+def render_compare_section():
+    """Render the comparison section in sidebar."""
+    st.subheader("🔄 Comparar Quantidades")
+    
+    scraped_file = SCRAPING_OUTPUT_DIR / "favorecidos_latest.csv"
+    portal_file = SCRAPING_OUTPUT_DIR / "contasrio_latest.csv"
+    
+    # Check file existence
+    scraped_exists = scraped_file.exists()
+    portal_exists = portal_file.exists()
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if scraped_exists:
+            st.caption("✅ Scraped")
+        else:
+            st.caption("❌ Scraped")
+    with col2:
+        if portal_exists:
+            st.caption("✅ Portal")
+        else:
+            st.caption("❌ Portal")
+    
+    # Both files needed
+    if not scraped_exists or not portal_exists:
+        st.warning("Ambos os arquivos são necessários")
+        if not scraped_exists:
+            st.caption("→ Execute o scraping primeiro")
+        if not portal_exists:
+            st.caption("→ Baixe o CSV do portal primeiro")
+        return
+    
+    # Compare button
+    if st.button(
+        "🔄 Comparar",
+        type="secondary",
+        use_container_width=True,
+        key="compare_btn"
+    ):
+        with st.spinner("Comparando..."):
+            result = compare_data_sources(scraped_file, portal_file)
+            st.session_state.comparison_result = result
+        st.rerun()
+    
+    # Show last comparison result
+    if st.session_state.comparison_result:
+        result = st.session_state.comparison_result
+        
+        if result.get("success"):
+            # Summary metrics
+            scraped = result["scraped_count"]
+            portal = result["portal_count"]
+            matched = result["matched_count"]
+            only_s = len(result["only_in_scraped"])
+            only_p = len(result["only_in_portal"])
+            
+            # Match percentage
+            if scraped > 0:
+                match_pct = (matched / scraped) * 100
+            else:
+                match_pct = 0
+            
+            st.metric("Scraped", scraped)
+            st.metric("Portal", portal)
+            st.metric("Match", f"{matched} ({match_pct:.0f}%)")
+            
+            if only_s > 0:
+                st.warning(f"⚠️ {only_s} só no scraped")
+            if only_p > 0:
+                st.warning(f"⚠️ {only_p} só no portal")
+            
+            # Expand for details
+            with st.expander("📋 Ver detalhes"):
+                st.caption(f"ID Scraped: `{result['scraped_id_col']}`")
+                st.caption(f"ID Portal: `{result['portal_id_col']}`")
+                
+                if result["only_in_scraped"]:
+                    st.markdown("**Só no Scraped:**")
+                    for item in result["only_in_scraped"][:5]:
+                        st.caption(f"• {item['id']}: {item['name'][:30]}")
+                    if len(result["only_in_scraped"]) > 5:
+                        st.caption(f"... +{len(result['only_in_scraped']) - 5} mais")
+                
+                if result["only_in_portal"]:
+                    st.markdown("**Só no Portal:**")
+                    for item in result["only_in_portal"][:5]:
+                        st.caption(f"• {item['id']}: {item['name'][:30]}")
+                    if len(result["only_in_portal"]) > 5:
+                        st.caption(f"... +{len(result['only_in_portal']) - 5} mais")
+        else:
+            st.error(f"Erro: {result.get('error', 'Desconhecido')}")
+
+
+# ════════════════════════════════════════════════════════════════
+# 🆕 NEW HELPER FUNCTIONS: Scraping
+# ════════════════════════════════════════════════════════════════
+
+def save_scraping_results(companies: list, year: int) -> tuple:
+    """
+    Save scraping results to files (replaces previous).
+    
+    Returns:
+        Tuple of (json_path, csv_path)
+    """
+    SCRAPING_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # Save JSON (always replace)
+    json_path = SCRAPING_OUTPUT_DIR / "favorecidos_latest.json"
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump({
+            "year": year,
+            "count": len(companies),
+            "timestamp": datetime.now().isoformat(),
+            "companies": companies
+        }, f, ensure_ascii=False, indent=2)
+    
+    # Save CSV (always replace)
+    csv_path = SCRAPING_OUTPUT_DIR / "favorecidos_latest.csv"
+    if companies:
+        df = pd.DataFrame(companies)
+        df.to_csv(csv_path, index=False, encoding='utf-8')
+    
+    return json_path, csv_path
+
+
+def run_scraping_process(year: int, headless: bool):
+    """
+    Execute the scraping process with progress display.
+    
+    This function takes over the main area during scraping.
+    """
+    
+    # Header
+    st.header("🔄 Coleta de Dados em Andamento")
+    
+    # Warning box
+    st.warning("""
+    ⚠️ **Atenção:** Este processo pode demorar **várias horas** dependendo da quantidade de dados.
+    
+    - Não feche esta aba do navegador
+    - O navegador do Selenium ficará visível para você acompanhar
+    - Você pode continuar usando o computador normalmente
+    """)
+    
+    st.divider()
+    
+    # Progress elements
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    details_container = st.empty()
+    results_container = st.empty()
+    
+    driver = None
+    
+    try:
+        # ─────────────────────────────────────────────────────────
+        # Step 1: Initialize driver
+        # ─────────────────────────────────────────────────────────
+        status_text.text("🚀 Iniciando navegador...")
+        progress_bar.progress(5)
+        
+        driver = initialize_driver(headless=headless)
+        
+        if not driver:
+            st.error("❌ Falha ao inicializar o navegador. Verifique se o Chrome está instalado.")
+            st.session_state.scraping_in_progress = False
+            return
+        
+        progress_bar.progress(10)
+        status_text.text("✓ Navegador iniciado com sucesso")
+        time.sleep(0.5)
+        
+        # ─────────────────────────────────────────────────────────
+        # Step 2: Navigate to home
+        # ─────────────────────────────────────────────────────────
+        status_text.text("🏠 Navegando para página inicial do ContasRio...")
+        progress_bar.progress(15)
+        
+        if not navigate_to_home(driver):
+            st.error("❌ Falha ao carregar página inicial. O site pode estar fora do ar.")
+            return
+        
+        progress_bar.progress(20)
+        status_text.text("✓ Página inicial carregada")
+        time.sleep(0.5)
+        
+        # ─────────────────────────────────────────────────────────
+        # Step 3: Navigate to contracts
+        # ─────────────────────────────────────────────────────────
+        status_text.text(f"📋 Navegando para página de contratos (ano: {year})...")
+        progress_bar.progress(25)
+        
+        if not navigate_to_contracts(driver, year=year):
+            st.error("❌ Falha ao carregar página de contratos. Tente novamente.")
+            return
+        
+        progress_bar.progress(30)
+        status_text.text("✓ Página de contratos carregada")
+        time.sleep(0.5)
+        
+        # ─────────────────────────────────────────────────────────
+        # Step 4: Scroll and collect (the LONG part)
+        # ─────────────────────────────────────────────────────────
+        status_text.text("📜 Coletando dados... Isso pode demorar várias horas.")
+        progress_bar.progress(35)
+        
+        with details_container.container():
+            st.info("""
+            **🔄 Processo de coleta em andamento**
+            
+            O sistema está:
+            1. Fazendo scroll pela tabela de favorecidos
+            2. Coletando cada linha visível
+            3. Validando os dados coletados
+            4. Fazendo uma segunda passagem para garantir completude
+            
+            **Acompanhe o progresso no navegador que foi aberto.**
+            
+            ⏳ Tempo estimado: 1-4 horas dependendo do volume de dados.
+            """)
+        
+        # This is the long-running operation
+        raw_rows = scroll_and_collect_rows(driver)
+        
+        progress_bar.progress(70)
+        status_text.text(f"✓ Coletadas {len(raw_rows)} linhas brutas")
+        details_container.empty()
+        time.sleep(0.5)
+        
+        # ─────────────────────────────────────────────────────────
+        # Step 5: Parse data
+        # ─────────────────────────────────────────────────────────
+        status_text.text("🔄 Processando e validando dados...")
+        progress_bar.progress(80)
+        
+        companies = parse_row_data(raw_rows)
+        
+        progress_bar.progress(90)
+        status_text.text(f"✓ {len(companies)} empresas processadas com sucesso")
+        time.sleep(0.5)
+        
+        # ─────────────────────────────────────────────────────────
+        # Step 6: Save results
+        # ─────────────────────────────────────────────────────────
+        status_text.text("💾 Salvando resultados...")
+        
+        json_path, csv_path = save_scraping_results(companies, year)
+        
+        progress_bar.progress(100)
+        
+        # Store in session state
+        st.session_state.scraped_companies = companies
+        st.session_state.scraping_status = {
+            "success": True,
+            "count": len(companies),
+            "year": year,
+            "timestamp": datetime.now().isoformat(),
+            "json_path": str(json_path),
+            "csv_path": str(csv_path)
+        }
+        
+        # ─────────────────────────────────────────────────────────
+        # Step 7: Show results
+        # ─────────────────────────────────────────────────────────
+        status_text.text("✅ Coleta concluída com sucesso!")
+        
+        with results_container.container():
+            st.success(f"""
+            🎉 **Coleta finalizada!**
+            
+            - **Total de empresas:** {len(companies)}
+            - **Ano:** {year}
+            - **Arquivos salvos:**
+              - `{json_path}`
+              - `{csv_path}`
+            """)
+            
+            st.divider()
+            
+            # Show data table
+            if companies:
+                st.subheader("📊 Dados Coletados")
+                df = pd.DataFrame(companies)
+                st.dataframe(df, use_container_width=True, height=400)
+                
+                # Download buttons
+                st.subheader("📥 Download")
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    csv_data = df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        "📥 Baixar CSV",
+                        data=csv_data,
+                        file_name=f"favorecidos_{year}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                
+                with col2:
+                    json_data = json.dumps(companies, ensure_ascii=False, indent=2)
+                    st.download_button(
+                        "📥 Baixar JSON",
+                        data=json_data,
+                        file_name=f"favorecidos_{year}.json",
+                        mime="application/json",
+                        use_container_width=True
+                    )
+            
+            st.divider()
+            
+            # Button to go back to normal view
+            if st.button("🔙 Voltar para o Dashboard", type="primary", use_container_width=True):
+                st.rerun()
+    
+    except Exception as e:
+        progress_bar.progress(0)
+        st.error(f"❌ Erro durante o scraping: {str(e)}")
+        
+        st.session_state.scraping_status = {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Show error details
+        with st.expander("Ver detalhes do erro"):
+            st.exception(e)
+    
+    finally:
+        # Always close driver
+        if driver:
+            status_text.text("🔒 Fechando navegador...")
+            close_driver(driver)
+            time.sleep(0.5)
+        
+        st.session_state.scraping_in_progress = False
+
+def run_csv_download_process(year: int, headless: bool):
+    """
+    Execute the CSV download process with progress display.
+    
+    This is much faster than scraping (seconds vs hours).
+    """
+    
+    st.header("📥 Download CSV em Andamento")
+    
+    st.info("""
+    ⏳ **Baixando CSV do portal ContasRio...**
+    
+    Este processo é rápido (menos de 1 minuto).
+    O sistema irá:
+    1. Abrir o portal ContasRio
+    2. Aplicar o filtro de ano
+    3. Clicar no botão de exportação
+    4. Baixar o arquivo CSV
+    """)
+    
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    try:
+        status_text.text("🚀 Iniciando download...")
+        progress_bar.progress(10)
+        
+        # Run the download function
+        status_text.text(f"📥 Baixando CSV (ano: {year})...")
+        progress_bar.progress(30)
+        
+        downloaded_file = download_contracts_csv(year=year, headless=headless)
+        
+        progress_bar.progress(90)
+        
+        if downloaded_file:
+            progress_bar.progress(100)
+            status_text.text("✅ Download concluído!")
+            
+            # Store status
+            st.session_state.csv_download_status = {
+                "success": True,
+                "file_path": downloaded_file,
+                "year": year,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Success message
+            st.success(f"""
+            🎉 **Download concluído!**
+            
+            - **Arquivo:** `{Path(downloaded_file).name}`
+            - **Local:** `{downloaded_file}`
+            - **Ano:** {year}
+            """)
+            
+            # Read and show preview
+            try:
+                df = pd.read_csv(downloaded_file, nrows=10)
+                st.subheader("📊 Preview (primeiras 10 linhas)")
+                st.dataframe(df, use_container_width=True)
+                st.caption(f"Total de colunas: {len(df.columns)}")
+            except Exception as e:
+                st.warning(f"Não foi possível ler preview: {e}")
+            
+            # Download button for user
+            if Path(downloaded_file).exists():
+                with open(downloaded_file, 'rb') as f:
+                    st.download_button(
+                        "📥 Baixar arquivo",
+                        data=f.read(),
+                        file_name=Path(downloaded_file).name,
+                        mime="text/csv",
+                        type="primary",
+                        use_container_width=True
+                    )
+        else:
+            progress_bar.progress(0)
+            status_text.text("❌ Download falhou")
+            
+            st.session_state.csv_download_status = {
+                "success": False,
+                "error": "Download retornou None",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            st.error("❌ Falha no download. Verifique se o portal está acessível.")
+    
+    except Exception as e:
+        progress_bar.progress(0)
+        status_text.text("❌ Erro durante download")
+        
+        st.session_state.csv_download_status = {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        st.error(f"❌ Erro: {str(e)}")
+        
+        with st.expander("Ver detalhes do erro"):
+            st.exception(e)
+    
+    finally:
+        st.session_state.csv_download_in_progress = False
+    
+    # Button to go back
+    st.divider()
+    if st.button("🔙 Voltar para o Dashboard", type="primary", use_container_width=True):
+        st.rerun()
 
 # ============================================================
 # UI COMPONENTS
@@ -248,6 +943,161 @@ def render_header():
         """)
         st.stop()
 
+
+# ════════════════════════════════════════════════════════════════
+# 🆕 NEW FUNCTION: Scraping section in sidebar
+# ════════════════════════════════════════════════════════════════
+
+def render_scraping_section():
+    """Render the data collection section in sidebar."""
+    st.subheader("🔄 Coleta de Dados")
+    
+    # Check if scraper is available
+    if not SCRAPER_LOADED:
+        st.error("Módulo scraper não disponível")
+        with st.expander("Ver erro"):
+            st.code(SCRAPER_IMPORT_ERROR)
+        return
+    
+    if not DRIVER_AVAILABLE:
+        st.warning("Chrome não detectado")
+        st.caption("Instale o Chrome para usar esta funcionalidade")
+        return
+    
+    # Year input
+    default_year = FILTER_YEAR if FILTER_YEAR else 2025
+    year = st.number_input(
+        "Ano para filtrar",
+        min_value=2020,
+        max_value=2030,
+        value=default_year,
+        key="scraping_year"
+    )
+    
+    # Headless mode
+    headless = st.checkbox(
+        "Modo invisível",
+        value=False,
+        key="scraping_headless",
+        help="Se marcado, o navegador não será visível durante o processo"
+    )
+    
+    # Warning
+    st.caption("⚠️ Processo pode demorar **horas**")
+    
+    # Status from last run
+    if st.session_state.scraping_status:
+        status = st.session_state.scraping_status
+        if status.get("success"):
+            st.success(f"✓ Última coleta: {status.get('count', 0)} empresas")
+        elif status.get("error"):
+            st.error("✗ Última coleta falhou")
+    
+    # Start button
+    is_running = st.session_state.get("scraping_in_progress", False)
+    
+    if st.button(
+        "🚀 Iniciar Scraping" if not is_running else "⏳ Em andamento...",
+        type="primary",
+        use_container_width=True,
+        disabled=is_running,
+        key="start_scraping_btn"
+    ):
+        st.session_state.scraping_in_progress = True
+        st.session_state.scraping_trigger = True
+        st.rerun()
+    
+    # Show last results if available
+    if st.session_state.scraped_companies and not is_running:
+        with st.expander(f"📊 Ver últimos resultados ({len(st.session_state.scraped_companies)})"):
+            st.caption("Empresas coletadas na última execução")
+            if st.button("Limpar resultados", key="clear_scraped"):
+                st.session_state.scraped_companies = []
+                st.session_state.scraping_status = None
+                st.rerun()
+
+def render_download_csv_section():
+    """Render the CSV download section in sidebar."""
+    st.subheader("📥 Download CSV (Portal)")
+    
+    # Check if module is available
+    if not DOWNLOAD_CSV_LOADED:
+        st.error("Módulo download_csv não disponível")
+        with st.expander("Ver erro"):
+            st.code(DOWNLOAD_CSV_IMPORT_ERROR)
+        return
+    
+    if not DRIVER_AVAILABLE:
+        st.warning("Chrome não detectado")
+        st.caption("Instale o Chrome para usar esta funcionalidade")
+        return
+    
+    # Year input (separate from scraping year)
+    default_year = FILTER_YEAR if FILTER_YEAR else 2025
+    year = st.number_input(
+        "Ano para download",
+        min_value=2020,
+        max_value=2030,
+        value=default_year,
+        key="csv_download_year"
+    )
+    
+    # Headless mode
+    headless = st.checkbox(
+        "Modo invisível",
+        value=False,
+        key="csv_download_headless",
+        help="Se marcado, o navegador não será visível"
+    )
+    
+    # Info
+    st.caption("⚡ Processo rápido (~30 segundos)")
+    
+    # Status from last run
+    if st.session_state.csv_download_status:
+        status = st.session_state.csv_download_status
+        if status.get("success"):
+            file_name = Path(status.get("file_path", "")).name
+            st.success(f"✓ Último: {file_name[:25]}...")
+        elif status.get("error"):
+            st.error("✗ Último download falhou")
+    
+    # Download button
+    is_running = st.session_state.get("csv_download_in_progress", False)
+    
+    if st.button(
+        "📥 Baixar CSV" if not is_running else "⏳ Baixando...",
+        type="secondary",
+        use_container_width=True,
+        disabled=is_running,
+        key="start_csv_download_btn"
+    ):
+        st.session_state.csv_download_in_progress = True
+        st.session_state.csv_download_trigger = True
+        st.rerun()
+    
+    # Show download folder location
+    if DOWNLOAD_FOLDER:
+        with st.expander("📁 Pasta de downloads"):
+            st.caption(f"`{DOWNLOAD_FOLDER}`")
+            
+            # List recent files
+            try:
+                import glob
+                csv_files = sorted(
+                    glob.glob(os.path.join(DOWNLOAD_FOLDER, "*.csv")),
+                    key=os.path.getctime,
+                    reverse=True
+                )[:5]
+                
+                if csv_files:
+                    st.caption("Últimos arquivos:")
+                    for f in csv_files:
+                        st.caption(f"• {Path(f).name}")
+                else:
+                    st.caption("Nenhum arquivo ainda")
+            except Exception:
+                pass
 
 def render_sidebar():
     """Render the sidebar with folder stats and settings."""
@@ -296,6 +1146,21 @@ def render_sidebar():
         
         st.divider()
         
+        # ════════════════════════════════════════════════════════
+        # 🆕 NEW: Scraping section (BEFORE Session info)
+        # ════════════════════════════════════════════════════════
+        render_scraping_section()
+        
+        st.divider()
+        
+        # 🆕 NEW: Download CSV section
+        render_download_csv_section()
+
+        # 🆕 NEW: Compare section
+        render_compare_section()
+
+        st.divider()
+
         # Session info
         if st.session_state.results:
             st.subheader("📊 Sessão Atual")
@@ -368,7 +1233,7 @@ def render_single_file_tab(stats: dict):
         
         # Display results
         with st.expander("📄 Texto extraído (debug)"):
-            st.text(result.get("full_text", "")[:5000])  # Limit to 5000 chars
+            st.text(result.get("full_text", "")[:5000])
         
         if result["success"]:
             st.success(f"✅ Arquivo processado com sucesso!")
@@ -410,7 +1275,6 @@ def render_single_file_tab(stats: dict):
                 if conformity:
                     render_conformity_badge(conformity)
                     
-                    # Detailed checks expander
                     with st.expander("Ver detalhes da verificação"):
                         field_checks = conformity.get("field_checks", [])
                         if field_checks:
@@ -693,126 +1557,6 @@ def render_results_tab():
                 st.json(csv_match)
 
 
-def render_help_tab():
-    """Render the help/documentation tab."""
-    st.header("❓ Ajuda e Documentação")
-    
-    st.markdown("""
-    ## 📖 Como usar o sistema
-    
-    ### 1. Preparar os dados
-    
-    1. Coloque os PDFs de contratos na pasta `data/downloads/processos/`
-    2. (Opcional) Tenha o arquivo `data/outputs/analysis_summary.csv` com dados de referência
-    
-    ### 2. Processar contratos
-    
-    **Arquivo Individual:**
-    - Vá para a aba "📄 Arquivo Individual"
-    - Selecione um PDF e clique em "Processar"
-    
-    **Lote:**
-    - Vá para a aba "📦 Processamento em Lote"
-    - Configure as opções e clique em "Iniciar"
-    
-    ### 3. Visualizar resultados
-    
-    - Vá para a aba "📊 Resultados"
-    - Use os filtros para encontrar contratos específicos
-    - Exporte para Excel, JSON ou CSV
-    
-    ---
-    
-    ## 🔧 Configuração
-    
-    ### Variáveis de Ambiente
-    
-    Crie um arquivo `.env` na raiz do projeto:
-    
-    ```
-    GROQ_API_KEY=sua_chave_api_aqui
-    ```
-    
-    ### Estrutura de Pastas
-    
-    ```
-    Data_ige/
-    ├── data/
-    │   ├── downloads/processos/    ← PDFs aqui
-    │   ├── outputs/                ← CSV de referência
-    │   └── extractions/            ← Resultados exportados
-    ├── Contract_analisys/
-    │   └── contract_extractor.py
-    └── app.py
-    ```
-    
-    ---
-    
-    ## 📊 Dados Extraídos
-    
-    O sistema extrai automaticamente:
-    
-    | Campo | Descrição |
-    |-------|-----------|
-    | `valor_contrato` | Valor total do contrato |
-    | `contratante` | Órgão contratante |
-    | `contratada` | Empresa contratada |
-    | `objeto` | Descrição do objeto |
-    | `tipo_contrato` | Tipo (Serviços, Fornecimento, etc) |
-    | `vigencia_meses` | Período de vigência |
-    | `modalidade_licitacao` | Modalidade usada |
-    
-    ---
-    
-    ## ⚠️ Solução de Problemas
-    
-    **Erro de API Key:**
-    - Verifique se o arquivo `.env` existe
-    - Confirme que a chave GROQ_API_KEY está correta
-    
-    **Erro de Rate Limit:**
-    - O sistema tenta novamente automaticamente
-    - Aguarde alguns segundos entre processamentos
-    
-    **PDF não processado:**
-    - Verifique se o PDF não está corrompido
-    - Alguns PDFs escaneados podem não ter texto extraível
-    """)
-
-
-# ============================================================
-# MAIN APP
-# ============================================================
-
-def main():
-    """Main application entry point."""
-    render_header()
-    stats, summary_df = render_sidebar()
-    
-    # Main tabs
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📄 Arquivo Individual",
-        "📦 Processamento em Lote",
-        "📊 Resultados",
-        "🔍 Conformidade", 
-        "❓ Ajuda"
-    ])
-    
-    with tab1:
-        render_single_file_tab(stats)
-    
-    with tab2:
-        render_batch_tab(stats)
-    
-    with tab3:
-        render_results_tab()
-    
-    with tab4:
-        render_conformity_tab() 
-    
-    with tab5:
-        render_help_tab()
-
 def render_conformity_tab():
     """Render the conformity analysis tab."""
     st.header("🔍 Análise de Conformidade")
@@ -1014,6 +1758,177 @@ def render_conformity_tab():
             file_name=f"conformity_report_{timestamp}.csv",
             mime="text/csv"
         )
+
+
+def render_help_tab():
+    """Render the help/documentation tab."""
+    st.header("❓ Ajuda e Documentação")
+    
+    st.markdown("""
+    ## 📖 Como usar o sistema
+    
+    ### 1. Preparar os dados
+    
+    1. Coloque os PDFs de contratos na pasta `data/downloads/processos/`
+    2. (Opcional) Tenha o arquivo `data/outputs/analysis_summary.csv` com dados de referência
+    
+    ### 2. Processar contratos
+    
+    **Arquivo Individual:**
+    - Vá para a aba "📄 Arquivo Individual"
+    - Selecione um PDF e clique em "Processar"
+    
+    **Lote:**
+    - Vá para a aba "📦 Processamento em Lote"
+    - Configure as opções e clique em "Iniciar"
+    
+    ### 3. Visualizar resultados
+    
+    - Vá para a aba "📊 Resultados"
+    - Use os filtros para encontrar contratos específicos
+    - Exporte para Excel, JSON ou CSV
+    
+    ---
+    
+    ## 🆕 Coleta de Dados (Scraping)
+    
+    O sistema agora permite coletar dados de favorecidos diretamente do portal ContasRio:
+    
+    1. Na barra lateral, encontre a seção **🔄 Coleta de Dados**
+    2. Selecione o ano desejado
+    3. Clique em **🚀 Iniciar Scraping**
+    4. Aguarde o processo (pode demorar horas)
+    5. Os resultados serão salvos automaticamente
+    
+    **⚠️ Importante:**
+    - O processo pode demorar várias horas
+    - Não feche a aba do navegador durante o processo
+    - O navegador do Selenium ficará visível para acompanhamento
+    
+    ---
+    
+    ## 🔧 Configuração
+    
+    ### Variáveis de Ambiente
+    
+    Crie um arquivo `.env` na raiz do projeto:
+    
+    ```
+    GROQ_API_KEY=sua_chave_api_aqui
+    FILTER_YEAR=2025
+    ```
+    
+    ### Estrutura de Pastas
+    
+    ```
+    Data_ige/
+    ├── data/
+    │   ├── downloads/processos/    ← PDFs aqui
+    │   ├── outputs/                ← CSV de referência + resultados scraping
+    │   └── extractions/            ← Resultados exportados
+    ├── Contract_analisys/
+    │   └── contract_extractor.py
+    ├── src/
+    │   └── scraper.py              ← Módulo de scraping
+    └── app.py
+    ```
+    
+    ---
+    
+    ## 📊 Dados Extraídos
+    
+    O sistema extrai automaticamente:
+    
+    | Campo | Descrição |
+    |-------|-----------|
+    | `valor_contrato` | Valor total do contrato |
+    | `contratante` | Órgão contratante |
+    | `contratada` | Empresa contratada |
+    | `objeto` | Descrição do objeto |
+    | `tipo_contrato` | Tipo (Serviços, Fornecimento, etc) |
+    | `vigencia_meses` | Período de vigência |
+    | `modalidade_licitacao` | Modalidade usada |
+    
+    ---
+    
+    ## ⚠️ Solução de Problemas
+    
+    **Erro de API Key:**
+    - Verifique se o arquivo `.env` existe
+    - Confirme que a chave GROQ_API_KEY está correta
+    
+    **Erro de Rate Limit:**
+    - O sistema tenta novamente automaticamente
+    - Aguarde alguns segundos entre processamentos
+    
+    **PDF não processado:**
+    - Verifique se o PDF não está corrompido
+    - Alguns PDFs escaneados podem não ter texto extraível
+    
+    **Scraping não inicia:**
+    - Verifique se o Chrome está instalado
+    - Verifique se o módulo scraper está carregado (ver sidebar)
+    """)
+
+
+# ============================================================
+# MAIN APP
+# ============================================================
+
+# ============================================================
+# MAIN APP
+# ============================================================
+
+def main():
+    """Main application entry point."""
+    render_header()
+    
+    # ════════════════════════════════════════════════════════
+    # 🆕 CHECK IF SCRAPING WAS TRIGGERED
+    # ════════════════════════════════════════════════════════
+
+    if st.session_state.get("csv_download_trigger"):
+        st.session_state.csv_download_trigger = False  # Reset trigger
+        
+        year = st.session_state.get("csv_download_year", 2025)
+        headless = st.session_state.get("csv_download_headless", False)
+        
+        # Render sidebar
+        render_sidebar()
+        
+        # Run download in main area
+        run_csv_download_process(year, headless)
+        return  # Don't render tabs while downloading
+    
+    # ════════════════════════════════════════════════════════
+    # NORMAL RENDERING
+    # ════════════════════════════════════════════════════════
+    stats, summary_df = render_sidebar()
+    
+    # Main tabs
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📄 Arquivo Individual",
+        "📦 Processamento em Lote",
+        "📊 Resultados",
+        "🔍 Conformidade", 
+        "❓ Ajuda"
+    ])
+    
+    with tab1:
+        render_single_file_tab(stats)
+    
+    with tab2:
+        render_batch_tab(stats)
+    
+    with tab3:
+        render_results_tab()
+    
+    with tab4:
+        render_conformity_tab()
+    
+    with tab5:
+        render_help_tab()
+
 
 if __name__ == "__main__":
     main()
