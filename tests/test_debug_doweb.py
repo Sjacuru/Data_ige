@@ -9,8 +9,16 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 def debug_search(processo: str):
-    print(f"🔍 Debugging search for: {processo}")
+    logging.info(f"🔍 Debugging search for: {processo}")
     
     # Setup driver
     options = Options()
@@ -24,34 +32,34 @@ def debug_search(processo: str):
     try:
         # Navigate
         url = f"https://doweb.rio.rj.gov.br/buscanova/#/p=1&q={processo}"
-        print(f"📄 Navigating to: {url}")
+        logging.info(f"📄 Navigating to: {url}")
         driver.get(url)
         
         # Wait for page
-        print("⏳ Waiting 8 seconds for JavaScript...")
+        logging.info("⏳ Waiting 8 seconds for JavaScript...")
         time.sleep(8)
         
         # Get page info
-        print(f"\n📋 Page Title: {driver.title}")
-        print(f"🔗 Current URL: {driver.current_url}")
+        logging.info(f"\n📋 Page Title: {driver.title}")
+        logging.info(f"🔗 Current URL: {driver.current_url}")
         
         # Get body text
         body = driver.find_element(By.TAG_NAME, "body")
         body_text = body.text
         
-        print(f"\n📝 Page Text (first 1500 chars):")
-        print("-" * 50)
-        print(body_text[:1500])
-        print("-" * 50)
+        logging.info(f"\n📝 Page Text (first 1500 chars):")
+        logging.info("-" * 50)
+        logging.info(body_text[:1500])
+        logging.info("-" * 50)
         
         # Count elements
-        print(f"\n📊 Element counts:")
+        logging.info(f"\n📊 Element counts:")
         for tag in ["div", "span", "a", "button"]:
             elements = driver.find_elements(By.TAG_NAME, tag)
-            print(f"   {tag}: {len(elements)}")
+            logging.info(f"   {tag}: {len(elements)}")
         
         # Look for specific text
-        print(f"\n🔎 Searching for key text:")
+        logging.info(f"\n🔎 Searching for key text:")
         checks = [
             "resultados encontrados",
             "resultado encontrado",
@@ -64,17 +72,17 @@ def debug_search(processo: str):
         
         for check in checks:
             if check.lower() in body_text.lower():
-                print(f"   ✓ Found: '{check}'")
+                logging.info(f"   ✓ Found: '{check}'")
             else:
-                print(f"   ✗ Not found: '{check}'")
+                logger.error(f"    ✗ Not found: '{check}'")
         
         # Keep browser open for manual inspection
-        print("\n👀 Browser will stay open for 30 seconds for manual inspection...")
+        logging.info("\n👀 Browser will stay open for 30 seconds for manual inspection...")
         time.sleep(30)
         
     finally:
         driver.quit()
-        print("✓ Browser closed")
+        logging.info("✓ Browser closed")
 
 
 if __name__ == "__main__":

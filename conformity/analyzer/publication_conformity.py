@@ -27,6 +27,13 @@ from conformity.models.conformity_result import (
     create_not_published_result,
 )
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # =========================================================================
 # CONFIGURATION
@@ -345,7 +352,7 @@ def compare_contract_with_publication(
     Returns:
         ConformityResult with all checks
     """
-    print(f"\n📊 Comparing contract with publication for {processo}")
+    logging.info(f"\n📊 Comparing contract with publication for {processo}")
     
     field_checks = []
     
@@ -386,7 +393,7 @@ def compare_contract_with_publication(
         
         # Log
         status_icon = "✓" if status == CheckStatus.PASSED else "✗" if status == CheckStatus.FAILED else "◐"
-        print(f"   {status_icon} {field_label}: {match_level.value} ({percentage:.1f}%)")
+        logging.info(f"   {status_icon} {field_label}: {match_level.value} ({percentage:.1f}%)")
     
     # Check publication timing
     contract_signature = contract_data.get("data_assinatura") or contract_data.get("data_inicio")
@@ -405,7 +412,7 @@ def compare_contract_with_publication(
             else:
                 timing_observation = f"Publicado em {days_to_publish} dias (FORA do prazo de {PUBLICATION_DEADLINE_DAYS} dias)"
             
-            print(f"   {'✓' if published_on_time else '✗'} Prazo: {timing_observation}")
+            logging.info(f"   {'✓' if published_on_time else '✗'} Prazo: {timing_observation}")
     
     # Create publication check
     pub_check = PublicationCheck(
@@ -434,7 +441,7 @@ def compare_contract_with_publication(
     # Calculate summary
     result.calculate_summary()
     
-    print(f"\n   📋 Overall: {result.overall_status.value} (Score: {result.conformity_score:.1f}%)")
+    logging.info(f"\n   📋 Overall: {result.overall_status.value} (Score: {result.conformity_score:.1f}%)")
     
     return result
 
@@ -465,8 +472,8 @@ def analyze_publication_conformity(
     
     # Check if publication was found
     if not publication_result.found:
-        print(f"\n❌ Publication not found for {processo}")
-        print(f"   Reason: {publication_result.error}")
+        logger.error(f"\n❌ Publication not found for {processo}")
+        logging.info(f"   Reason: {publication_result.error}")
         
         return create_not_published_result(
             processo=processo,
@@ -542,8 +549,8 @@ if __name__ == "__main__":
     )
     
     # Print results
-    print("\n" + result.get_summary_text())
+    logging.info("\n" + result.get_summary_text())
     
-    print("\n📋 JSON Output:")
+    logging.info("\n📋 JSON Output:")
     import json
-    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    logging.info(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))

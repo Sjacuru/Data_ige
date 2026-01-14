@@ -50,6 +50,14 @@ from config import (
 # Import from core modules                              
 from core.driver import create_driver, close_driver 
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # =============================================================================
 # DRIVER MANAGEMENT (wrapper for backward compatibility)
 # =============================================================================
@@ -101,14 +109,14 @@ def navigate_to_home(driver):
     """
     try:
         driver.get(BASE_URL)
-        print("Checando se o Site funciona. Aguardando carregamento da tela Home...")
+        logging.info("Checando se o Site funciona. Aguardando carregamento da tela Home...")
         
         wait_for_element(driver, (By.XPATH, LOCATORS["home_menu"]))
-        print("✓ Home carregada!")
+        logging.info("✓ Home carregada!")
         return True
         
     except TimeoutException:
-        print("✗ Timeout ao carregar, site pode estar fora do ar.")
+        logging.info("✗ Timeout ao carregar, site pode estar fora do ar.")
         return False
 
 
@@ -127,9 +135,9 @@ def navigate_to_contracts(driver, year=None):
     
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            print(f"Tentativa {attempt}: Aguardando carregamento do painel...")
+            logging.info(f"Tentativa {attempt}: Aguardando carregamento do painel...")
             wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]))
-            print("✓ Painel carregado com sucesso!")
+            logging.info("✓ Painel carregado com sucesso!")
 
             # NEW: set the year filter before any scrolling happens
             if year:
@@ -138,11 +146,11 @@ def navigate_to_contracts(driver, year=None):
             return True
             
         except TimeoutException:
-            print(f"Timeout na tentativa {attempt}.")
+            logging.info(f"Timeout na tentativa {attempt}.")
             if attempt == MAX_RETRIES:
-                print(f"✗ O painel não carregou após {MAX_RETRIES} tentativas.")
+                logger.error(f"✗ O painel não carregou após {MAX_RETRIES} tentativas.")
                 return False
-            print("Atualizando a página...")
+            logging.info("Atualizando a página...")
             driver.refresh()
             time.sleep(2)
     
@@ -153,7 +161,7 @@ def set_year_filter(driver, year):
         return
 
     year = str(year)
-    print(f"→ Ajustando filtro do ano para: {year}")
+    logging.info(f"→ Ajustando filtro do ano para: {year}")
 
     # Capture a row to detect grid refresh
     try:
@@ -202,7 +210,7 @@ def set_year_filter(driver, year):
     except Exception:
         pass
 
-    print("✓ Ano ajustado.")
+    logging.info("✓ Ano ajustado.")
 
 # =============================================================================
 # DATA COLLECTION
@@ -213,7 +221,7 @@ def scroll_and_collect_rows(driver):
     Scroll through the dynamic table and collect all row data.
     Includes validation and verification pass for reliability.
     """
-    print("Iniciando scroll para carregar todas as linhas...")
+    logging.info("Iniciando scroll para carregar todas as linhas...")
     
     scroller = driver.find_element(By.CSS_SELECTOR, LOCATORS["grid_scroller"])
     
@@ -238,7 +246,7 @@ def scroll_and_collect_rows(driver):
     # ═══════════════════════════════════════════════════════════
     # FIRST PASS: Scroll and collect
     # ═══════════════════════════════════════════════════════════
-    print("   Primeira passagem...")
+    logging.info("   Primeira passagem...")
     
     while True:
         time.sleep(SCROLL_DELAY + 0.5)
@@ -271,12 +279,12 @@ def scroll_and_collect_rows(driver):
         last_scroll = current_scroll
     
     first_pass_count = len(all_rows)
-    print(f"   Primeira passagem: {first_pass_count} linhas")
+    logging.info(f"   Primeira passagem: {first_pass_count} linhas")
     
     # ═══════════════════════════════════════════════════════════
     # VERIFICATION PASS: Scroll back to top and collect again
     # ═══════════════════════════════════════════════════════════
-    print("   Passagem de verificação...")
+    logging.info("   Passagem de verificação...")
     
     driver.execute_script("arguments[0].scrollTop = 0;", scroller)
     time.sleep(1)
@@ -315,8 +323,8 @@ def scroll_and_collect_rows(driver):
         last_scroll = current_scroll
     
     new_rows = len(all_rows) - first_pass_count
-    print(f"   Verificação: +{new_rows} novas linhas encontradas")
-    print(f"✓ Scroll finalizado! Total de linhas: {len(all_rows)}")
+    logging.info(f"   Verificação: +{new_rows} novas linhas encontradas")
+    logging.info(f"✓ Scroll finalizado! Total de linhas: {len(all_rows)}")
     
     return all_rows
 
@@ -324,8 +332,8 @@ def parse_row_data(raw_rows):
     """
     Parse raw row text into structured dictionaries.
     """
-    print("Processando dados das linhas...")
-    print(f"\nDEBUG: Total de linhas brutas recebidas: {len(raw_rows)}")
+    logging.info("Processando dados das linhas...")
+    logging.info(f"\nDEBUG: Total de linhas brutas recebidas: {len(raw_rows)}")
     
     all_data = []
     
@@ -349,7 +357,7 @@ def parse_row_data(raw_rows):
         # Skip rows that are only numbers (incomplete/split rows)
         if re.match(r'^[\d\.,\s\-]+$', row_text.strip()):
             skip_numbers_only += 1
-            print(f"  ⚠ Apenas números: {row_text[:50]}...")
+            logging.info(f"  ⚠ Apenas números: {row_text[:50]}...")
             continue
         
         # ═══════════════════════════════════════════════════════════
@@ -359,7 +367,7 @@ def parse_row_data(raw_rows):
         
         if not id_match:
             skip_no_match += 1
-            print(f"  ⚠ Não reconhecida (sem ID): {row_text[:70]}...")
+            logging.info(f"  ⚠ Não reconhecida (sem ID): {row_text[:70]}...")
             continue
         
         identifier = id_match.group(1).strip()
@@ -373,7 +381,7 @@ def parse_row_data(raw_rows):
         
         if len(currency_numbers) < 5:
             skip_no_match += 1
-            print(f"  ⚠ Poucos valores ({len(currency_numbers)}): {row_text[:70]}...")
+            logging.info(f"  ⚠ Poucos valores ({len(currency_numbers)}): {row_text[:70]}...")
             continue
         
         # Take only the LAST 5 numbers
@@ -401,21 +409,21 @@ def parse_row_data(raw_rows):
         all_data.append(data_dict)
     
     # Complete summary
-    print(f"\n{'='*60}")
-    print(f"RESUMO DO PARSING:")
-    print(f"  ✓ Processadas com sucesso: {len(all_data)}")
-    print(f"  ⊘ Vazias ignoradas: {skip_empty}")
-    print(f"  ⊘ Linhas 'total' ignoradas: {skip_total}")
-    print(f"  ⚠ Apenas números (incompletas): {skip_numbers_only}")
-    print(f"  ⚠ Não reconhecidas: {skip_no_match}")
-    print(f"  ─────────────────────────────")
+    logging.info(f"\n{'='*60}")
+    logging.info(f"RESUMO DO PARSING:")
+    logging.info(f"  ✓ Processadas com sucesso: {len(all_data)}")
+    logging.info(f"  ⊘ Vazias ignoradas: {skip_empty}")
+    logging.info(f"  ⊘ Linhas 'total' ignoradas: {skip_total}")
+    logging.info(f"  ⚠ Apenas números (incompletas): {skip_numbers_only}")
+    logging.info(f"  ⚠ Não reconhecidas: {skip_no_match}")
+    logging.info(f"  ─────────────────────────────")
     total_accounted = len(all_data) + skip_empty + skip_total + skip_numbers_only + skip_no_match
-    print(f"  Σ Total contabilizado: {total_accounted} / {len(raw_rows)}")
-    print(f"{'='*60}")
+    logging.info(f"  Σ Total contabilizado: {total_accounted} / {len(raw_rows)}")
+    logging.info(f"{'='*60}")
     
-    print("\n✓ Primeiros 5 registros:")
+    logging.info("\n✓ Primeiros 5 registros:")
     for i, item in enumerate(all_data[:5], start=1):
-        print(f"{i}: {item}")
+        logging.info(f"{i}: {item}")
         
     return all_data
 
@@ -428,7 +436,7 @@ def filter_by_company(driver, company_id):
     Apply filter to show only one company.
     """
     try:
-        print(f"\n→ Filtrando por ID: {company_id}")
+        logging.info(f"\n→ Filtrando por ID: {company_id}")
         
         filter_box = wait_for_element(
             driver,
@@ -445,11 +453,11 @@ def filter_by_company(driver, company_id):
         # ═══════════════════════════════════════════════════════════
         time.sleep(3)  # ← Increased from 2 to 3
         
-        print("✓ Filtro aplicado!")
+        logging.info("✓ Filtro aplicado!")
         return True
         
     except Exception as e:
-        print(f"✗ Erro ao filtrar: {e}")
+        logger.error(f"✗ Erro ao filtrar: {e}")
         return False
 
 def click_company_button(driver, company_id):
@@ -457,13 +465,13 @@ def click_company_button(driver, company_id):
     Click on a company button in the table.
     Verifies the page transitions after clicking.
     """
-    print(f"\n→ Clicando na empresa {company_id}...")
+    logging.info(f"\n→ Clicando na empresa {company_id}...")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 1: Check current level before clicking
     # ═══════════════════════════════════════════════════════════
     level_before = get_current_level(driver)
-    print(f"   Nível antes do clique: '{level_before}'")
+    logging.info(f"   Nível antes do clique: '{level_before}'")
     
     xpath = (
         f"//div[contains(@class,'v-button-link') and @role='button']"
@@ -481,15 +489,15 @@ def click_company_button(driver, company_id):
             company_button = WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.XPATH, xpath))
             )
-            print(f"   ✓ Botão encontrado na tentativa {attempt + 1}")
+            logging.info(f"   ✓ Botão encontrado na tentativa {attempt + 1}")
             break
         except TimeoutException:
-            print(f"   Tentativa {attempt + 1}: Aguardando elemento...")
+            logging.info(f"   Tentativa {attempt + 1}: Aguardando elemento...")
             time.sleep(1)
     
     # Fallback method
     if company_button is None:
-        print("   Tentando método alternativo...")
+        logging.info("   Tentando método alternativo...")
         try:
             all_buttons = driver.find_elements(
                 By.XPATH,
@@ -503,16 +511,16 @@ def click_company_button(driver, company_id):
                             By.XPATH, 
                             "./ancestor::div[@role='button']"
                         )
-                        print(f"   ✓ Encontrado via método alternativo")
+                        logging.info(f"   ✓ Encontrado via método alternativo")
                         break
                 except:
                     continue
                     
         except Exception as e:
-            print(f"   Método alternativo falhou: {e}")
+            logger.error(f"   Método alternativo falhou: {e}")
     
     if company_button is None:
-        print(f"✗ Elemento não encontrado para empresa {company_id}")
+        logger.error(f"✗ Elemento não encontrado para empresa {company_id}")
         return None
     
     # Get caption
@@ -538,7 +546,7 @@ def click_company_button(driver, company_id):
             
             # Try JavaScript click
             driver.execute_script("arguments[0].click();", company_button)
-            print(f"   Clique executado (tentativa {click_attempt + 1})")
+            logging.info(f"   Clique executado (tentativa {click_attempt + 1})")
             
             # ═══════════════════════════════════════════════════════════
             # STEP 4: Wait and verify page transitioned
@@ -546,15 +554,15 @@ def click_company_button(driver, company_id):
             time.sleep(2)
             
             level_after = get_current_level(driver)
-            print(f"   Nível após clique: '{level_after}'")
+            logging.info(f"   Nível após clique: '{level_after}'")
             
             # Check if level changed (favorecido → orgao)
             if level_after != level_before:
-                print(f"✓ Empresa clicada e página transicionou: {original_caption[:50]}...")
+                logging.info(f"✓ Empresa clicada e página transicionou: {original_caption[:50]}...")
                 return original_caption
             
             # Level didn't change - try alternative click methods
-            print(f"   ⚠ Página não transicionou, tentando outro método...")
+            logging.info(f"   ⚠ Página não transicionou, tentando outro método...")
             
             # Try regular click
             try:
@@ -562,7 +570,7 @@ def click_company_button(driver, company_id):
                 time.sleep(2)
                 level_after = get_current_level(driver)
                 if level_after != level_before:
-                    print(f"✓ Empresa clicada (click direto): {original_caption[:50]}...")
+                    logging.info(f"✓ Empresa clicada (click direto): {original_caption[:50]}...")
                     return original_caption
             except:
                 pass
@@ -575,7 +583,7 @@ def click_company_button(driver, company_id):
                 time.sleep(2)
                 level_after = get_current_level(driver)
                 if level_after != level_before:
-                    print(f"✓ Empresa clicada (ActionChains): {original_caption[:50]}...")
+                    logging.info(f"✓ Empresa clicada (ActionChains): {original_caption[:50]}...")
                     return original_caption
             except:
                 pass
@@ -587,10 +595,10 @@ def click_company_button(driver, company_id):
                 pass
                 
         except Exception as e:
-            print(f"   ⚠ Erro no clique {click_attempt + 1}: {e}")
+            logger.error(f"   ⚠ Erro no clique {click_attempt + 1}: {e}")
             time.sleep(1)
     
-    print(f"✗ Clique na empresa não funcionou após múltiplas tentativas")
+    logger.error(f"✗ Clique na empresa não funcionou após múltiplas tentativas")
     return None
 
 # =============================================================================
@@ -668,7 +676,7 @@ def get_all_buttons_at_level(driver, exclude_texts=None):
         
         return button_texts
     except Exception as e:
-        print(f"   ⚠ Erro ao obter botões: {e}")
+        logging.info(f"   ⚠ Erro ao obter botões: {e}")
         return []
 
 def click_specific_button(driver, button_text):
@@ -709,25 +717,25 @@ def click_specific_button(driver, button_text):
             time.sleep(0.3)
             driver.execute_script("arguments[0].click();", clickable)
             
-            print(f"   ✓ Botão clicado: {button_text[:50]}...")
+            logging.info(f"   ✓ Botão clicado: {button_text[:50]}...")
             time.sleep(1.0)
             return True
             
         except StaleElementReferenceException:
-            print(f"   ⚠ Tentativa {attempt + 1}: Elemento stale, tentando novamente...")
+            logging.info(f"   ⚠ Tentativa {attempt + 1}: Elemento stale, tentando novamente...")
             time.sleep(0.8)
         except NoSuchElementException:
-            print(f"   ⚠ Tentativa {attempt + 1}: Elemento não encontrado, aguardando...")
+            logging.info(f"   ⚠ Tentativa {attempt + 1}: Elemento não encontrado, aguardando...")
             time.sleep(1.0)
         except Exception as e:
             error_msg = str(e).split('\n')[0] if str(e) else "Erro desconhecido"
-            print(f"   ⚠ Tentativa {attempt + 1}: {error_msg}")
+            logging.info(f"   ⚠ Tentativa {attempt + 1}: {error_msg}")
             time.sleep(0.8)
     
     # ═══════════════════════════════════════════════════════════
     # METHOD 2: Fallback - search all buttons
     # ═══════════════════════════════════════════════════════════
-    print(f"   → Tentando método alternativo para: {button_text[:40]}...")
+    logging.info(f"   → Tentando método alternativo para: {button_text[:40]}...")
     try:
         all_buttons = driver.find_elements(
             By.XPATH,
@@ -749,22 +757,22 @@ def click_specific_button(driver, button_text):
                     time.sleep(0.3)
                     driver.execute_script("arguments[0].click();", clickable)
                     
-                    print(f"   ✓ Botão clicado (alternativo): {txt[:50]}...")
+                    logging.info(f"   ✓ Botão clicado (alternativo): {txt[:50]}...")
                     time.sleep(1.0)
                     return True
             except:
                 continue
         
         # DEBUG: Show available buttons
-        print(f"   DEBUG: Botões disponíveis:")
+        logging.info(f"   DEBUG: Botões disponíveis:")
         for i, btn in enumerate(all_buttons[:5]):
             try:
-                print(f"      {i+1}: '{btn.text.strip()}'")
+                logging.info(f"      {i+1}: '{btn.text.strip()}'")
             except:
                 pass
                 
     except Exception as e:
-        print(f"   ✗ Método alternativo falhou: {e}")
+        logger.error(f"    ✗ Método alternativo falhou: {e}")
     
     return False
 
@@ -788,7 +796,7 @@ def discover_paths_recursive(driver, current_path, all_paths, company_id, origin
     # ═══════════════════════════════════════════════════════════
     # WAIT FOR PAGE TO LOAD (from original click_next_level)
     # ═══════════════════════════════════════════════════════════
-    print("\n   → Aguardando botões carregarem...")
+    logging.info("\n   → Aguardando botões carregarem...")
     
     buttons = []
     level = "unknown"
@@ -799,7 +807,7 @@ def discover_paths_recursive(driver, current_path, all_paths, company_id, origin
         # Check if we're at the deepest level (processo links visible)
         if has_processo_links(driver):
             all_paths.append(current_path.copy())
-            print(f"   ✓ Caminho completo encontrado: {' → '.join(current_path) if current_path else '(direto)'}")
+            logging.info(f"   ✓ Caminho completo encontrado: {' → '.join(current_path) if current_path else '(direto)'}")
             return
         
         # Get current level
@@ -810,29 +818,29 @@ def discover_paths_recursive(driver, current_path, all_paths, company_id, origin
         buttons = get_all_buttons_at_level(driver, exclude)
         
         if buttons:
-            print(f"   Tentativa {attempt + 1}: Nível '{level}', {len(buttons)} botão(ões) encontrado(s)")
+            logging.info(f"   Tentativa {attempt + 1}: Nível '{level}', {len(buttons)} botão(ões) encontrado(s)")
             break
         else:
-            print(f"   Tentativa {attempt + 1}: Nível '{level}', aguardando botões...")
+            logging.info(f"   Tentativa {attempt + 1}: Nível '{level}', aguardando botões...")
     
     if not buttons:
         # No buttons found after retries - check for processo links one more time
         if has_processo_links(driver):
             all_paths.append(current_path.copy())
-            print(f"   ✓ Caminho completo (sem botões): {' → '.join(current_path) if current_path else '(direto)'}")
+            logging.info(f"   ✓ Caminho completo (sem botões): {' → '.join(current_path) if current_path else '(direto)'}")
         elif current_path:
             # Record incomplete path
             all_paths.append(current_path.copy())
-            print(f"   ⚠ Caminho incompleto: {' → '.join(current_path)}")
+            logging.info(f"   ⚠ Caminho incompleto: {' → '.join(current_path)}")
         else:
-            print("   ✗ Nenhum botão encontrado no primeiro nível")
+            logging.info("   ✗ Nenhum botão encontrado no primeiro nível")
         return
     
-    print(f"   Botões encontrados: {buttons[:5]}{'...' if len(buttons) > 5 else ''}")
+    logging.info(f"   Botões encontrados: {buttons[:5]}{'...' if len(buttons) > 5 else ''}")
     
     # Explore each button
     for i, btn_text in enumerate(buttons):
-        print(f"\n   --- Explorando branch {i+1}/{len(buttons)}: {btn_text} ---")
+        logging.info(f"\n   --- Explorando branch {i+1}/{len(buttons)}: {btn_text} ---")
         
         # Click this button
         if click_specific_button(driver, btn_text):
@@ -842,19 +850,19 @@ def discover_paths_recursive(driver, current_path, all_paths, company_id, origin
             
             # Reset to explore next branch (if there are more)
             if i < len(buttons) - 1:
-                print(f"   ↩ Resetando para explorar próximo branch...")
+                logging.info(f"   ↩ Resetando para explorar próximo branch...")
                 if not reset_and_navigate_to_company(driver, company_id):
-                    print("   ✗ Falha ao resetar")
+                    logging.info("   ✗ Falha ao resetar")
                     return
                 
                 # Re-navigate to current path position
                 for path_btn in current_path:
                     time.sleep(0.5)
                     if not click_specific_button(driver, path_btn):
-                        print(f"   ✗ Falha ao re-navegar para: {path_btn}")
+                        logger.error(f"    ✗ Falha ao re-navegar para: {path_btn}")
                         return
         else:
-            print(f"   ✗ Não foi possível clicar em: {btn_text}")
+            logger.error(f"    ✗ Não foi possível clicar em: {btn_text}")
 
 def reset_and_navigate_to_company(driver, company_id):
     """
@@ -862,55 +870,55 @@ def reset_and_navigate_to_company(driver, company_id):
     """
     from config import FILTER_YEAR, CONTRACTS_URL, BASE_URL
     
-    print(f"\n   ↩ Resetando para página de contratos...")
+    logging.info(f"\n   ↩ Resetando para página de contratos...")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 1: Go to HOME first to fully reset Vaadin state
     # ═══════════════════════════════════════════════════════════
-    print(f"   STEP 1: Navegando para HOME para resetar estado...")
+    logging.info(f"   STEP 1: Navegando para HOME para resetar estado...")
     driver.get(BASE_URL)
     time.sleep(2)
     
     # ═══════════════════════════════════════════════════════════
     # STEP 2: Now navigate to contracts page
     # ═══════════════════════════════════════════════════════════
-    print(f"   STEP 2: Navegando para página de contratos...")
+    logging.info(f"   STEP 2: Navegando para página de contratos...")
     driver.get(CONTRACTS_URL)
     time.sleep(2)
     
     # Wait for page to load
     try:
         wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]), timeout=10)
-        print("   STEP 2: ✓ Tabela carregada")
+        logging.info("   STEP 2: ✓ Tabela carregada")
     except TimeoutException:
-        print("   STEP 2: ⚠ Timeout, tentando refresh...")
+        logging.info("   STEP 2: ⚠ Timeout, tentando refresh...")
         driver.refresh()
         time.sleep(3)
         try:
             wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]), timeout=10)
-            print("   STEP 2: ✓ Tabela carregada após refresh")
+            logging.info("   STEP 2: ✓ Tabela carregada após refresh")
         except TimeoutException:
-            print("   STEP 2: ✗ Falha ao carregar página")
+            logging.info("   STEP 2: ✗ Falha ao carregar página")
             return False
     
     # ═══════════════════════════════════════════════════════════
     # STEP 3: Set year filter if needed
     # ═══════════════════════════════════════════════════════════
     if FILTER_YEAR:
-        print(f"   STEP 3: Aplicando filtro de ano: {FILTER_YEAR}")
+        logging.info(f"   STEP 3: Aplicando filtro de ano: {FILTER_YEAR}")
         set_year_filter(driver, FILTER_YEAR)
         time.sleep(1)
     else:
-        print("   STEP 3: Sem filtro de ano")
+        logging.info("   STEP 3: Sem filtro de ano")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 4: Verify we're at 'favorecido' level
     # ═══════════════════════════════════════════════════════════
     level = get_current_level(driver)
-    print(f"   STEP 4: Nível atual: '{level}'")
+    logging.info(f"   STEP 4: Nível atual: '{level}'")
     
     if level != "favorecido":
-        print(f"   STEP 4: ⚠ Esperado 'favorecido', forçando refresh completo...")
+        logging.info(f"   STEP 4: ⚠ Esperado 'favorecido', forçando refresh completo...")
         # Force complete refresh
         driver.get(BASE_URL)
         time.sleep(2)
@@ -921,47 +929,47 @@ def reset_and_navigate_to_company(driver, company_id):
         time.sleep(1)
         
         level = get_current_level(driver)
-        print(f"   STEP 4: Nível após refresh: '{level}'")
+        logging.info(f"   STEP 4: Nível após refresh: '{level}'")
         
         if level != "favorecido":
-            print("   STEP 4: ✗ Não conseguiu resetar para 'favorecido'")
+            logging.info("   STEP 4: ✗ Não conseguiu resetar para 'favorecido'")
             return False
     
     # ═══════════════════════════════════════════════════════════
     # STEP 5: Filter by company
     # ═══════════════════════════════════════════════════════════
-    print(f"   STEP 5: Filtrando por empresa: {company_id}")
+    logging.info(f"   STEP 5: Filtrando por empresa: {company_id}")
     if not filter_by_company(driver, company_id):
-        print("   STEP 5: ✗ Falha ao filtrar")
+        logging.info("   STEP 5: ✗ Falha ao filtrar")
         return False
-    print("   STEP 5: ✓ Filtro aplicado")
+    logging.info("   STEP 5: ✓ Filtro aplicado")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 6: Wait for filter results to load
     # ═══════════════════════════════════════════════════════════
-    print("   STEP 6: Aguardando resultados do filtro...")
+    logging.info("   STEP 6: Aguardando resultados do filtro...")
     time.sleep(3)
     
     # ═══════════════════════════════════════════════════════════
     # STEP 7: Click on company
     # ═══════════════════════════════════════════════════════════
-    print(f"   STEP 7: Clicando na empresa...")
+    logging.info(f"   STEP 7: Clicando na empresa...")
     caption = click_company_button(driver, company_id)
     if not caption:
-        print("   STEP 7: ✗ Falha ao clicar na empresa")
+        logging.info("   STEP 7: ✗ Falha ao clicar na empresa")
         return False
     
-    print(f"   STEP 7: ✓ Empresa clicada: {caption[:50]}...")
+    logging.info(f"   STEP 7: ✓ Empresa clicada: {caption[:50]}...")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 8: Verify we're now at 'orgao' level
     # ═══════════════════════════════════════════════════════════
     time.sleep(2)
     level = get_current_level(driver)
-    print(f"   STEP 8: Nível após clicar empresa: '{level}'")
+    logging.info(f"   STEP 8: Nível após clicar empresa: '{level}'")
     
     if level != "orgao":
-        print(f"   STEP 8: ⚠ Esperado 'orgao', atual: '{level}'")
+        logging.info(f"   STEP 8: ⚠ Esperado 'orgao', atual: '{level}'")
         # Still return True, the click might have worked but level detection is off
     
     return True
@@ -978,16 +986,16 @@ def discover_all_paths(driver, company_id, original_caption):
     Returns:
         List of paths, where each path is a list of button texts
     """
-    print("\n" + "="*60)
-    print("DESCOBRINDO TODOS OS CAMINHOS")
-    print("="*60)
+    logging.info("\n" + "="*60)
+    logging.info("DESCOBRINDO TODOS OS CAMINHOS")
+    logging.info("="*60)
     
     all_paths = []
     discover_paths_recursive(driver, [], all_paths, company_id, original_caption)
     
-    print(f"\n✓ Total de caminhos descobertos: {len(all_paths)}")
+    logging.info(f"\n✓ Total de caminhos descobertos: {len(all_paths)}")
     for i, path in enumerate(all_paths, 1):
-        print(f"   {i}: {' → '.join(path)}")
+        logging.info(f"   {i}: {' → '.join(path)}")
     
     return all_paths
 
@@ -996,26 +1004,26 @@ def follow_path_and_collect(driver, company_id, path):
     """
     Follow a specific path and collect all processos.
     """
-    print(f"\n   → Seguindo caminho: {' → '.join(path) if path else '(nível atual)'}")
+    logging.info(f"\n   → Seguindo caminho: {' → '.join(path) if path else '(nível atual)'}")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 1: Reset and navigate to company
     # ═══════════════════════════════════════════════════════════
     if not reset_and_navigate_to_company(driver, company_id):
-        print("   ✗ Falha ao resetar para seguir caminho")
+        logging.info("   ✗ Falha ao resetar para seguir caminho")
         return []
     
     # ═══════════════════════════════════════════════════════════
     # STEP 2: Wait for page to transition after company click
     # ═══════════════════════════════════════════════════════════
-    print("   → Aguardando transição de página...")
+    logging.info("   → Aguardando transição de página...")
     time.sleep(2)
     
     # Wait for buttons to appear (like original click_next_level did)
     for attempt in range(6):
         buttons = get_all_buttons_at_level(driver, exclude_texts=set())
         if buttons:
-            print(f"   ✓ {len(buttons)} botões disponíveis após {attempt + 1} tentativa(s)")
+            logging.info(f"   ✓ {len(buttons)} botões disponíveis após {attempt + 1} tentativa(s)")
             break
         time.sleep(0.8)
     
@@ -1023,15 +1031,15 @@ def follow_path_and_collect(driver, company_id, path):
     # STEP 3: Follow the path
     # ═══════════════════════════════════════════════════════════
     for i, btn_text in enumerate(path):
-        print(f"   → Clicando em [{i+1}/{len(path)}]: {btn_text}")
+        logging.info(f"   → Clicando em [{i+1}/{len(path)}]: {btn_text}")
         
         # Wait for this specific button to be clickable
         if not click_specific_button(driver, btn_text):
-            print(f"   ✗ Falha ao clicar em: {btn_text}")
+            logger.error(f"    ✗ Falha ao clicar em: {btn_text}")
             return []
         
         # Wait for page to update after each click
-        print(f"   → Aguardando próximo nível...")
+        logging.info(f"   → Aguardando próximo nível...")
         time.sleep(1.5)
     
     # ═══════════════════════════════════════════════════════════
@@ -1042,7 +1050,7 @@ def follow_path_and_collect(driver, company_id, path):
     # Check if we're at deepest level
     for attempt in range(5):
         if has_processo_links(driver):
-            print("   ✓ Links de processo encontrados")
+            logging.info("   ✓ Links de processo encontrados")
             break
         time.sleep(1)
     
@@ -1051,9 +1059,9 @@ def follow_path_and_collect(driver, company_id, path):
     # ═══════════════════════════════════════════════════════════
     doc_links = get_all_document_links(driver)
     
-    print(f"   ✓ Coletados {len(doc_links)} processo(s):")
+    logging.info(f"   ✓ Coletados {len(doc_links)} processo(s):")
     for dl in doc_links:
-        print(f"      - {dl.get('processo', 'N/A')}: {dl.get('href', 'N/A')[:50]}...")
+        logging.info(f"      - {dl.get('processo', 'N/A')}: {dl.get('href', 'N/A')[:50]}...")
     
     return doc_links
 
@@ -1068,7 +1076,7 @@ def get_all_document_links(driver):
     Returns:
         List of dictionaries with 'href' and 'processo', or empty list if none found
     """
-    print("\n→ Procurando links de processos...")
+    logging.info("\n→ Procurando links de processos...")
     
     results = []
     
@@ -1084,7 +1092,7 @@ def get_all_document_links(driver):
                 ))
             )
             
-            print(f"   Encontrados {len(links)} link(s) de processo")
+            logging.info(f"   Encontrados {len(links)} link(s) de processo")
             
             for link in links:
                 try:
@@ -1110,21 +1118,21 @@ def get_all_document_links(driver):
                             "href": href,
                             "processo": processo
                         })
-                        print(f"   ✓ Processo: {processo}")
-                        print(f"     URL: {href}")
+                        logging.info(f"   ✓ Processo: {processo}")
+                        logging.info(f"     URL: {href}")
                         
                 except StaleElementReferenceException:
                     continue
                 except Exception as e:
-                    print(f"   ⚠ Erro ao processar link: {e}")
+                    logger.error(f"   ⚠ Erro ao processar link: {e}")
                     continue
                     
         except TimeoutException:
-            print("   Nenhum link de processo encontrado (timeout)")
+            logging.info("   Nenhum link de processo encontrado (timeout)")
         
         # Fallback: Search for any external link with processo pattern
         if not results:
-            print("   Tentando método alternativo...")
+            logging.info("   Tentando método alternativo...")
             try:
                 links = driver.find_elements(
                     By.XPATH,
@@ -1144,18 +1152,18 @@ def get_all_document_links(driver):
                             "href": href,
                             "processo": processo
                         })
-                        print(f"   ✓ Processo (alternativo): {processo}")
+                        logging.info(f"   ✓ Processo (alternativo): {processo}")
                         
             except Exception as e:
-                print(f"   Método alternativo falhou: {e}")
+                logger.error(f"   Método alternativo falhou: {e}")
         
         if results:
-            print(f"\n✓ Total de processos encontrados: {len(results)}")
+            logging.info(f"\n✓ Total de processos encontrados: {len(results)}")
         else:
-            print("✗ Nenhum link de processo encontrado")
+            logging.info("✗ Nenhum link de processo encontrado")
         
         return results
         
     except Exception as e:
-        print(f"✗ Erro ao buscar links: {e}")
+        logger.error(f"✗ Erro ao buscar links: {e}")
         return []

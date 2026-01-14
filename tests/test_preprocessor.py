@@ -18,6 +18,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from Contract_analisys.text_preprocessor import preprocess_contract_text, print_summary
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # PASTE YOUR OCR TEXT HERE
@@ -87,17 +94,17 @@ SIGA À
 # ============================================================
 
 def main():
-    print("\n" + "=" * 60)
-    print("🧪 TEXT PREPROCESSOR TEST")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("🧪 TEXT PREPROCESSOR TEST")
+    logging.info("=" * 60)
     
     # Show original
-    print(f"\n📥 INPUT TEXT:")
-    print(f"   Length: {len(OCR_TEXT):,} characters")
-    print(f"   Preview: {OCR_TEXT[:100].strip()}...")
+    logging.info(f"\n📥 INPUT TEXT:")
+    logging.info(f"   Length: {len(OCR_TEXT):,} characters")
+    logging.info(f"   Preview: {OCR_TEXT[:100].strip()}...")
     
     # Run preprocessing
-    print("\n⚙️  Processing...")
+    logging.info("\n⚙️  Processing...")
     result = preprocess_contract_text(OCR_TEXT)
     
     # Show summary
@@ -105,32 +112,32 @@ def main():
     
     # Show sections found
     if result.sections_found:
-        print("\n📑 SECTIONS DETECTED:")
+        logging.info("\n📑 SECTIONS DETECTED:")
         for i, section in enumerate(result.sections_found, 1):
-            print(f"   {i}. [{section['type']}] {section['title']}")
+            logging.info(f"   {i}. [{section['type']}] {section['title']}")
     
     # Show metadata removed
     if result.metadata_removed:
-        print("\n🗑️  METADATA REMOVED:")
+        logging.info("\n🗑️  METADATA REMOVED:")
         for item in result.metadata_removed[:5]:
-            print(f"   • {item[:60]}...")
+            logging.info(f"   • {item[:60]}...")
     
     # Show cleaned text
-    print("\n" + "=" * 60)
-    print("📄 CLEANED TEXT (first 3500 chars):")
-    print("=" * 60)
-    print(result.structured_text[:3500])
+    logging.info("\n" + "=" * 60)
+    logging.info("📄 CLEANED TEXT (first 3500 chars):")
+    logging.info("=" * 60)
+    logging.info(result.structured_text[:3500])
     
     if len(result.structured_text) > 3500:
-        print(f"\n... [{len(result.structured_text) - 3500:,} more characters]")
+        logging.info(f"\n... [{len(result.structured_text) - 3500:,} more characters]")
     
     # Compare before/after
-    print("\n" + "=" * 60)
-    print("📊 COMPARISON:")
-    print("=" * 60)
-    print(f"   Before: {result.original_length:,} chars")
-    print(f"   After:  {result.final_length:,} chars")
-    print(f"   Removed: {result.original_length - result.final_length:,} chars ({result.reduction_percent:.1f}%)")
+    logging.info("\n" + "=" * 60)
+    logging.info("📊 COMPARISON:")
+    logging.info("=" * 60)
+    logging.info(f"   Before: {result.original_length:,} chars")
+    logging.info(f"   After:  {result.final_length:,} chars")
+    logging.info(f"   Removed: {result.original_length - result.final_length:,} chars ({result.reduction_percent:.1f}%)")
     
     return result
 
@@ -147,4 +154,4 @@ if __name__ == "__main__":
             f.write(OCR_TEXT)
             f.write("\n\n=== CLEANED ===\n\n")
             f.write(result.structured_text)
-        print(f"✅ Saved to: {output_path}")
+        logging.info(f"✅ Saved to: {output_path}")

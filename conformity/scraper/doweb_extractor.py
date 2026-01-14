@@ -33,6 +33,13 @@ except ImportError:
         "old_prefix": r"\d{2,3}/([A-Z]{2,4}/\d{5,6}/\d{4})",
     }
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # =========================================================================
 # EXTRACTION PATTERNS
@@ -339,22 +346,22 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 3:
-        print("Usage: python doweb_extractor.py <pdf_path> <processo_number>")
-        print("Example: python doweb_extractor.py ./test.pdf SME-PRO-2025/19222")
+        logging.info("Usage: python doweb_extractor.py <pdf_path> <processo_number>")
+        logging.info("Example: python doweb_extractor.py ./test.pdf SME-PRO-2025/19222")
         sys.exit(1)
     
     pdf_path = sys.argv[1]
     processo = sys.argv[2]
     
-    print(f"📄 Extracting from: {pdf_path}")
-    print(f"🔍 Looking for processo: {processo}")
-    print("=" * 50)
+    logging.info(f"📄 Extracting from: {pdf_path}")
+    logging.info(f"🔍 Looking for processo: {processo}")
+    logging.info("=" * 50)
     
     found, data, error = extract_publication_from_pdf(pdf_path, processo)
     
     if found:
-        print("✅ FOUND!")
+        logging.info("✅ FOUND!")
         import json
-        print(json.dumps(data, indent=2, ensure_ascii=False))
+        logging.info(json.dumps(data, indent=2, ensure_ascii=False))
     else:
-        print(f"❌ NOT FOUND: {error}")
+        logger.error(f"❌ NOT FOUND: {error}")

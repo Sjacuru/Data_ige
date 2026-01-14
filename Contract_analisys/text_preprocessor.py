@@ -11,6 +11,13 @@ import re
 from typing import Tuple, List, Dict
 from dataclasses import dataclass, field
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 @dataclass
 class PreprocessingResult:
@@ -229,15 +236,15 @@ def preprocess_contract_text(raw_text: str) -> PreprocessingResult:
 
 def print_summary(result: PreprocessingResult) -> None:
     """Print preprocessing summary to console."""
-    print("=" * 50)
-    print("📄 PREPROCESSING RESULT")
-    print("=" * 50)
-    print(f"Original:  {result.original_length:,} chars")
-    print(f"Final:     {result.final_length:,} chars")
-    print(f"Reduced:   {result.reduction_percent:.1f}%")
-    print(f"Metadata:  {len(result.metadata_removed)} removed")
-    print(f"Sections:  {len(result.sections_found)} found")
-    print("=" * 50)
+    logging.info("=" * 50)
+    logging.info("📄 PREPROCESSING RESULT")
+    logging.info("=" * 50)
+    logging.info(f"Original:  {result.original_length:,} chars")
+    logging.info(f"Final:     {result.final_length:,} chars")
+    logging.info(f"Reduced:   {result.reduction_percent:.1f}%")
+    logging.info(f"Metadata:  {len(result.metadata_removed)} removed")
+    logging.info(f"Sections:  {len(result.sections_found)} found")
+    logging.info("=" * 50)
 
 
 # ============================================================
@@ -264,6 +271,6 @@ if __name__ == "__main__":
     result = preprocess_contract_text(test_text)
     print_summary(result)
     
-    print("\n📄 STRUCTURED TEXT:")
-    print("-" * 50)
-    print(result.structured_text)
+    logging.info("\n📄 STRUCTURED TEXT:")
+    logging.info("-" * 50)
+    logging.info(result.structured_text)

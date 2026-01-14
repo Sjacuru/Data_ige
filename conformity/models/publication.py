@@ -8,6 +8,13 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 from datetime import datetime
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 @dataclass
 class PublicationResult:
@@ -171,6 +178,6 @@ if __name__ == "__main__":
         numero_contrato="215/2025",
     )
     
-    print("✅ PublicationResult created:")
+    logging.info("✅ PublicationResult created:")
     import json
-    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    logging.info(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))

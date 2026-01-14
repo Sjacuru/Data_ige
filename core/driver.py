@@ -34,6 +34,13 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # =========================================================================
 # CONFIGURATION
@@ -157,18 +164,18 @@ def create_driver(
         # ─────────────────────────────────────────────────────────────
         # SUCCESS
         # ─────────────────────────────────────────────────────────────
-        print("✓ Driver initialized successfully!")
+        logging.info("✓ Driver initialized successfully!")
         if download_dir:
-            print(f"  Download folder: {download_path}")
+            logging.info(f"  Download folder: {download_path}")
         if headless:
-            print("  Mode: headless")
+            logging.info("  Mode: headless")
         if anti_detection:
-            print("  Anti-detection: enabled")
+            logging.info("  Anti-detection: enabled")
         
         return driver
         
     except Exception as e:
-        print(f"✗ Error initializing driver: {e}")
+        logger.error(f"✗ Error initializing driver: {e}")
         return None
 
 
@@ -182,9 +189,9 @@ def close_driver(driver: Optional[webdriver.Chrome]) -> None:
     if driver:
         try:
             driver.quit()
-            print("✓ Driver closed.")
+            logging.info("✓ Driver closed.")
         except Exception as e:
-            print(f"⚠ Error closing driver: {e}")
+            logger.error(f"⚠ Error closing driver: {e}")
 
 
 # =========================================================================
@@ -229,7 +236,7 @@ def create_processo_driver(
         headless: Run in headless mode (not recommended for CAPTCHA)
     """
     if headless:
-        print("⚠️ Warning: Headless mode may fail with CAPTCHA")
+        logger.warning("⚠️ Warning: Headless mode may fail with CAPTCHA")
     
     return create_driver(
         headless=headless,
@@ -237,38 +244,53 @@ def create_processo_driver(
         anti_detection=True
     )
 
+def is_driver_available() -> bool:
+    """
+    Check if Chrome/ChromeDriver is available.
+    
+    Returns:
+        bool: True if driver can be initialized
+    """
+    try:
+        
+        # Try to get ChromeDriver path (doesn't start browser)
+        ChromeDriverManager().install()
+        return True
+    except Exception as e:
+        logger.warning(f"⚠️ Driver not available: {e}")
+        return False
 
 # =========================================================================
 # STANDALONE TEST
 # =========================================================================
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("🧪 Testing core/driver.py")
-    print("=" * 60)
+    logging.info("=" * 60)
+    logging.info("🧪 Testing core/driver.py")
+    logging.info("=" * 60)
     
-    print("\n1. Testing basic driver creation...")
+    logging.info("\n1. Testing basic driver creation...")
     driver = create_driver()
     if driver:
-        print(f"   Current URL: {driver.current_url}")
+        logging.info(f"   Current URL: {driver.current_url}")
         close_driver(driver)
     
-    print("\n2. Testing driver with download directory...")
+    logging.info("\n2. Testing driver with download directory...")
     driver = create_driver(download_dir="./test_downloads")
     if driver:
         close_driver(driver)
     
-    print("\n3. Testing anti-detection driver...")
+    logging.info("\n3. Testing anti-detection driver...")
     driver = create_driver(anti_detection=True)
     if driver:
         close_driver(driver)
     
-    print("\n✅ All tests completed!")
+    logging.info("\n✅ All tests completed!")
     
     # Cleanup test folder
     import shutil
     try:
         shutil.rmtree("./test_downloads")
-        print("   Cleaned up test folder")
+        logging.info("   Cleaned up test folder")
     except:
         pass

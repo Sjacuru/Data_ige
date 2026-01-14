@@ -9,6 +9,13 @@ from datetime import datetime
 import json
 from config import DATA_OUTPUTS_PATH
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def save_to_excel(data, filename=None):
     """
@@ -41,11 +48,11 @@ def save_to_excel(data, filename=None):
         # Save to Excel
         df.to_excel(filepath, index=False, engine='openpyxl')
         
-        print(f"✓ Relatório salvo: {filepath}")
+        logging.info(f"✓ Relatório salvo: {filepath}")
         return filepath
         
     except Exception as e:
-        print(f"✗ Erro ao salvar Excel: {e}")
+        logger.error(f"✗ Erro ao salvar Excel: {e}")
         return None
 
 
@@ -76,11 +83,11 @@ def save_to_csv(data, filename=None):
         
         df.to_csv(filepath, index=False, encoding='utf-8-sig')
         
-        print(f"✓ CSV salvo: {filepath}")
+        logging.info(f"✓ CSV salvo: {filepath}")
         return filepath
         
     except Exception as e:
-        print(f"✗ Erro ao salvar CSV: {e}")
+        logger.error(f"✗ Erro ao salvar CSV: {e}")
         return None
 
 
@@ -116,38 +123,38 @@ def print_report(report):
     """
     Print a formatted report to console.
     """
-    print("\n" + "=" * 60)
-    print("           RELATÓRIO DE ANÁLISE DE CONTRATO")
-    print("=" * 60)
-    print(f"\n📅 Gerado em: {report.get('generated_at', 'N/A')}")
-    print(f"\n🏢 EMPRESA")
-    print(f"   ID: {report.get('company_id', 'N/A')}")
-    print(f"   Nome: {report.get('company_name', 'N/A')}")
-    print(f"   Total Contratado: {report.get('total_contratado', 'N/A')}")
+    logging.info("\n" + "=" * 60)
+    logging.info("           RELATÓRIO DE ANÁLISE DE CONTRATO")
+    logging.info("=" * 60)
+    logging.info(f"\n📅 Gerado em: {report.get('generated_at', 'N/A')}")
+    logging.info(f"\n🏢 EMPRESA")
+    logging.info(f"   ID: {report.get('company_id', 'N/A')}")
+    logging.info(f"   Nome: {report.get('company_name', 'N/A')}")
+    logging.info(f"   Total Contratado: {report.get('total_contratado', 'N/A')}")
     
     # ═══════════════════════════════════════════════════════════════
     # NEW: Show document info
     # ═══════════════════════════════════════════════════════════════
-    print(f"\n📄 DOCUMENTO")
-    print(f"   Processo: {report.get('document_text', 'N/A')}")
-    print(f"   URL: {report.get('document_url', 'N/A')}")
+    logging.info(f"\n📄 DOCUMENTO")
+    logging.info(f"   Processo: {report.get('document_text', 'N/A')}")
+    logging.info(f"   URL: {report.get('document_url', 'N/A')}")
     # ═══════════════════════════════════════════════════════════════
     
     risk_level = report.get('risk_level', 'unknown')
     risk_emoji = {"low": "🟢", "medium": "🟡", "high": "🔴"}.get(risk_level, "⚪")
-    print(f"\n⚠️  NÍVEL DE RISCO: {risk_emoji} {risk_level.upper()}")
+    logger.warning(f"\n⚠️  NÍVEL DE RISCO: {risk_emoji} {risk_level.upper()}")
     
     flags = report.get('flags', [])
     if flags:
-        print(f"\n🚩 FLAGS ({len(flags)}):")
+        logging.info(f"\n🚩 FLAGS ({len(flags)}):")
         for i, flag in enumerate(flags, 1):
-            print(f"   {i}. [{flag.get('severity', 'N/A').upper()}] {flag.get('message', 'N/A')}")
+            logging.info(f"   {i}. [{flag.get('severity', 'N/A').upper()}] {flag.get('message', 'N/A')}")
     else:
-        print("\n🚩 FLAGS: Nenhuma flag identificada")
+        logging.info("\n🚩 FLAGS: Nenhuma flag identificada")
     
-    print("\n" + "-" * 60)
-    print(report.get('summary', 'Sem resumo disponível'))
-    print("=" * 60 + "\n")
+    logging.info("\n" + "-" * 60)
+    logging.info(report.get('summary', 'Sem resumo disponível'))
+    logging.info("=" * 60 + "\n")
 
 def create_summary_dataframe(all_reports):
     """
@@ -200,7 +207,7 @@ def save_companies_with_links(companies_data, filename="companies_with_links.jso
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
     
-    print(f"✓ Dados com links salvos em: {filepath}")
+    logging.info(f"✓ Dados com links salvos em: {filepath}")
     return filepath
 
 
@@ -221,5 +228,5 @@ def load_companies_with_links(filename="companies_with_links.json"):
     with open(filepath, "r", encoding="utf-8") as f:
         data = json.load(f)
     
-    print(f"✓ Carregados {data['total_companies']} registros")
+    logging.info(f"✓ Carregados {data['total_companies']} registros")
     return data["companies"]

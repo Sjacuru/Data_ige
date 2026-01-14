@@ -35,6 +35,14 @@ from config import (
     FILTER_YEAR, LOCATORS
 )
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -59,11 +67,11 @@ def get_latest_csv_file():
     csv_files = glob.glob(os.path.join(DOWNLOADS_FOLDER, "*.csv"))
     
     if not csv_files:
-        print(f"✗ Nenhum arquivo CSV encontrado em: {DOWNLOADS_FOLDER}")
+        logger.error(f"✗ Nenhum arquivo CSV encontrado em: {DOWNLOADS_FOLDER}")
         return None
     
     latest = max(csv_files, key=os.path.getctime)
-    print(f"✓ Arquivo CSV encontrado: {os.path.basename(latest)}")
+    logging.info(f"✓ Arquivo CSV encontrado: {os.path.basename(latest)}")
     return latest
 
 
@@ -77,7 +85,7 @@ def read_company_ids_from_csv(filepath):
     Returns:
         List of dictionaries with company data
     """
-    print(f"\n→ Lendo arquivo: {os.path.basename(filepath)}")
+    logging.info(f"\n→ Lendo arquivo: {os.path.basename(filepath)}")
     
     companies = []
     
@@ -131,13 +139,13 @@ def read_company_ids_from_csv(filepath):
                             })
                     
                     if companies:
-                        print(f"✓ {len(companies)} empresas encontradas (encoding: {encoding})")
+                        logging.info(f"✓ {len(companies)} empresas encontradas (encoding: {encoding})")
                         break
                         
             except UnicodeDecodeError:
                 continue
             except Exception as e:
-                print(f"   Erro com encoding {encoding}: {e}")
+                logger.error(f"   Erro com encoding {encoding}: {e}")
                 continue
         
         # Remove duplicates based on ID
@@ -148,17 +156,17 @@ def read_company_ids_from_csv(filepath):
                 seen.add(c["ID"])
                 unique_companies.append(c)
         
-        print(f"✓ {len(unique_companies)} empresas únicas")
+        logging.info(f"✓ {len(unique_companies)} empresas únicas")
         
         # Show first 5
-        print("\n   Primeiras 5 empresas:")
+        logging.info("\n   Primeiras 5 empresas:")
         for i, c in enumerate(unique_companies[:5], 1):
-            print(f"   {i}: {c['ID']} - {c['Company'][:40]}...")
+            logging.info(f"   {i}: {c['ID']} - {c['Company'][:40]}...")
         
         return unique_companies
         
     except Exception as e:
-        print(f"✗ Erro ao ler CSV: {e}")
+        logger.error(f"✗ Erro ao ler CSV: {e}")
         return []
 
 
@@ -210,7 +218,7 @@ def set_year_filter(driver, year):
         return
     
     year = str(year)
-    print(f"   → Ajustando ano: {year}")
+    logging.info(f"   → Ajustando ano: {year}")
     
     try:
         inputs = driver.find_elements(By.CSS_SELECTOR, ".v-filterselect-input")
@@ -236,7 +244,7 @@ def set_year_filter(driver, year):
             time.sleep(2)
             
     except Exception as e:
-        print(f"   ⚠ Erro ao ajustar ano: {e}")
+        logger.error(f"   ⚠ Erro ao ajustar ano: {e}")
 
 
 def reset_to_contracts_page(driver):
@@ -275,7 +283,7 @@ def filter_by_company(driver, company_id):
         
         return True
     except Exception as e:
-        print(f"   ✗ Erro ao filtrar: {e}")
+        logger.error(f"    ✗ Erro ao filtrar: {e}")
         return False
 
 
@@ -521,10 +529,10 @@ def save_results_to_csv(results, filename=None):
                 writer.writeheader()
                 writer.writerows(results)
         
-        print(f"✓ Resultados salvos: {filepath}")
+        logging.info(f"✓ Resultados salvos: {filepath}")
         return filepath
     except Exception as e:
-        print(f"✗ Erro ao salvar: {e}")
+        logger.error(f"✗ Erro ao salvar: {e}")
         return None
 
 
@@ -544,9 +552,9 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
     Returns:
         Path to results file
     """
-    print("\n" + "=" * 60)
-    print("     PROCESSAR EMPRESAS DO CSV")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("     PROCESSAR EMPRESAS DO CSV")
+    logging.info("=" * 60)
     
     # ═══════════════════════════════════════════════════════════
     # STEP 1: Get CSV file
@@ -555,7 +563,7 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
         csv_filepath = get_latest_csv_file()
     
     if not csv_filepath or not os.path.exists(csv_filepath):
-        print("✗ Arquivo CSV não encontrado")
+        logging.info("✗ Arquivo CSV não encontrado")
         return None
     
     # ═══════════════════════════════════════════════════════════
@@ -564,12 +572,12 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
     companies = read_company_ids_from_csv(csv_filepath)
     
     if not companies:
-        print("✗ Nenhuma empresa encontrada no CSV")
+        logging.info("✗ Nenhuma empresa encontrada no CSV")
         return None
     
     if max_companies:
         companies = companies[:max_companies]
-        print(f"\n⚠ Limitado a {max_companies} empresas")
+        logging.info(f"\n⚠ Limitado a {max_companies} empresas")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 3: Initialize driver
@@ -587,17 +595,17 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
     
     try:
         for idx, company in enumerate(companies, 1):
-            print(f"\n{'#'*60}")
-            print(f"# EMPRESA {idx}/{total}: {company['ID']}")
-            print(f"# {company['Company'][:50]}")
-            print(f"{'#'*60}")
+            logging.info(f"\n{'#'*60}")
+            logging.info(f"# EMPRESA {idx}/{total}: {company['ID']}")
+            logging.info(f"# {company['Company'][:50]}")
+            logging.info(f"{'#'*60}")
             
             try:
                 results = process_company(driver, company)
                 
                 if results:
                     all_results.extend(results)
-                    print(f"✓ {len(results)} processo(s) encontrado(s)")
+                    logging.info(f"✓ {len(results)} processo(s) encontrado(s)")
                 else:
                     # Add entry with no processo
                     all_results.append({
@@ -606,10 +614,10 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
                         "Processo": "",
                         "URL": ""
                     })
-                    print("⚠ Nenhum processo encontrado")
+                    logger.warning("⚠ Nenhum processo encontrado")
                     
             except Exception as e:
-                print(f"✗ Erro: {e}")
+                logger.error(f"✗ Erro: {e}")
                 all_results.append({
                     "ID": company["ID"],
                     "Company": company["Company"],
@@ -620,10 +628,10 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
             # Save progress every 10 companies
             if idx % 10 == 0:
                 save_results_to_csv(all_results, "processos_progress.csv")
-                print(f"\n→ Progresso salvo: {len(all_results)} registros")
+                logging.info(f"\n→ Progresso salvo: {len(all_results)} registros")
                 
     except KeyboardInterrupt:
-        print("\n\n⚠️ Interrompido pelo usuário")
+        logger.warning("\n\n⚠️ Interrompido pelo usuário")
         
     finally:
         if driver:
@@ -637,13 +645,13 @@ def process_companies_from_csv(csv_filepath=None, headless=False, max_companies=
     # ═══════════════════════════════════════════════════════════
     # SUMMARY
     # ═══════════════════════════════════════════════════════════
-    print("\n" + "=" * 60)
-    print("RESUMO")
-    print("=" * 60)
-    print(f"  Empresas processadas: {total}")
-    print(f"  Processos encontrados: {len([r for r in all_results if r['Processo'] and r['Processo'] != 'ERRO'])}")
-    print(f"  Arquivo: {result_file}")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("RESUMO")
+    logging.info("=" * 60)
+    logging.info(f"  Empresas processadas: {total}")
+    logging.info(f"  Processos encontrados: {len([r for r in all_results if r['Processo'] and r['Processo'] != 'ERRO'])}")
+    logging.info(f"  Arquivo: {result_file}")
+    logging.info("=" * 60)
     
     return result_file
 
@@ -669,6 +677,6 @@ if __name__ == "__main__":
     )
     
     if result:
-        print(f"\n📁 Arquivo salvo: {result}")
+        logging.info(f"\n📁 Arquivo salvo: {result}")
     else:
-        print("\n❌ Processamento falhou")
+        logging.info("\n❌ Processamento falhou")

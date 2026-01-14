@@ -10,8 +10,17 @@ from bs4 import BeautifulSoup
 from pdf2image import convert_from_path, pdfinfo_from_path
 import pytesseract
 import traceback
+from typing import Optional
 
-def extract_text_from_pdf(filepath):
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+def extract_text_from_pdf(filepath: str) -> Optional[str]:
     """
     Extract text content from a PDF file.
 
@@ -22,7 +31,7 @@ def extract_text_from_pdf(filepath):
         Extracted text as string, or None if failed
     """
     try:
-        print(f"\n→ Extraindo texto de: {filepath}")
+        logging.info(f"\n→ Extraindo texto de: {filepath}")
 
         # Get total number of pages without loading them
         info = pdfinfo_from_path(filepath)
@@ -43,17 +52,17 @@ def extract_text_from_pdf(filepath):
 
             if page_text.strip():
                 text_content.append(page_text)
-                print(f"  Página {page_num}: {len(page_text)} caracteres")
+                logging.info(f"  Página {page_num}: {len(page_text)} caracteres")
             else:
-                print(f"  Página {page_num}: sem texto detectado")
+                logging.info(f"  Página {page_num}: sem texto detectado")
 
         full_text = "\n\n".join(text_content)
-        print(f"✓ Total extraído: {len(full_text)} caracteres")
+        logging.info(f"✓ Total extraído: {len(full_text)} caracteres")
 
         return full_text
 
     except Exception as e:
-        print(f"✗ Erro ao extrair texto do PDF: {e}")
+        logger.error(f"✗ Erro ao extrair texto do PDF: {e}")
         traceback.print_exc()
         return None 
 
@@ -68,7 +77,7 @@ def extract_text_from_url(url):
         Extracted text as string, or None if failed
     """
     try:
-        print(f"\n→ Extraindo texto de URL: {url[:50]}...")
+        logging.info(f"\n→ Extraindo texto de URL: {url[:50]}...")
         
         response = requests.get(url, timeout=30)
         response.raise_for_status()
@@ -80,12 +89,12 @@ def extract_text_from_url(url):
             element.decompose()
         
         text = soup.get_text(separator="\n", strip=True)
-        print(f"✓ Extraído: {len(text)} caracteres")
+        logging.info(f"✓ Extraído: {len(text)} caracteres")
         
         return text
         
     except Exception as e:
-        print(f"✗ Erro ao extrair texto da URL: {e}")
+        logger.error(f"✗ Erro ao extrair texto da URL: {e}")
         return None
 
 def parse_contract_data(text):

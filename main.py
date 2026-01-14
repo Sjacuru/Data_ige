@@ -47,6 +47,13 @@ from config import CHROME_HEADLESS, FILTER_YEAR  # ✅ Original - no changes
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════════════
 # NEW HELPER FUNCTIONS (additions only - nothing removed)
@@ -97,7 +104,7 @@ def process_with_document_extractor(driver, processo_url, empresa_info):
     Returns:
         tuple: (text_content, extraction_metadata) or (None, None) on failure
     """
-    print(f"\n   🔐 Usando DocumentExtractor (com tratamento de CAPTCHA)...")
+    logging.info(f"\n   🔐 Usando DocumentExtractor (com tratamento de CAPTCHA)...")
     
     try:
         results = extract_processo_documents(
@@ -117,14 +124,14 @@ def process_with_document_extractor(driver, processo_url, empresa_info):
             text_content = "\n\n---\n\n".join(text_parts) if text_parts else None
             
             if text_content:
-                print(f"   ✓ {len(results)} documento(s) extraído(s), {len(text_content):,} caracteres")
+                logging.info(f"   ✓ {len(results)} documento(s) extraído(s), {len(text_content):,} caracteres")
                 return text_content, {"source": "document_extractor", "docs": results}
         
-        print(f"   ⚠ Nenhum documento encontrado na página")
+        logger.warning(f"   ⚠ Nenhum documento encontrado na página")
         return None, None
         
     except Exception as e:
-        print(f"   ❌ Erro no DocumentExtractor: {e}")
+        logger.error(f"   ❌ Erro no DocumentExtractor: {e}")
         return None, None
 
 
@@ -138,15 +145,15 @@ def process_single_company(driver, company_data):
     Explores ALL branches and returns a LIST of reports (one per processo found).
     """
     company_id = company_data.get("ID")
-    print(f"\n{'='*60}")
-    print(f"PROCESSANDO: {company_id} - {company_data.get('Company', 'N/A')}")
-    print(f"{'='*60}")
+    logging.info(f"\n{'='*60}")
+    logging.info(f"PROCESSANDO: {company_id} - {company_data.get('Company', 'N/A')}")
+    logging.info(f"{'='*60}")
     
     # ═══════════════════════════════════════════════════════════
     # STEP 0: Reset to contracts page and click company
     # ═══════════════════════════════════════════════════════════
     if not reset_and_navigate_to_company(driver, company_id):
-        print("✗ Falha ao resetar e navegar para empresa")
+        logging.info("✗ Falha ao resetar e navegar para empresa")
         return []
     
     # Get company caption for path discovery
@@ -165,35 +172,35 @@ def process_single_company(driver, company_data):
     all_doc_links = []
     
     if not all_paths:
-        print("⚠️ Nenhum caminho descoberto, tentando coletar no nível atual...")
+        logger.warning("⚠️ Nenhum caminho descoberto, tentando coletar no nível atual...")
         doc_links = get_all_document_links(driver)
         all_doc_links.extend(doc_links)
     else:
         for path_idx, path in enumerate(all_paths, 1):
-            print(f"\n{'─'*40}")
-            print(f"CAMINHO {path_idx}/{len(all_paths)}: {' → '.join(path) if path else '(direto)'}")
-            print(f"{'─'*40}")
+            logging.info(f"\n{'─'*40}")
+            logging.info(f"CAMINHO {path_idx}/{len(all_paths)}: {' → '.join(path) if path else '(direto)'}")
+            logging.info(f"{'─'*40}")
             
             doc_links = follow_path_and_collect(driver, company_id, path)
             
             for doc_link in doc_links:
                 # Check for duplicates
                 if any(d["href"] == doc_link["href"] for d in all_doc_links):
-                    print(f"   ⊘ Duplicado ignorado: {doc_link.get('processo', 'N/A')}")
+                    logging.info(f"   ⊘ Duplicado ignorado: {doc_link.get('processo', 'N/A')}")
                     continue
                 all_doc_links.append(doc_link)
     
     # ═══════════════════════════════════════════════════════════
     # STEP 3: Create reports
     # ═══════════════════════════════════════════════════════════
-    print(f"\n{'='*60}")
-    print(f"GERANDO RELATÓRIOS: {len(all_doc_links)} processo(s) único(s)")
-    print(f"{'='*60}")
+    logging.info(f"\n{'='*60}")
+    logging.info(f"GERANDO RELATÓRIOS: {len(all_doc_links)} processo(s) único(s)")
+    logging.info(f"{'='*60}")
     
     all_reports = []
     
     if not all_doc_links:
-        print("⚠️ Nenhum processo encontrado")
+        logger.warning("⚠️ Nenhum processo encontrado")
         report_data = company_data.copy()
         report_data["document_url"] = None
         report_data["document_text"] = None
@@ -208,14 +215,14 @@ def process_single_company(driver, company_data):
         all_reports.append(report)
     else:
         for i, doc_link in enumerate(all_doc_links, 1):
-            print(f"\n   --- Relatório {i}/{len(all_doc_links)} ---")
+            logging.info(f"\n   --- Relatório {i}/{len(all_doc_links)} ---")
             
             report_data = company_data.copy()
             report_data["document_url"] = doc_link["href"]
             report_data["document_text"] = doc_link["processo"]  # ✅ Original preserved
             
-            print(f"   📎 Processo: {report_data['document_text']}")
-            print(f"   🔗 URL: {report_data['document_url'][:60]}...")
+            logging.info(f"   📎 Processo: {report_data['document_text']}")
+            logging.info(f"   🔗 URL: {report_data['document_url'][:60]}...")
             
             # Extract and analyze
             text_content = None
@@ -263,9 +270,9 @@ def process_single_company(driver, company_data):
             report = generate_analysis_report(report_data, analysis_results)
             all_reports.append(report)
             
-            print(f"   ✓ Relatório gerado com document_text: {report.get('document_text', 'MISSING!')}")  # ✅ Original preserved
+            logging.info(f"   ✓ Relatório gerado com document_text: {report.get('document_text', 'MISSING!')}")  # ✅ Original preserved
     
-    print(f"\n✓ {len(all_reports)} relatório(s) gerado(s) para esta empresa")
+    logging.info(f"\n✓ {len(all_reports)} relatório(s) gerado(s) para esta empresa")
     return all_reports
 
 
@@ -274,27 +281,27 @@ def main():
     Main function - orchestrates the complete workflow.
     Processes ALL companies and saves all processos to Excel.
     """
-    print("\n" + "=" * 60)
-    print("     CONTRATO ANALYZER - Iniciando...")
+    logging.info("\n" + "=" * 60)
+    logging.info("     CONTRATO ANALYZER - Iniciando...")
     if USE_DOCUMENT_EXTRACTOR:
-        print("     (DocumentExtractor ATIVADO para páginas processo.rio)")
-    print("=" * 60 + "\n")
+        logging.info("     (DocumentExtractor ATIVADO para páginas processo.rio)")
+    logging.info("=" * 60 + "\n")
     
     # Initialize driver
     driver = initialize_driver(headless=CHROME_HEADLESS)
     if not driver:
-        print("✗ Não foi possível iniciar o navegador. Encerrando.")
+        logging.info("✗ Não foi possível iniciar o navegador. Encerrando.")
         return
     
     try:
         # Navigate to home
         if not navigate_to_home(driver):
-            print("✗ Falha ao carregar página inicial. Encerrando.")
+            logging.info("✗ Falha ao carregar página inicial. Encerrando.")
             return
         
         # Navigate to contracts
         if not navigate_to_contracts(driver, year=FILTER_YEAR):
-            print("✗ Falha ao carregar página de contratos. Encerrando.")
+            logging.info("✗ Falha ao carregar página de contratos. Encerrando.")
             return
 
         # Collect all data
@@ -302,10 +309,10 @@ def main():
         all_companies = parse_row_data(raw_rows)
         
         if not all_companies:
-            print("✗ Nenhuma empresa encontrada. Encerrando.")
+            logging.info("✗ Nenhuma empresa encontrada. Encerrando.")
             return
         
-        print(f"\n✓ {len(all_companies)} empresas encontradas!")
+        logging.info(f"\n✓ {len(all_companies)} empresas encontradas!")
         
         # ═══════════════════════════════════════════════════════════
         # PROCESS ALL COMPANIES
@@ -314,21 +321,21 @@ def main():
         total_companies = len(all_companies)
         
         for idx, company in enumerate(all_companies, 1):
-            print(f"\n{'#'*60}")
-            print(f"# EMPRESA {idx}/{total_companies}")
-            print(f"{'#'*60}")
+            logging.info(f"\n{'#'*60}")
+            logging.info(f"# EMPRESA {idx}/{total_companies}")
+            logging.info(f"{'#'*60}")
             
             try:
                 reports = process_single_company(driver, company)
                 
                 if reports:
                     all_reports.extend(reports)
-                    print(f"✓ {len(reports)} relatório(s) adicionado(s). Total: {len(all_reports)}")
+                    logging.info(f"✓ {len(reports)} relatório(s) adicionado(s). Total: {len(all_reports)}")
                 else:
-                    print(f"⚠ Nenhum relatório gerado para esta empresa")
+                    logger.warning(f"⚠ Nenhum relatório gerado para esta empresa")
                     
             except Exception as e:
-                print(f"✗ Erro ao processar empresa {company.get('ID')}: {e}")
+                logger.error(f"✗ Erro ao processar empresa {company.get('ID')}: {e}")
                 # Continue with next company
                 continue
             
@@ -336,18 +343,18 @@ def main():
             # SAVE PROGRESS PERIODICALLY (every 10 companies)
             # ═══════════════════════════════════════════════════════════
             if idx % 10 == 0 and all_reports:
-                print(f"\n→ Salvando progresso ({len(all_reports)} relatórios)...")
+                logging.info(f"\n→ Salvando progresso ({len(all_reports)} relatórios)...")
                 summary_df = create_summary_dataframe(all_reports)
                 save_to_excel(summary_df, "analysis_summary_progress.xlsx")
         
         # ═══════════════════════════════════════════════════════════
         # FINAL SAVE
         # ═══════════════════════════════════════════════════════════
-        print(f"\n{'='*60}")
-        print(f"PROCESSAMENTO CONCLUÍDO")
-        print(f"{'='*60}")
-        print(f"Total de empresas processadas: {total_companies}")
-        print(f"Total de relatórios gerados: {len(all_reports)}")
+        logging.info(f"\n{'='*60}")
+        logging.info(f"PROCESSAMENTO CONCLUÍDO")
+        logging.info(f"{'='*60}")
+        logging.info(f"Total de empresas processadas: {total_companies}")
+        logging.info(f"Total de relatórios gerados: {len(all_reports)}")
         
         if all_reports:
             # Create summary DataFrame
@@ -359,30 +366,30 @@ def main():
             # Also save as CSV for backup
             save_to_csv(summary_df, "analysis_summary.csv")
             
-            print(f"\n✓ Arquivos salvos com sucesso!")
+            logging.info(f"\n✓ Arquivos salvos com sucesso!")
         else:
-            print("\n⚠ Nenhum relatório para salvar")
+            logger.warning("\n⚠ Nenhum relatório para salvar")
         
         # Save companies with links
         save_companies_with_links(all_companies)
         
-        print("\n✓ Processamento concluído!")
+        logging.info("\n✓ Processamento concluído!")
 
     except KeyboardInterrupt:
-        print("\n\n⚠️ Interrompido pelo usuário.")
+        logger.warning("\n\n⚠️ Interrompido pelo usuário.")
         # Save what we have so far
         if all_reports:
-            print("→ Salvando progresso antes de encerrar...")
+            logging.info("→ Salvando progresso antes de encerrar...")
             summary_df = create_summary_dataframe(all_reports)
             save_to_excel(summary_df, "analysis_summary_interrupted.xlsx")
         
     except Exception as e:
-        print(f"\n✗ Erro inesperado: {e}")
+        logger.error(f"\n✗ Erro inesperado: {e}")
         import traceback
         traceback.print_exc()
         # Save what we have so far
         if 'all_reports' in locals() and all_reports:
-            print("→ Salvando progresso antes de encerrar...")
+            logging.info("→ Salvando progresso antes de encerrar...")
             summary_df = create_summary_dataframe(all_reports)
             save_to_excel(summary_df, "analysis_summary_error.xlsx")
         
@@ -402,8 +409,8 @@ def process_batch(company_list=None, max_companies=None):
         company_list: Optional list of company IDs to process
         max_companies: Maximum number of companies to process
     """
-    print("\n🔄 Modo batch ainda não implementado.")
-    print("   Use main() para processar uma empresa por vez.")
+    logging.info("\n🔄 Modo batch ainda não implementado.")
+    logging.info("   Use main() para processar uma empresa por vez.")
     # TODO: Implement batch processing loop
 
 

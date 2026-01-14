@@ -25,9 +25,16 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Import centralized driver
 from core.driver import create_download_driver, close_driver
 
-
 # Import configuration
 from config import BASE_URL, CONTRACTS_URL, TIMEOUT_SECONDS
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -52,7 +59,7 @@ def navigate_to_contracts_page(driver):
     """
     Navigate to the contracts page and wait for it to load.
     """
-    print(f"\n→ Navegando para: {CONTRACTS_URL}")
+    logging.info(f"\n→ Navegando para: {CONTRACTS_URL}")
     
     driver.get(CONTRACTS_URL)
     
@@ -64,12 +71,12 @@ def navigate_to_contracts_page(driver):
                 ".v-grid"
             ))
         )
-        print("✓ Página de contratos carregada!")
+        logging.info("✓ Página de contratos carregada!")
         time.sleep(2)  # Extra wait for full render
         return True
         
     except TimeoutException:
-        print("✗ Timeout ao carregar página de contratos")
+        logging.info("✗ Timeout ao carregar página de contratos")
         return False
 
 
@@ -81,7 +88,7 @@ def set_year_filter_for_download(driver, year):
         return True
     
     year = str(year)
-    print(f"\n→ Ajustando filtro do ano para: {year}")
+    logging.info(f"\n→ Ajustando filtro do ano para: {year}")
     
     try:
         # Find year filter input
@@ -107,12 +114,12 @@ def set_year_filter_for_download(driver, year):
             time.sleep(0.3)
             target_input.send_keys("\n")
             time.sleep(2)
-            print(f"✓ Ano ajustado para: {year}")
+            logging.info(f"✓ Ano ajustado para: {year}")
         
         return True
         
     except Exception as e:
-        print(f"⚠ Erro ao ajustar ano: {e}")
+        logger.error(f"⚠ Erro ao ajustar ano: {e}")
         return True  # Continue anyway
 
 
@@ -124,7 +131,7 @@ def click_download_button(driver):
     """
     Click the download icon to open export options.
     """
-    print("\n→ Procurando botão de download...")
+    logging.info("\n→ Procurando botão de download...")
     
     try:
         # Method 1: Find by class
@@ -139,12 +146,12 @@ def click_download_button(driver):
         time.sleep(0.5)
         driver.execute_script("arguments[0].click();", download_btn)
         
-        print("✓ Botão de download clicado!")
+        logging.info("✓ Botão de download clicado!")
         time.sleep(1)
         return True
         
     except TimeoutException:
-        print("   Método 1 falhou, tentando alternativo...")
+        logging.info("   Método 1 falhou, tentando alternativo...")
     
     try:
         # Method 2: Find by icon font-family
@@ -158,14 +165,14 @@ def click_download_button(driver):
                 driver.execute_script("arguments[0].scrollIntoView({block:'center'});", icon)
                 time.sleep(0.3)
                 driver.execute_script("arguments[0].click();", icon)
-                print("✓ Botão de download clicado (método alternativo)!")
+                logging.info("✓ Botão de download clicado (método alternativo)!")
                 time.sleep(1)
                 return True
                 
     except Exception as e:
-        print(f"   Método alternativo falhou: {e}")
+        logger.error(f"   Método alternativo falhou: {e}")
     
-    print("✗ Não foi possível encontrar o botão de download")
+    logger.error("✗ Não foi possível encontrar o botão de download")
     return False
 
 
@@ -173,7 +180,7 @@ def click_csv_option(driver):
     """
     Click the CSV option in the export menu.
     """
-    print("\n→ Selecionando opção CSV...")
+    logging.info("\n→ Selecionando opção CSV...")
     
     try:
         # Wait for menu to appear and find CSV button
@@ -185,11 +192,11 @@ def click_csv_option(driver):
         )
         
         driver.execute_script("arguments[0].click();", csv_btn)
-        print("✓ Opção CSV selecionada!")
+        logging.info("✓ Opção CSV selecionada!")
         return True
         
     except TimeoutException:
-        print("   Método 1 falhou, tentando alternativo...")
+        logging.info("   Método 1 falhou, tentando alternativo...")
     
     try:
         # Method 2: Find all button captions
@@ -201,13 +208,13 @@ def click_csv_option(driver):
         for btn in buttons:
             if btn.text.strip().lower() == "csv":
                 driver.execute_script("arguments[0].click();", btn)
-                print("✓ Opção CSV selecionada (método alternativo)!")
+                logging.info("✓ Opção CSV selecionada (método alternativo)!")
                 return True
                 
     except Exception as e:
-        print(f"   Método alternativo falhou: {e}")
-    
-    print("✗ Não foi possível encontrar a opção CSV")
+        logger.error(f"   Método alternativo falhou: {e}")
+
+    logger.error("✗ Não foi possível encontrar a opção CSV")
     return False
 
 
@@ -215,7 +222,7 @@ def wait_for_download(timeout=60):
     """
     Wait for the CSV file to be downloaded.
     """
-    print(f"\n→ Aguardando download (máx {timeout}s)...")
+    logging.info(f"\n→ Aguardando download (máx {timeout}s)...")
     
     start_time = time.time()
     
@@ -229,12 +236,12 @@ def wait_for_download(timeout=60):
         if csv_files and not crdownload_files:
             # Get the most recent file
             latest_file = max(csv_files, key=os.path.getctime)
-            print(f"✓ Download concluído: {os.path.basename(latest_file)}")
+            logging.info(f"✓ Download concluído: {os.path.basename(latest_file)}")
             return latest_file
         
         time.sleep(1)
     
-    print("✗ Timeout aguardando download")
+    logging.info("✗ Timeout aguardando download")
     return None
 
 
@@ -251,10 +258,10 @@ def rename_downloaded_file(filepath):
     
     try:
         os.rename(filepath, new_path)
-        print(f"✓ Arquivo renomeado: {new_name}")
+        logging.info(f"✓ Arquivo renomeado: {new_name}")
         return new_path
     except Exception as e:
-        print(f"⚠ Erro ao renomear: {e}")
+        logger.error(f"⚠ Erro ao renomear: {e}")
         return filepath
     
 def copy_to_latest(filepath):
@@ -278,10 +285,10 @@ def copy_to_latest(filepath):
     
     try:
         shutil.copy2(filepath, latest_path)
-        print(f"✓ Cópia 'latest' criada: contasrio_latest.csv")
+        logging.info(f"✓ Cópia 'latest' criada: contasrio_latest.csv")
         return latest_path
     except Exception as e:
-        print(f"⚠ Erro ao criar cópia 'latest': {e}")
+        logger.error(f"⚠ Erro ao criar cópia 'latest': {e}")
         return None
 
 
@@ -300,9 +307,9 @@ def download_contracts_csv(year=None, headless=False):
     Returns:
         Path to downloaded file or None
     """
-    print("\n" + "=" * 60)
-    print("     DOWNLOAD CSV - ContasRio")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("     DOWNLOAD CSV - ContasRio")
+    logging.info("=" * 60)
     
     driver = create_download_driver(download_dir=DOWNLOAD_FOLDER, headless=headless)
     if not driver:
@@ -354,10 +361,10 @@ def download_contracts_csv(year=None, headless=False):
             copy_to_latest(downloaded_file)
         
     except KeyboardInterrupt:
-        print("\n⚠️ Interrompido pelo usuário")
+        logger.warning("\n⚠️ Interrompido pelo usuário")
         
     except Exception as e:
-        print(f"\n✗ Erro: {e}")
+        logger.error(f"\n✗ Erro: {e}")
         import traceback
         traceback.print_exc()
         
@@ -368,14 +375,14 @@ def download_contracts_csv(year=None, headless=False):
     # SUMMARY
     # ═══════════════════════════════════════════════════════════
     
-    print("\n" + "=" * 60)
+    logging.info("\n" + "=" * 60)
     if downloaded_file:
-        print(f"✓ DOWNLOAD CONCLUÍDO")
-        print(f"  Arquivo: {downloaded_file}")
-        print(f"  Latest:  {os.path.join(DOWNLOAD_FOLDER, 'contasrio_latest.csv')}")
+        logging.info(f"✓ DOWNLOAD CONCLUÍDO")
+        logging.info(f"  Arquivo: {downloaded_file}")
+        logging.info(f"  Latest:  {os.path.join(DOWNLOAD_FOLDER, 'contasrio_latest.csv')}")
     else:
-        print("✗ DOWNLOAD FALHOU")
-    print("=" * 60)
+        logging.info("✗ DOWNLOAD FALHOU")
+    logging.info("=" * 60)
 
     return downloaded_file
 
@@ -392,6 +399,6 @@ if __name__ == "__main__":
     result = download_contracts_csv(year=FILTER_YEAR, headless=False)
     
     if result:
-        print(f"\n📁 Arquivo salvo em: {result}")
+        logging.info(f"\n📁 Arquivo salvo em: {result}")
     else:
-        print("\n❌ Falha no download")
+        logging.info("\n❌ Falha no download")

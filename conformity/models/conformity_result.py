@@ -9,6 +9,13 @@ from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 class ConformityStatus(str, Enum):
     """Overall conformity status."""
@@ -294,7 +301,7 @@ if __name__ == "__main__":
     
     result.calculate_summary()
     
-    print(result.get_summary_text())
-    print("\n📋 JSON Output:")
+    logging.info(result.get_summary_text())
+    logging.info("\n📋 JSON Output:")
     import json
-    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    logging.info(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))

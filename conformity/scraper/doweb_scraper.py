@@ -60,6 +60,13 @@ from conformity.models.publication import (
 
 from conformity.scraper.doweb_extractor import extract_publication_from_pdf
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # =========================================================================
 # DRIVER INITIALIZATION was MOVED to core/driver.py
@@ -89,7 +96,7 @@ def get_latest_pdf(temp_folder: Path, timeout: int = 60) -> Optional[Path]:
     Wait for PDF download to complete and return the path.
     Improved with better detection and debugging.
     """
-    print(f"   📂 Watching folder: {temp_folder.absolute()}")
+    logging.info(f"   📂 Watching folder: {temp_folder.absolute()}")
     start_time = time.time()
     
     while time.time() - start_time < timeout:
@@ -97,7 +104,7 @@ def get_latest_pdf(temp_folder: Path, timeout: int = 60) -> Optional[Path]:
         all_files = list(temp_folder.glob("*"))
         
         if all_files:
-            print(f"   📄 Files in folder: {[f.name for f in all_files]}")
+            logging.info(f"   📄 Files in folder: {[f.name for f in all_files]}")
         
         # Find PDF files (not partial downloads)
         pdf_files = [
@@ -117,14 +124,14 @@ def get_latest_pdf(temp_folder: Path, timeout: int = 60) -> Optional[Path]:
             size2 = latest.stat().st_size
             
             if size1 == size2 and size1 > 1000:  # At least 1KB
-                print(f"   ✓ PDF ready: {latest.name} ({size2} bytes)")
+                logging.info(f"   ✓ PDF ready: {latest.name} ({size2} bytes)")
                 return latest
             else:
-                print(f"   ⏳ PDF still downloading: {latest.name} ({size1} → {size2} bytes)")
+                logging.info(f"   ⏳ PDF still downloading: {latest.name} ({size1} → {size2} bytes)")
         
         time.sleep(3)
     
-    print(f"   ✗ Timeout after {timeout}s - no PDF detected")
+    logger.error(f"    ✗ Timeout after {timeout}s - no PDF detected")
     return None
 
 
@@ -133,9 +140,9 @@ def delete_temp_pdf(pdf_path: Path) -> None:
     try:
         if pdf_path and pdf_path.exists():
             pdf_path.unlink()
-            print(f"   🗑️ Deleted temp PDF: {pdf_path.name}")
+            logging.info(f"   🗑️ Deleted temp PDF: {pdf_path.name}")
     except Exception as e:
-        print(f"   ⚠ Could not delete temp file: {e}")
+        logger.warning(f"   ⚠ Could not delete temp file: {e}")
 
 
 def clear_temp_folder(temp_folder: Path) -> None:
@@ -165,11 +172,11 @@ def search_processo(driver: webdriver.Chrome, processo: str) -> Tuple[bool, int,
     try:
         # Navigate to search page
         search_url = f"{DOWEB_BASE_URL}/buscanova/#/p=1&q={processo}"
-        print(f"🔍 Searching: {search_url}")
+        logging.info(f"🔍 Searching: {search_url}")
         driver.get(search_url)
         
         # Wait for JavaScript to render (8 seconds needed based on debug)
-        print("   ⏳ Waiting for page to load...")
+        logging.info("   ⏳ Waiting for page to load...")
         time.sleep(8)
         
         # Get page text to parse results
@@ -179,26 +186,26 @@ def search_processo(driver: webdriver.Chrome, processo: str) -> Tuple[bool, int,
         count_match = re.search(r"(\d+)\s+resultados?\s+encontrados?", body_text, re.IGNORECASE)
         if count_match:
             count = int(count_match.group(1))
-            print(f"   ✓ Found {count} result(s) for {processo}")
+            logging.info(f"   ✓ Found {count} result(s) for {processo}")
             return True, count, ""
         
         # Check for no results
         if "nenhum resultado" in body_text.lower():
-            print(f"   ✗ No results found for {processo}")
+            logger.error(f"    ✗ No results found for {processo}")
             return True, 0, ""
         
         # Fallback: check if "Diário publicado em" appears (means there are results)
         if "Diário publicado em" in body_text:
             # Count occurrences
             count = body_text.count("Diário publicado em")
-            print(f"   ✓ Found {count} result(s) for {processo} (via text count)")
+            logging.info(f"   ✓ Found {count} result(s) for {processo} (via text count)")
             return True, count, ""
         
-        print(f"   ⚠ Could not determine result count")
+        logger.warning(f"   ⚠ Could not determine result count")
         return True, 0, "Could not find results"
         
     except Exception as e:
-        print(f"   ✗ Search error: {e}")
+        logger.error(f"    ✗ Search error: {e}")
         return False, 0, f"Search error: {str(e)}"
 
 # =========================================================================
@@ -223,7 +230,7 @@ def get_result_items(driver: webdriver.Chrome) -> List[SearchResultItem]:
         result_pattern = r"Diário publicado em:\s*(\d{2}/\d{2}/\d{4})\s*-\s*Edição\s*(\d+)\s*-\s*Pág\.\s*(\d+)"
         matches = list(re.finditer(result_pattern, body_text))
         
-        print(f"   📋 Found {len(matches)} result cards on this page")
+        logging.info(f"   📋 Found {len(matches)} result cards on this page")
         
         for i, match in enumerate(matches):
             pub_date = match.group(1)
@@ -257,10 +264,10 @@ def get_result_items(driver: webdriver.Chrome) -> List[SearchResultItem]:
             items.append(item)
             
             extrato_marker = "✓ EXTRATO" if has_extrato else ""
-            print(f"      [{i}] {pub_date} - Ed.{edition} - Pág.{page} {extrato_marker}")
+            logging.info(f"      [{i}] {pub_date} - Ed.{edition} - Pág.{page} {extrato_marker}")
         
     except Exception as e:
-        print(f"   ✗ Error getting result items: {e}")
+        logger.error(f"    ✗ Error getting result items: {e}")
     
     return items
 
@@ -321,11 +328,11 @@ def go_to_page(driver: webdriver.Chrome, page_num: int) -> bool:
         
         time.sleep(2)
         
-        print(f"   📄 Navigated to page {page_num}")
+        logging.info(f"   📄 Navigated to page {page_num}")
         return True
         
     except Exception as e:
-        print(f"   ⚠ Could not navigate to page {page_num}: {e}")
+        logger.warning(f"   ⚠ Could not navigate to page {page_num}: {e}")
         return False
 
 import requests
@@ -336,7 +343,7 @@ def download_pdf_directly(url: str, temp_folder: Path) -> Optional[Path]:
     More reliable than browser downloads.
     """
     try:
-        print(f"   📥 Downloading directly: {url}")
+        logging.info(f"   📥 Downloading directly: {url}")
         
         # Extract filename from URL or create one
         # URL format: https://doweb.rio.rj.gov.br/portal/edicoes/download/13857/86
@@ -360,12 +367,12 @@ def download_pdf_directly(url: str, temp_folder: Path) -> Optional[Path]:
                 f.write(chunk)
         
         file_size = filepath.stat().st_size
-        print(f"   ✓ Downloaded: {filename} ({file_size} bytes)")
+        logging.info(f"   ✓ Downloaded: {filename} ({file_size} bytes)")
         
         return filepath
         
     except Exception as e:
-        print(f"   ✗ Direct download failed: {e}")
+        logger.error(f"    ✗ Direct download failed: {e}")
         return None
 
 # =========================================================================
@@ -394,10 +401,10 @@ def download_result_pdf(
             "//a[contains(text(), 'Download')] | //button[contains(text(), 'Download')] | //span[contains(text(), 'Download')]"
         )
         
-        print(f"   🔽 Found {len(download_buttons)} Download buttons")
+        logging.info(f"   🔽 Found {len(download_buttons)} Download buttons")
         
         if result_index >= len(download_buttons):
-            print(f"   ✗ Result index {result_index} out of range")
+            logger.error(f"    ✗ Result index {result_index} out of range")
             return None, None
         
         download_btn = download_buttons[result_index]
@@ -406,7 +413,7 @@ def download_result_pdf(
         driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", download_btn)
         time.sleep(0.5)
         driver.execute_script("arguments[0].click();", download_btn)
-        print(f"   📥 Clicked Download button [{result_index}]")
+        logging.info(f"   📥 Clicked Download button [{result_index}]")
         time.sleep(1.5)
         
         # Find "Baixar apenas a página" link and get URL
@@ -419,7 +426,7 @@ def download_result_pdf(
             )
             
             pdf_url = download_page_link.get_attribute("href")
-            print(f"   🔗 PDF URL: {pdf_url}")
+            logging.info(f"   🔗 PDF URL: {pdf_url}")
             
             # Close the dropdown
             driver.find_element(By.TAG_NAME, "body").click()
@@ -434,12 +441,12 @@ def download_result_pdf(
                 return None, pdf_url
             
         except TimeoutException:
-            print(f"   ✗ Could not find 'Baixar apenas a página' link")
+            logger.error(f"    ✗ Could not find 'Baixar apenas a página' link")
             driver.find_element(By.TAG_NAME, "body").click()
             return None, None
         
     except Exception as e:
-        print(f"   ✗ Download error: {e}")
+        logger.error(f"    ✗ Download error: {e}")
         return None, None
 
 def get_download_link(driver: webdriver.Chrome, result_index: int) -> Optional[str]:
@@ -488,7 +495,7 @@ def get_download_link(driver: webdriver.Chrome, result_index: int) -> Optional[s
             return None
         
     except Exception as e:
-        print(f"   ⚠ Could not get download link: {e}")
+        logger.warning(f"   ⚠ Could not get download link: {e}")
         return None
 
 # =========================================================================
@@ -519,9 +526,9 @@ def search_and_extract_publication(
     Returns:
         PublicationResult with extracted data or error info
     """
-    print("\n" + "=" * 60)
-    print(f"🔎 DOWEB SEARCH: {processo}")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info(f"🔎 DOWEB SEARCH: {processo}")
+    logging.info("=" * 60)
     
     driver = None
     temp_folder = ensure_temp_folder()
@@ -552,7 +559,7 @@ def search_and_extract_publication(
         
         # Get total pages
         total_pages = get_total_pages(driver)
-        print(f"   📚 Total pages: {total_pages}")
+        logging.info(f"   📚 Total pages: {total_pages}")
         
         # Iterate through all pages
         for page_num in range(1, total_pages + 1):
@@ -568,18 +575,18 @@ def search_and_extract_publication(
             # Filter for items that might have EXTRATO
             extrato_items = [item for item in result_items if item.has_extrato]
             
-            print(f"   📋 Page {page_num}: {len(extrato_items)} item(s) with EXTRATO")
+            logging.info(f"   📋 Page {page_num}: {len(extrato_items)} item(s) with EXTRATO")
             
             # Check each EXTRATO item
             for item in extrato_items:
                 results_checked += 1
-                print(f"\n   → Checking result [{item.index}]: {item.publication_date} - Ed.{item.edition_number} - Pág.{item.page_number}")
+                logging.info(f"\n   → Checking result [{item.index}]: {item.publication_date} - Ed.{item.edition_number} - Pág.{item.page_number}")
                 
                 # Download the PDF (now returns tuple)
                 pdf_path, pdf_url = download_result_pdf(driver, item.index, temp_folder)
                 
                 if not pdf_path:
-                    print(f"      ⚠ Could not download PDF, skipping...")
+                    logger.warning(f"      ⚠ Could not download PDF, skipping...")
                     continue
                 
                 # Extract and check if it matches our processo
@@ -589,7 +596,7 @@ def search_and_extract_publication(
                 )
                 
                 if found:
-                    print(f"      ✅ MATCH FOUND!")
+                    logging.info(f"      ✅ MATCH FOUND!")
                     
                     # Use the URL we already have
                     download_link = pdf_url
@@ -629,12 +636,12 @@ def search_and_extract_publication(
                     return result
                 
                 else:
-                    print(f"      ❌ Not a match: {error}")
+                    logger.error(f"      ❌ Not a match: {error}")
                     delete_temp_pdf(pdf_path)
                     continue
         
         # Checked everything, nothing found
-        print(f"\n   ❌ No matching publication found after checking {results_checked} result(s)")
+        logger.error(f"\n   ❌ No matching publication found after checking {results_checked} result(s)")
         
         return create_not_found_result(
             processo,
@@ -645,7 +652,7 @@ def search_and_extract_publication(
         )
         
     except Exception as e:
-        print(f"   ✗ Error: {e}")
+        logger.error(f"    ✗ Error: {e}")
         return create_error_result(processo, str(e), "extraction")
     
     finally:
@@ -668,26 +675,26 @@ def search_multiple_processos(
     results = []
     total = len(processos)
     
-    print(f"\n{'='*60}")
-    print(f"📚 BATCH SEARCH: {total} processo(s)")
-    print("=" * 60)
+    logging.info(f"\n{'='*60}")
+    logging.info(f"📚 BATCH SEARCH: {total} processo(s)")
+    logging.info("=" * 60)
     
     for i, processo in enumerate(processos, 1):
-        print(f"\n[{i}/{total}] Processing: {processo}")
+        logging.info(f"\n[{i}/{total}] Processing: {processo}")
         
         result = search_and_extract_publication(processo, headless=headless)
         results.append(result)
         
         status = "✅ FOUND" if result.found else "❌ NOT FOUND"
-        print(f"   Result: {status}")
+        logging.info(f"   Result: {status}")
         
         if i < total:
             time.sleep(2)
     
     found_count = sum(1 for r in results if r.found)
-    print(f"\n{'='*60}")
-    print(f"📊 BATCH COMPLETE: {found_count}/{total} found")
-    print("=" * 60)
+    logging.info(f"\n{'='*60}")
+    logging.info(f"📊 BATCH COMPLETE: {found_count}/{total} found")
+    logging.info("=" * 60)
     
     return results
 
@@ -707,7 +714,7 @@ def export_results_to_json(results: List[PublicationResult], output_path: str) -
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
     
-    print(f"📁 Exported to: {output_path}")
+    logging.info(f"📁 Exported to: {output_path}")
     return output_path
 
 
@@ -719,9 +726,9 @@ if __name__ == "__main__":
     import sys
     
     if len(sys.argv) < 2:
-        print("Usage: python doweb_scraper.py <processo_number> [--headless]")
-        print("Example: python doweb_scraper.py SME-PRO-2025/19222")
-        print("Example: python doweb_scraper.py SME-PRO-2025/19222 --headless")
+        logging.info("Usage: python doweb_scraper.py <processo_number> [--headless]")
+        logging.info("Example: python doweb_scraper.py SME-PRO-2025/19222")
+        logging.info("Example: python doweb_scraper.py SME-PRO-2025/19222 --headless")
         sys.exit(1)
     
     processo = sys.argv[1]
@@ -729,9 +736,9 @@ if __name__ == "__main__":
     
     result = search_and_extract_publication(processo, headless=headless)
     
-    print("\n" + "=" * 60)
-    print("📊 FINAL RESULT")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("📊 FINAL RESULT")
+    logging.info("=" * 60)
     
     import json
-    print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+    logging.info(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))

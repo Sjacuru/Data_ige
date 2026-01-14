@@ -20,6 +20,14 @@ from docx import Document
 from openpyxl import load_workbook
 import csv
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # ============================================================
 # CONFIGURATION - Edit these paths as needed
 # ============================================================
@@ -341,25 +349,25 @@ class LocalDocumentExtractor:
     
     def run(self):
         """Run the extraction pipeline."""
-        print("\n" + "=" * 60)
-        print("📄 EXTRATOR DE DOCUMENTOS LOCAIS")
-        print("=" * 60)
-        print(f"📂 Pastas de busca: {[str(f) for f in INPUT_FOLDERS]}")
-        print(f"📁 Saída: {OUTPUT_DIR}")
-        print("=" * 60 + "\n")
+        logging.info("\n" + "=" * 60)
+        logging.info("📄 EXTRATOR DE DOCUMENTOS LOCAIS")
+        logging.info("=" * 60)
+        logging.info(f"📂 Pastas de busca: {[str(f) for f in INPUT_FOLDERS]}")
+        logging.info(f"📁 Saída: {OUTPUT_DIR}")
+        logging.info("=" * 60 + "\n")
         
         # Find all documents
         documents = self.find_documents()
         
         if not documents:
-            print("\n⚠️  Nenhum documento encontrado nas pastas configuradas!")
-            print("\n📝 Verifique se os documentos estão em:")
+            logger.warning("\n⚠️  Nenhum documento encontrado nas pastas configuradas!")
+            logging.info("\n📝 Verifique se os documentos estão em:")
             for folder in INPUT_FOLDERS:
-                print(f"   - {folder.absolute()}")
+                logging.info(f"   - {folder.absolute()}")
             return
         
         # Process documents in parallel
-        print(f"\n🔄 Processando {len(documents)} documentos...\n")
+        logging.info(f"\n🔄 Processando {len(documents)} documentos...\n")
         
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = {executor.submit(self.extract_document, doc): doc for doc in documents}
@@ -373,7 +381,7 @@ class LocalDocumentExtractor:
                 
                 # Progress indicator
                 if completed % 10 == 0 or completed == len(documents):
-                    print(f"   Progresso: {completed}/{len(documents)}")
+                    logging.info(f"   Progresso: {completed}/{len(documents)}")
         
         # Save results
         self.save_results()
@@ -435,9 +443,9 @@ class LocalDocumentExtractor:
     
     def print_summary(self):
         """Print extraction summary."""
-        print("\n" + "=" * 60)
-        print("📊 RESUMO DA EXTRAÇÃO")
-        print("=" * 60)
+        logging.info("\n" + "=" * 60)
+        logging.info("📊 RESUMO DA EXTRAÇÃO")
+        logging.info("=" * 60)
         
         total = len(self.results)
         success = sum(1 for r in self.results if r.extraction_status == "success")
@@ -450,13 +458,13 @@ class LocalDocumentExtractor:
         for r in self.results:
             by_type[r.file_type] = by_type.get(r.file_type, 0) + 1
         
-        print(f"\n📁 Total de arquivos: {total}")
-        print(f"✅ Extraídos com sucesso: {success}")
-        print(f"❌ Erros: {errors}")
-        print(f"📄 Total de páginas: {total_pages}")
-        print(f"📝 Total de palavras: {total_words:,}")
+        logging.info(f"\n📁 Total de arquivos: {total}")
+        logging.info(f"✅ Extraídos com sucesso: {success}")
+        logger.error(f"❌ Erros: {errors}")
+        logging.info(f"📄 Total de páginas: {total_pages}")
+        logging.info(f"📝 Total de palavras: {total_words:,}")
         
-        print(f"\n📈 Por tipo de arquivo:")
+        logging.info(f"\n📈 Por tipo de arquivo:")
         type_icons = {
             'pdf': '📕',
             'docx': '📘',
@@ -466,10 +474,10 @@ class LocalDocumentExtractor:
         }
         for file_type, count in sorted(by_type.items()):
             icon = type_icons.get(file_type, '📎')
-            print(f"   {icon} {file_type}: {count}")
+            logging.info(f"   {icon} {file_type}: {count}")
         
-        print(f"\n📂 Resultados salvos em: {OUTPUT_DIR.absolute()}")
-        print("=" * 60)
+        logging.info(f"\n📂 Resultados salvos em: {OUTPUT_DIR.absolute()}")
+        logging.info("=" * 60)
 
 
 def main():

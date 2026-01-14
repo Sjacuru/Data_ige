@@ -16,6 +16,8 @@ from pathlib import Path
 from typing import Optional, Dict, Union
 from datetime import datetime
 
+from typing import Tuple # for older Python versions
+
 # Add project root to path
 import sys
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -31,6 +33,13 @@ from conformity.models.conformity_result import (
 )
 from conformity.models.publication import PublicationResult
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # =========================================================================
 # CONFIGURATION
@@ -67,7 +76,7 @@ def extract_processo_from_contract(contract_data: Dict) -> Optional[str]:
     for key in PROCESSO_KEYS:
         value = contract_data.get(key)
         if value and isinstance(value, str) and len(value) > 5:
-            print(f"   📋 Found processo in '{key}': {value}")
+            logging.info(f"   📋 Found processo in '{key}': {value}")
             return value
     
     return None
@@ -134,21 +143,21 @@ def check_publication_conformity(
         result = check_publication_conformity(contract_data)
         
         if result.overall_status == ConformityStatus.CONFORME:
-            print("✅ Contract is conformant!")
+            logging.info("✅ Contract is conformant!")
         else:
-            print(f"❌ Issues found: {result.overall_status.value}")
+            logger.error(f"❌ Issues found: {result.overall_status.value}")
         ```
     """
-    print("\n" + "=" * 60)
-    print("🔍 CONFORMITY CHECK: Publication Verification")
-    print("=" * 60)
+    logging.info("\n" + "=" * 60)
+    logging.info("🔍 CONFORMITY CHECK: Publication Verification")
+    logging.info("=" * 60)
     
     # Step 1: Validate contract data
-    print("\n📋 Step 1: Validating contract data...")
+    logging.info("\n📋 Step 1: Validating contract data...")
     is_valid, error = validate_contract_data(contract_data)
     
     if not is_valid:
-        print(f"   ❌ Validation failed: {error}")
+        logger.error(f"   ❌ Validation failed: {error}")
         return ConformityResult(
             processo=processo or "UNKNOWN",
             overall_status=ConformityStatus.NAO_CONFORME,
@@ -156,25 +165,25 @@ def check_publication_conformity(
         )
     
     # Step 2: Get processo number
-    print("\n📋 Step 2: Extracting processo number...")
+    logging.info("\n📋 Step 2: Extracting processo number...")
     if not processo:
         processo = extract_processo_from_contract(contract_data)
     
     if not processo:
-        print("   ❌ No processo number found")
+        logging.info("   ❌ No processo number found")
         return ConformityResult(
             processo="UNKNOWN",
             overall_status=ConformityStatus.NAO_CONFORME,
             error="Could not extract processo number from contract data"
         )
     
-    print(f"   ✓ Processo: {processo}")
+    logging.info(f"   ✓ Processo: {processo}")
     
     # Step 3: Search DOWEB for publication
-    print("\n📋 Step 3: Searching D.O. Rio for publication...")
+    logging.info("\n📋 Step 3: Searching D.O. Rio for publication...")
     
     if skip_doweb_search and publication_result:
-        print("   ⏭️ Skipping search (using provided publication_result)")
+        logging.info("   ⏭️ Skipping search (using provided publication_result)")
         pub_result = publication_result
     else:
         pub_result = search_and_extract_publication(
@@ -183,7 +192,7 @@ def check_publication_conformity(
         )
     
     # Step 4: Analyze conformity
-    print("\n📋 Step 4: Analyzing conformity...")
+    logging.info("\n📋 Step 4: Analyzing conformity...")
     
     conformity_result = analyze_publication_conformity(
         contract_data=contract_data,
@@ -191,24 +200,24 @@ def check_publication_conformity(
     )
     
     # Step 5: Summary
-    print("\n" + "=" * 60)
-    print("📊 CONFORMITY CHECK COMPLETE")
-    print("=" * 60)
-    print(f"   Processo: {processo}")
-    print(f"   Status: {conformity_result.overall_status.value}")
-    print(f"   Score: {conformity_result.conformity_score:.1f}%")
+    logging.info("\n" + "=" * 60)
+    logging.info("📊 CONFORMITY CHECK COMPLETE")
+    logging.info("=" * 60)
+    logging.info(f"   Processo: {processo}")
+    logging.info(f"   Status: {conformity_result.overall_status.value}")
+    logging.info(f"   Score: {conformity_result.conformity_score:.1f}%")
     
     if conformity_result.publication_check:
         if conformity_result.publication_check.was_published:
-            print(f"   Published: ✓ {conformity_result.publication_check.publication_date}")
+            logging.info(f"   Published: ✓ {conformity_result.publication_check.publication_date}")
             if conformity_result.publication_check.published_on_time:
-                print(f"   On time: ✓ ({conformity_result.publication_check.days_to_publish} days)")
+                logging.info(f"   On time: ✓ ({conformity_result.publication_check.days_to_publish} days)")
             else:
-                print(f"   On time: ✗ ({conformity_result.publication_check.days_to_publish} days - exceeded {conformity_result.publication_check.deadline_days} day limit)")
+                logging.info(f"   On time: ✗ ({conformity_result.publication_check.days_to_publish} days - exceeded {conformity_result.publication_check.deadline_days} day limit)")
         else:
-            print(f"   Published: ✗ Not found in D.O. Rio")
+            logging.info(f"   Published: ✗ Not found in D.O. Rio")
     
-    print("=" * 60)
+    logging.info("=" * 60)
     
     return conformity_result
 
@@ -234,13 +243,13 @@ def check_multiple_contracts(
     results = []
     total = len(contracts)
     
-    print(f"\n{'='*60}")
-    print(f"📚 BATCH CONFORMITY CHECK: {total} contract(s)")
-    print("=" * 60)
+    logging.info(f"\n{'='*60}")
+    logging.info(f"📚 BATCH CONFORMITY CHECK: {total} contract(s)")
+    logging.info("=" * 60)
     
     for i, contract_data in enumerate(contracts, 1):
         processo = extract_processo_from_contract(contract_data) or f"Contract_{i}"
-        print(f"\n[{i}/{total}] Processing: {processo}")
+        logging.info(f"\n[{i}/{total}] Processing: {processo}")
         
         result = check_publication_conformity(
             contract_data=contract_data,
@@ -250,19 +259,19 @@ def check_multiple_contracts(
         results.append(result)
         
         status_icon = "✅" if result.overall_status == ConformityStatus.CONFORME else "❌"
-        print(f"   Result: {status_icon} {result.overall_status.value}")
+        logging.info(f"   Result: {status_icon} {result.overall_status.value}")
     
     # Summary
     conforme = sum(1 for r in results if r.overall_status == ConformityStatus.CONFORME)
     parcial = sum(1 for r in results if r.overall_status == ConformityStatus.PARCIAL)
     nao_conforme = sum(1 for r in results if r.overall_status == ConformityStatus.NAO_CONFORME)
     
-    print(f"\n{'='*60}")
-    print(f"📊 BATCH COMPLETE")
-    print(f"   ✅ Conforme: {conforme}")
-    print(f"   ◐ Parcial: {parcial}")
-    print(f"   ❌ Não Conforme: {nao_conforme}")
-    print("=" * 60)
+    logging.info(f"\n{'='*60}")
+    logging.info(f"📊 BATCH COMPLETE")
+    logging.info(f"   ✅ Conforme: {conforme}")
+    logging.info(f"   ◐ Parcial: {parcial}")
+    logger.error(f"   ❌ Não Conforme: {nao_conforme}")
+    logging.info("=" * 60)
     
     return results
 
@@ -296,7 +305,7 @@ def export_conformity_result(
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(result.get_summary_text())
     
-    print(f"📁 Exported to: {output_path}")
+    logging.info(f"📁 Exported to: {output_path}")
     return output_path
 
 
@@ -340,7 +349,7 @@ def export_batch_results(
         json.dump(summary, f, ensure_ascii=False, indent=2)
     
     created_files.append(str(summary_path))
-    print(f"📁 Exported summary to: {summary_path}")
+    logging.info(f"📁 Exported summary to: {summary_path}")
     
     return created_files
 
@@ -352,7 +361,7 @@ def export_batch_results(
 if __name__ == "__main__":
     # Test with sample contract data
     
-    print("🧪 Testing conformity integration...")
+    logging.info("🧪 Testing conformity integration...")
     
     # Sample contract data (simulating output from contract_extractor)
     sample_contract = {
@@ -374,7 +383,7 @@ if __name__ == "__main__":
     )
     
     # Print full result
-    print("\n" + result.get_summary_text())
+    logging.info("\n" + result.get_summary_text())
     
     # Export
     export_conformity_result(

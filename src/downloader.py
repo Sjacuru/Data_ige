@@ -8,6 +8,13 @@ import requests
 from datetime import datetime
 from config import DATA_RAW_PATH
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def download_document(url, filename=None):
     """
@@ -21,7 +28,7 @@ def download_document(url, filename=None):
         Path to downloaded file, or None if failed
     """
     try:
-        print(f"\n→ Baixando documento de: {url[:50]}...")
+        logging.info(f"\n→ Baixando documento de: {url[:50]}...")
         
         # Generate filename if not provided
         if not filename:
@@ -49,12 +56,12 @@ def download_document(url, filename=None):
                 f.write(chunk)
         
         file_size = os.path.getsize(filepath)
-        print(f"✓ Arquivo salvo: {filepath} ({file_size:,} bytes)")
+        logging.info(f"✓ Arquivo salvo: {filepath} ({file_size:,} bytes)")
         
         return filepath
         
     except Exception as e:
-        print(f"✗ Erro ao baixar documento: {e}")
+        logger.error(f"✗ Erro ao baixar documento: {e}")
         return None
 
 

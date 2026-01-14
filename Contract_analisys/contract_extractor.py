@@ -20,6 +20,7 @@ from logging import exception
 import os
 import json
 import re
+import sys
 from pathlib import Path 
 from typing import Optional, Callable
 from datetime import datetime
@@ -38,6 +39,14 @@ from dotenv import load_dotenv, find_dotenv
 from text_preprocessor import preprocess_contract_text
 
 import platform
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # CONFIGURATION
@@ -64,7 +73,6 @@ model = ChatGroq(model_name=MODEL_NAME,
                   api_key=os.getenv("GROQ_API_KEY") 
                   )
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 os.environ["TESSDATA_PREFIX"] = TESSDATA_DIR
 
@@ -310,11 +318,11 @@ def extract_text_from_pdf(pdf_path: str) -> dict:
 
         # Decide extraction method
         if avg_chars < 300:
-            print("🧠 Low text density detected → switching to full OCR (pdf2image)")
+            logging.info("🧠 Low text density detected → switching to full OCR (pdf2image)")
             raw_text = extract_text_with_pdf2image(pdf_path)
             source = "ocr_pdf2image"
         else:
-            print("📄 Native text layer sufficient")
+            logging.info("📄 Native text layer sufficient")
             raw_text = native_text
             source = "native"
 
@@ -322,7 +330,7 @@ def extract_text_from_pdf(pdf_path: str) -> dict:
         # NEW: Preprocess the text (clean, structure)
         # ═══════════════════════════════════════════════════════
         preprocessing = preprocess_contract_text(raw_text)
-        print(f"📝 Preprocessing: {preprocessing.original_length:,} → {preprocessing.final_length:,} chars ({preprocessing.reduction_percent:.1f}% reduction)")
+        logging.info(f"📝 Preprocessing: {preprocessing.original_length:,} → {preprocessing.final_length:,} chars ({preprocessing.reduction_percent:.1f}% reduction)")
         
         # Use preprocessed text
         full_text = preprocessing.structured_text
@@ -398,7 +406,7 @@ def get_conformity_checker():
         from conformity.integration import check_publication_conformity
         return check_publication_conformity
     except ImportError as e:
-        print(f"⚠️ Conformity module not available: {e}")
+        logger.warning(f"⚠️ Conformity module not available: {e}")
         return None
 
 # ============================================================
@@ -512,12 +520,12 @@ def run_conformity_check(
         Conformity result dict or None if check failed/disabled
     """
     if not CONFORMITY_ENABLED:
-        print("⏭️ Conformity check disabled")
+        logging.info("⏭️ Conformity check disabled")
         return None
     
     check_publication = get_conformity_checker()
     if not check_publication:
-        print("⚠️ Conformity checker not available")
+        logger.warning("⚠️ Conformity checker not available")
         return None
     
     # Build contract data dict for conformity check
@@ -542,10 +550,10 @@ def run_conformity_check(
     # Check if we have enough data
     processo = contract_data.get("processo_administrativo") or contract_data.get("numero_processo")
     if not processo:
-        print("⚠️ No processo number found - skipping conformity check")
+        logger.warning("⚠️ No processo number found - skipping conformity check")
         return None
     
-    print(f"\n🔍 Running conformity check for {processo}...")
+    logging.info(f"\n🔍 Running conformity check for {processo}...")
     
     try:
         result = check_publication(
@@ -557,7 +565,7 @@ def run_conformity_check(
         return result.to_dict()
         
     except Exception as e:
-        print(f"❌ Conformity check failed: {e}")
+        logger.error(f"❌ Conformity check failed: {e}")
         return {"error": str(e), "processo": processo}
 
 def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
@@ -649,9 +657,9 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
     # Step 6: NEW - Run conformity check if extraction was successful
     # ================================================================
     if result["success"] and ai_analysis and not ai_analysis.get("error"):
-        print("\n" + "=" * 50)
-        print("📋 CONFORMITY CHECK")
-        print("=" * 50)
+        logging.info("\n" + "=" * 50)
+        logging.info("📋 CONFORMITY CHECK")
+        logging.info("=" * 50)
         
         conformity_result = run_conformity_check(
             extracted_data=ai_analysis,
@@ -664,8 +672,8 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
         if conformity_result and not conformity_result.get("error"):
             status = conformity_result.get("overall_status", "UNKNOWN")
             score = conformity_result.get("conformity_score", 0)
-            print(f"   Status: {status}")
-            print(f"   Score: {score}%")
+            logging.info(f"   Status: {status}")
+            logging.info(f"   Score: {score}%")
     else:
         result["conformity"] = None
     
@@ -681,10 +689,10 @@ def load_analysis_summary(csv_path: str) -> pd.DataFrame:
         df = pd.read_csv(csv_path, dtype=str)
         return df
     except FileNotFoundError:
-        print(f"⚠️ CSV not found: {csv_path}")
+        logger.warning(f"⚠️ CSV not found: {csv_path}")
         return pd.DataFrame()
     except Exception as e:
-        print(f"Error loading CSV: {e}")
+        logger.error(f"Error loading CSV: {e}")
         return pd.DataFrame()
 
 
@@ -765,18 +773,18 @@ def process_all_contracts(
     pdf_folder = Path(pdf_folder)
 
     if not pdf_folder.exists():
-        print(f"❌ Folder not found: {pdf_folder}")
+        logger.error(f"❌ Folder not found: {pdf_folder}")
         return []
     
     pdf_files = sorted(pdf_folder.glob("*.pdf"))
 
     if not pdf_files:
-        print(f"⚠️ No PDF files found in: {pdf_folder}")
+        logger.warning(f"⚠️ No PDF files found in: {pdf_folder}")
         return []
     
     # Load CSV for cross-reference
     summary_df = load_analysis_summary(csv_path)
-    print(f"📊 Loaded {len(summary_df)} records from CSV")
+    logging.info(f"📊 Loaded {len(summary_df)} records from CSV")
     
     results = []
     total = len(pdf_files)
@@ -799,7 +807,7 @@ def process_all_contracts(
             progress_callback(i + 1, total, pdf_path.name)
         else:
             status = "✅" if result["success"] else "❌"
-            print(f"{status} [{i+1}/{total}] {pdf_path.name}")
+            logging.info(f"{status} [{i+1}/{total}] {pdf_path.name}")
 
     return results
 
@@ -867,7 +875,7 @@ def export_to_excel(results: list, output_path: str) -> str:
     df = pd.DataFrame(rows)
     df.to_excel(output_path, index=False, engine='openpyxl')
     
-    print(f"📁 Excel exported: {output_path}")
+    logging.info(f"📁 Excel exported: {output_path}")
     return output_path
 
 
@@ -886,7 +894,7 @@ def export_to_json(results: list, output_path: str) -> str:
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(export_data, f, ensure_ascii=False, indent=2)
     
-    print(f"📁 JSON exported: {output_path}")
+    logging.info(f"📁 JSON exported: {output_path}")
     return output_path
 
 # ============================================================
@@ -925,30 +933,30 @@ if __name__ == "__main__":
     CSV_PATH = "data/outputs/analysis_summary.csv"
     OUTPUT_DIR = "data/extractions"
     
-    print("=" * 60)
-    print("🔍 Contract Extractor v2.0")
-    print("=" * 60)
+    logging.info("=" * 60)
+    logging.info("🔍 Contract Extractor v2.0")
+    logging.info("=" * 60)
     
     # Check folder
     stats = get_folder_stats(PDF_FOLDER)
-    print(f"\n📂 Folder: {PDF_FOLDER}")
-    print(f"   Files: {stats['total_files']}")
-    print(f"   Size: {stats['total_size_mb']} MB")
+    logging.info(f"\n📂 Folder: {PDF_FOLDER}")
+    logging.info(f"   Files: {stats['total_files']}")
+    logging.info(f"   Size: {stats['total_size_mb']} MB")
     
     if stats["total_files"] == 0:
-        print("\n⚠️ No PDF files to process!")
+        logger.warning("\n⚠️ No PDF files to process!")
     else:
         # Process all contracts
-        print(f"\n🚀 Processing {stats['total_files']} contracts...")
+        logging.info(f"\n🚀 Processing {stats['total_files']} contracts...")
         results = process_all_contracts(PDF_FOLDER, CSV_PATH)
         
         # Summary
         success = sum(1 for r in results if r["success"])
-        print(f"\n📊 Results: {success}/{len(results)} successful")
+        logging.info(f"\n📊 Results: {success}/{len(results)} successful")
         
         # Export
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         export_to_excel(results, f"{OUTPUT_DIR}/contracts_{timestamp}.xlsx")
         export_to_json(results, f"{OUTPUT_DIR}/contracts_{timestamp}.json")
         
-        print("\n✅ Done!")
+        logging.info("\n✅ Done!")

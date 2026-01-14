@@ -9,6 +9,13 @@ sys.path.insert(0, '..')
 
 from src.scraper import parse_row_data
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 class TestParseRowData:
     """Tests for the parse_row_data function."""
@@ -59,28 +66,28 @@ class TestConfig:
 
 # Run basic tests when executed directly
 if __name__ == "__main__":
-    print("Running basic tests...")
+    logging.info("Running basic tests...")
     
     # Test 1
     test = TestParseRowData()
     try:
         test.test_parse_valid_row()
-        print("✓ test_parse_valid_row passed")
+        logging.info("✓ test_parse_valid_row passed")
     except AssertionError as e:
-        print(f"✗ test_parse_valid_row failed: {e}")
+        logger.error(f"✗ test_parse_valid_row failed: {e}")
     
     # Test 2
     try:
         test.test_skip_total_rows()
-        print("✓ test_skip_total_rows passed")
+        logging.info("✓ test_skip_total_rows passed")
     except AssertionError as e:
-        print(f"✗ test_skip_total_rows failed: {e}")
+        logger.error(f"✗ test_skip_total_rows failed: {e}")
     
     # Test 3
     try:
         test.test_empty_input()
-        print("✓ test_empty_input passed")
+        logging.info("✓ test_empty_input passed")
     except AssertionError as e:
-        print(f"✗ test_empty_input failed: {e}")
+        logger.error(f"✗ test_empty_input failed: {e}")
     
-    print("\nTests completed!")
+    logging.info("\nTests completed!")

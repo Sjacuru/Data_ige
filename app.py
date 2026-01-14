@@ -123,17 +123,29 @@ st.set_page_config(
 # SESSION STATE INITIALIZATION
 # ============================================================
 
-try:
-    result = subprocess.run(
-        [pytesseract.pytesseract.tesseract_cmd, "--version"],
-        capture_output=True,
-        text=True
-    )
-    st.success("Tesseract detected")
-    st.text(result.stdout.splitlines()[0])
-except Exception as e:
-    st.error("Tesseract NOT available")
-    st.exception(e)
+@st.cache_resource
+def check_tesseract():
+    """Check Tesseract availability once and cache the result."""
+    try:
+        result = subprocess.run(
+            [pytesseract.pytesseract.tesseract_cmd, "--version"],
+            capture_output=True,
+            text=True
+        )
+        return True, result.stdout.splitlines()[0]
+    except Exception as e:
+        return False, str(e)
+
+# Call the cached function
+tesseract_ok, tesseract_info = check_tesseract()
+if tesseract_ok:
+    st.success(f"Tesseract: {tesseract_info}")
+else:
+    st.error(f"Tesseract NOT available: {tesseract_info}")
+
+# ════════════════════════════════════════════════════════════════
+# 🆕STATE INITIALIZATION
+# ════════════════════════════════════════════════════════════════
 
 if "results" not in st.session_state:
     st.session_state.results = []
@@ -2179,12 +2191,14 @@ def main():
         # Render sidebar
         render_sidebar()
         
-        # Run download in main area
-        run_csv_download_process(year, headless)
-        return  # Don't render tabs while downloading
+
+        # Run scraping in main area (replaces tabs)
+        run_scraping_process(year, headless)
+        return  # Don't render tabs while scraping
+
     
-    if st.session_state.get("contracts_download_trigger"):
-        st.session_state.contracts_download_trigger = False
+    if st.session_state.get("csv_download_trigger"):
+        st.session_state.csv_download_trigger = False
         
         selected_file = st.session_state.get("contracts_selected_file")
         max_downloads = st.session_state.get("contracts_max")

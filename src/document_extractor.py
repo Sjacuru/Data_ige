@@ -26,6 +26,7 @@ INTEGRATION:
 import os
 import time
 import re
+from typing import Optional
 from datetime import datetime
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -47,6 +48,13 @@ from config import (
     TEMP_DOWNLOAD_PATH
 )
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════════════
 # TEXT EXTRACTION DELEGATION
@@ -61,7 +69,7 @@ def get_parser_extractor():
         from src.parser import extract_text_from_pdf
         return extract_text_from_pdf
     except ImportError as e:
-        print(f"⚠️ parser.py not available: {e}")
+        logger.warning(f"⚠️ parser.py not available: {e}")
         return None
 
 
@@ -74,7 +82,7 @@ def get_ai_extractor():
         from Contract_analisys.contract_extractor import extract_text_from_pdf
         return extract_text_from_pdf
     except ImportError as e:
-        print(f"⚠️ contract_extractor.py not available: {e}")
+        logger.warning(f"⚠️ contract_extractor.py not available: {e}")
         return None
 
 
@@ -130,7 +138,7 @@ class DocumentExtractor:
         Returns:
             bool: True if successfully accessed
         """
-        print(f"\n📄 Acessando: {processo_url[:70]}...")
+        logging.info(f"\n📄 Acessando: {processo_url[:70]}...")
         
         self.driver.get(processo_url)
         time.sleep(2)
@@ -147,7 +155,7 @@ class DocumentExtractor:
                 ))
             )
             
-            print("   → Página de verificação detectada")
+            logging.info("   → Página de verificação detectada")
 
             # Handle CAPTCHA if present
             if self.captcha_handler.detect_captcha():            # 🆕 NEW
@@ -155,7 +163,7 @@ class DocumentExtractor:
                     return False
 
             # Click Consultar button
-            print("   → Clicando em 'Consultar'...")
+            logging.info("   → Clicando em 'Consultar'...")
             self.driver.execute_script("arguments[0].click();", consultar_btn)
             time.sleep(3)
             
@@ -166,7 +174,7 @@ class DocumentExtractor:
                     
         except TimeoutException:
             # No security page, might be directly on document list
-            print("   → Acesso direto (sem verificação)")
+            logging.info("   → Acesso direto (sem verificação)")
         
         # Wait for document list to load
         try:
@@ -177,11 +185,11 @@ class DocumentExtractor:
                     "//div[contains(@class, 'documento')]"
                 ))
             )
-            print("   ✓ Lista de documentos carregada")
+            logging.info("   ✓ Lista de documentos carregada")
             return True
             
         except TimeoutException:
-            print("   ✗ Timeout aguardando lista de documentos")
+            logging.info("   ✗ Timeout aguardando lista de documentos")
             return False
     
     def find_target_documents(self):
@@ -195,7 +203,7 @@ class DocumentExtractor:
         
         for target in TARGET_DOCUMENTS:
             pattern = target["pattern"]
-            print(f"\n   🔍 Buscando: '{pattern[:50]}...'")
+            logging.info(f"\n   🔍 Buscando: '{pattern[:50]}...'")
             
             try:
                 # Find <li> elements containing the target text
@@ -233,20 +241,20 @@ class DocumentExtractor:
                                 "priority": target["priority"]
                             }
                             found_docs.append(doc_info)
-                            print(f"      ✓ Encontrado: {processo_id}")
+                            logging.info(f"      ✓ Encontrado: {processo_id}")
                             
                     except Exception as e:
-                        print(f"      ⚠ Erro processando elemento: {e}")
+                        logger.error(f"      ⚠ Erro processando elemento: {e}")
                         continue
                         
             except NoSuchElementException:
-                print(f"      ✗ Não encontrado")
+                logger.error(f"      ✗ Não encontrado")
                 continue
         
         # Sort by priority
         found_docs.sort(key=lambda x: x["priority"])
         
-        print(f"\n   📋 Total de documentos encontrados: {len(found_docs)}")
+        logging.info(f"\n   📋 Total de documentos encontrados: {len(found_docs)}")
         return found_docs
     
     # ═══════════════════════════════════════════════════════════════════════
@@ -272,7 +280,7 @@ class DocumentExtractor:
         Returns:
             Path to downloaded file or None
         """
-        print(f"   ⏳ Aguardando download (máx {timeout}s)...")
+        logging.info(f"   ⏳ Aguardando download (máx {timeout}s)...")
         
         start_time = time.time()
         last_size = 0
@@ -296,7 +304,7 @@ class DocumentExtractor:
                 if file_size == last_size and file_size > 0:
                     stable_count += 1
                     if stable_count >= 2:
-                        print(f"   ✓ Download completo: {file_size:,} bytes")
+                        logging.info(f"   ✓ Download completo: {file_size:,} bytes")
                         return pdf_path
                 else:
                     stable_count = 0
@@ -304,7 +312,7 @@ class DocumentExtractor:
             
             time.sleep(2)
         
-        print("   ✗ Timeout no download")
+        logging.info("   ✗ Timeout no download")
         return None
     
     def download_pdf(self, url):
@@ -317,8 +325,8 @@ class DocumentExtractor:
         Returns:
             Path to downloaded file or None
         """
-        print(f"\n   📥 Baixando PDF...")
-        print(f"      URL: {url[:60]}...")
+        logging.info(f"\n   📥 Baixando PDF...")
+        logging.info(f"      URL: {url[:60]}...")
         
         # Clear previous downloads
         self.clear_download_folder()
@@ -354,7 +362,7 @@ class DocumentExtractor:
     # TEXT EXTRACTION (DELEGATES TO SPECIALIZED MODULES)
     # ═══════════════════════════════════════════════════════════════════════
     
-    def extract_text_from_pdf(self, pdf_path):
+    def extract_text_from_pdf(self, pdf_path: str) -> Optional[str]:
         """
         Extract text from PDF file using existing extractors.
         
@@ -368,7 +376,7 @@ class DocumentExtractor:
         Returns:
             Dict with extracted text and metadata
         """
-        print(f"\n   📝 Extraindo texto...")
+        logging.info(f"\n   📝 Extraindo texto...")
         
         try:
             if self.use_ai_extractor:
@@ -379,7 +387,7 @@ class DocumentExtractor:
                 return self._extract_with_parser(pdf_path)
                 
         except Exception as e:
-            print(f"   ✗ Erro na extração: {e}")
+            logger.error(f"    ✗ Erro na extração: {e}")
             return {
                 "texto": "",
                 "paginas": 0,
@@ -393,7 +401,7 @@ class DocumentExtractor:
         Extract text using src/parser.py (simple OCR).
         Fast but less accurate.
         """
-        print("      → Usando parser.py (OCR simples)")
+        logging.info("      → Usando parser.py (OCR simples)")
         
         extractor = get_parser_extractor()
         if not extractor:
@@ -403,7 +411,7 @@ class DocumentExtractor:
         file_size = os.path.getsize(pdf_path)
         
         if text:
-            print(f"   ✓ Extraído: {len(text):,} caracteres")
+            logging.info(f"   ✓ Extraído: {len(text):,} caracteres")
             return {
                 "texto": text,
                 "paginas": 0,  # parser doesn't return page count
@@ -425,12 +433,12 @@ class DocumentExtractor:
         Extract text using Contract_analisys/contract_extractor.py.
         Better quality with preprocessing, but slower.
         """
-        print("      → Usando contract_extractor.py (IA + pré-processamento)")
+        logging.info("      → Usando contract_extractor.py (IA + pré-processamento)")
         
         extractor = get_ai_extractor()
         if not extractor:
             # Fallback to parser if AI extractor not available
-            print("      ⚠ AI extractor não disponível, usando parser...")
+            logger.warning("⚠ AI extractor não disponível, usando parser...")
             return self._extract_with_parser(pdf_path)
         
         result = extractor(pdf_path)
@@ -438,7 +446,7 @@ class DocumentExtractor:
         
         if result.get("success"):
             text = result.get("full_text", "")
-            print(f"   ✓ Extraído: {len(text):,} caracteres ({result.get('extraction_source', 'unknown')})")
+            logging.info(f"   ✓ Extraído: {len(text):,} caracteres ({result.get('extraction_source', 'unknown')})")
             return {
                 "texto": text,
                 "paginas": result.get("total_pages", 0),
@@ -482,22 +490,22 @@ class DocumentExtractor:
         documents = self.find_target_documents()
         
         if not documents:
-            print("   ⚠ Nenhum documento alvo encontrado")
+            logger.warning("⚠ Nenhum documento alvo encontrado")
             return results
         
         # Process each document
         for i, doc in enumerate(documents, 1):
-            print(f"\n{'─'*50}")
-            print(f"   DOCUMENTO {i}/{len(documents)}: {doc['tipo'].upper()}")
-            print(f"   Processo: {doc['processo_id']}")
-            print(f"{'─'*50}")
+            logging.info(f"\n{'─'*50}")
+            logging.info(f"   DOCUMENTO {i}/{len(documents)}: {doc['tipo'].upper()}")
+            logging.info(f"   Processo: {doc['processo_id']}")
+            logging.info(f"{'─'*50}")
             
             try:
                 # Download PDF
                 pdf_path = self.download_pdf(doc['href'])
                 
                 if not pdf_path:
-                    print("   ✗ Falha no download")
+                    logging.info("   ✗ Falha no download")
                     continue
                 
                 # Extract text (delegates to specialized modules)
@@ -525,12 +533,12 @@ class DocumentExtractor:
                 # Delete PDF after extraction
                 try:
                     os.remove(pdf_path)
-                    print(f"   🗑️ PDF removido (texto salvo)")
+                    logging.info(f"   🗑️ PDF removido (texto salvo)")
                 except:
                     pass
                 
             except Exception as e:
-                print(f"   ✗ Erro processando documento: {e}")
+                logger.error(f"    ✗ Erro processando documento: {e}")
                 continue
         
         return results
@@ -575,8 +583,8 @@ def extract_processo_documents(
         )
         
         for doc in results:
-            print(f"Documento: {doc['documento_tipo']}")
-            print(f"Texto: {doc['texto_extraido'][:200]}...")
+            logging.info(f"Documento: {doc['documento_tipo']}")
+            logging.info(f"Texto: {doc['texto_extraido'][:200]}...")
     """
     extractor = DocumentExtractor(
         driver=driver,
@@ -702,11 +710,11 @@ def download_processo_pdf(
         result["documento_tipo"] = doc.get('tipo', 'unknown')
         result["processo_id"] = doc.get('processo_id', 'unknown')
         
-        print(f"   ✓ PDF salvo: {filename}")
+        logging.info(f"   ✓ PDF salvo: {filename}")
         
     except Exception as e:
         result["error"] = str(e)
-        print(f"   ✗ Erro: {e}")
+        logger.error(f"    ✗ Erro: {e}")
     
     return result
 
@@ -716,22 +724,22 @@ def download_processo_pdf(
 # ═══════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("📄 Document Extractor - Standalone Test")
-    print("=" * 60)
-    print("\nThis module is designed to be imported by main.py")
-    print("\nUsage:")
-    print("  from src.document_extractor import extract_processo_documents")
-    print("  ")
-    print("  results = extract_processo_documents(")
-    print("      driver=driver,")
-    print("      processo_url='https://processo.rio/...',")
-    print("      empresa_info={'id': '12345678000199', 'name': 'Empresa'},")
-    print("      use_ai=False")
-    print("  )")
-    print("\nFeatures:")
-    print("  ✓ CAPTCHA detection and handling")
-    print("  ✓ Security page navigation")
-    print("  ✓ Smart PDF download management")
-    print("  ✓ Delegates text extraction to parser.py or contract_extractor.py")
-    print("  ✓ Auto-cleanup of downloaded PDFs")
+    logging.info("=" * 60)
+    logging.info("📄 Document Extractor - Standalone Test")
+    logging.info("=" * 60)
+    logging.info("\nThis module is designed to be imported by main.py")
+    logging.info("\nUsage:")
+    logging.info("  from src.document_extractor import extract_processo_documents")
+    logging.info("  ")
+    logging.info("  results = extract_processo_documents(")
+    logging.info("      driver=driver,")
+    logging.info("      processo_url='https://processo.rio/...',")
+    logging.info("      empresa_info={'id': '12345678000199', 'name': 'Empresa'},")
+    logging.info("      use_ai=False")
+    logging.info("  )")
+    logging.info("\nFeatures:")
+    logging.info("  ✓ CAPTCHA detection and handling")
+    logging.info("  ✓ Security page navigation")
+    logging.info("  ✓ Smart PDF download management")
+    logging.info("  ✓ Delegates text extraction to parser.py or contract_extractor.py")
+    logging.info("  ✓ Auto-cleanup of downloaded PDFs")

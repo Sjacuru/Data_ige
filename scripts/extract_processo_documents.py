@@ -36,6 +36,14 @@ from selenium.webdriver.common.action_chains import ActionChains
 from core.captcha import CaptchaHandler        
 from core.driver import create_driver, close_driver
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # ============================================================
 # CONFIGURATION
 # ============================================================
@@ -641,9 +649,9 @@ class ProcessoDocumentExtractor:
 
     def run(self, max_rows: Optional[int] = None, start_from: int = 0):
         """Run the extraction pipeline."""
-        print("\n" + "=" * 70)
-        print("📄 EXTRATOR DE DOCUMENTOS DE PROCESSOS")
-        print("=" * 70)
+        logging.info("\n" + "=" * 70)
+        logging.info("📄 EXTRATOR DE DOCUMENTOS DE PROCESSOS")
+        logging.info("=" * 70)
 
         df = self.load_input_data()
 
@@ -656,8 +664,8 @@ class ProcessoDocumentExtractor:
             logger.info(f"🔢 Limitado a {max_rows} registros")
 
         total = len(df)
-        print(f"\n📊 Total a processar: {total} processos")
-        print("=" * 70)
+        logging.info(f"\n📊 Total a processar: {total} processos")
+        logging.info("=" * 70)
 
         self.setup_driver()
 
@@ -674,7 +682,7 @@ class ProcessoDocumentExtractor:
             self.save_results()
 
         except KeyboardInterrupt:
-            logger.info("\n⚠️ Interrompido pelo usuário")
+            logger.warning("\n⚠️ Interrompido pelo usuário")
             self.save_results(partial=True)
 
         finally:
@@ -725,9 +733,9 @@ class ProcessoDocumentExtractor:
 
     def print_summary(self):
         """Print extraction summary."""
-        print("\n" + "=" * 70)
-        print("📊 RESUMO DA EXTRAÇÃO")
-        print("=" * 70)
+        logging.info("\n" + "=" * 70)
+        logging.info("📊 RESUMO DA EXTRAÇÃO")
+        logging.info("=" * 70)
 
         total = len(self.results)
 
@@ -743,11 +751,11 @@ class ProcessoDocumentExtractor:
                 if doc.get('downloaded', False):
                     total_downloaded += 1
 
-        print(f"\n📁 Processos analisados: {total}")
-        print(f"📄 Documentos encontrados: {total_docs}")
-        print(f"⬇️  Arquivos baixados: {total_downloaded}")
+        logging.info(f"\n📁 Processos analisados: {total}")
+        logging.info(f"📄 Documentos encontrados: {total_docs}")
+        logging.info(f"⬇️  Arquivos baixados: {total_downloaded}")
 
-        print(f"\n📈 Por status:")
+        logging.info(f"\n📈 Por status:")
         status_info = {
             'all_downloaded': ('✅', 'Todos baixados'),
             'partial_download': ('⚠️', 'Download parcial'),
@@ -762,10 +770,10 @@ class ProcessoDocumentExtractor:
         for status, count in sorted(by_status.items(), key=lambda x: -x[1]):
             icon, label = status_info.get(status, ('•', status))
             pct = (count / total * 100) if total > 0 else 0
-            print(f"   {icon} {label}: {count} ({pct:.1f}%)")
+            logging.info(f"   {icon} {label}: {count} ({pct:.1f}%)")
 
         # List downloaded files
-        print(f"\n📥 Arquivos baixados:")
+        logging.info(f"\n📥 Arquivos baixados:")
         file_count = 0
         for r in self.results:
             for doc in r.documents:
@@ -773,17 +781,17 @@ class ProcessoDocumentExtractor:
                     file_count += 1
                     if file_count <= 15:  # Show first 15
                         filename = Path(doc['file_path']).name
-                        print(f"   • {r.processo_id}: {filename}")
+                        logging.info(f"   • {r.processo_id}: {filename}")
         
         if file_count > 15:
-            print(f"   ... e mais {file_count - 15} arquivo(s)")
+            logging.info(f"   ... e mais {file_count - 15} arquivo(s)")
         elif file_count == 0:
-            print("   (nenhum arquivo baixado)")
+            logging.info("   (nenhum arquivo baixado)")
 
-        print(f"\n📂 Arquivos salvos em:")
-        print(f"   Downloads: {DOWNLOADS_DIR.absolute()}")
-        print(f"   Resultados: {EXTRACTIONS_DIR.absolute()}")
-        print("=" * 70)
+        logging.info(f"\n📂 Arquivos salvos em:")
+        logging.info(f"   Downloads: {DOWNLOADS_DIR.absolute()}")
+        logging.info(f"   Resultados: {EXTRACTIONS_DIR.absolute()}")
+        logging.info("=" * 70)
 
 def main():
     """Main entry point."""
@@ -821,7 +829,7 @@ Exemplos:
     args = parser.parse_args()
 
     if args.headless:
-        print("⚠️ Aviso: Modo headless pode falhar com CAPTCHA!")
+        logger.warning("⚠️ Aviso: Modo headless pode falhar com CAPTCHA!")
 
     extractor = ProcessoDocumentExtractor(headless=args.headless)
     extractor.run(max_rows=args.max, start_from=args.start)

@@ -10,9 +10,9 @@ Usage:
     
     handler = CaptchaHandler(driver)
     if handler.handle():
-        print("CAPTCHA resolved!")
+        logging.info("CAPTCHA resolved!")
     else:
-        print("CAPTCHA failed")
+        logging.info("CAPTCHA failed")
 """
 
 import time
@@ -27,6 +27,13 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver.common.action_chains import ActionChains
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # =========================================================================
 # CONFIGURATION
@@ -57,7 +64,7 @@ class CaptchaHandler:
         
         # Full automatic handling with manual fallback
         if handler.handle():
-            print("Success!")
+            logging.info("Success!")
         
         # Or use individual methods
         if handler.detect_captcha():
@@ -297,13 +304,13 @@ class CaptchaHandler:
         if timeout is None:
             timeout = CAPTCHA_MANUAL_TIMEOUT
         
-        print("\n" + "=" * 60)
-        print("🔐 MANUAL INTERVENTION REQUIRED")
-        print("=" * 60)
-        print("\n📋 Please resolve the CAPTCHA in the browser")
-        print("   The script will detect when you're done")
-        print(f"\n⏱️  Maximum wait: {timeout // 60} minutes")
-        print("=" * 60)
+        logging.info("\n" + "=" * 60)
+        logging.info("🔐 MANUAL INTERVENTION REQUIRED")
+        logging.info("=" * 60)
+        logging.info("\n📋 Please resolve the CAPTCHA in the browser")
+        logging.info("   The script will detect when you're done")
+        logging.info(f"\n⏱️  Maximum wait: {timeout // 60} minutes")
+        logging.info("=" * 60)
         
         self.play_alert_sound()
         
@@ -312,13 +319,13 @@ class CaptchaHandler:
         while time.time() - start_time < timeout:
             # Check if we made it to the documents page
             if self.is_on_documents_page():
-                print("\n\n✅ Documents page loaded!")
+                logging.info("\n\n✅ Documents page loaded!")
                 self.captcha_solved = True
                 return True
             
             # Check if we left the CAPTCHA page
             if not self.is_on_captcha_page():
-                print("\n\n✅ Left CAPTCHA page!")
+                logging.info("\n\n✅ Left CAPTCHA page!")
                 self.captcha_solved = True
                 return True
             
@@ -329,7 +336,7 @@ class CaptchaHandler:
             
             time.sleep(2)
         
-        print("\n\n❌ Timeout!")
+        logging.info("\n\n❌ Timeout!")
         return False
     
     def wait_for_manual_with_input(self) -> bool:
@@ -341,11 +348,11 @@ class CaptchaHandler:
         Returns:
             bool: True (assumes user resolved it)
         """
-        print("\n" + "=" * 60)
-        print("🔐 MANUAL INTERVENTION REQUIRED")
-        print("=" * 60)
-        print("\n📋 Please resolve the CAPTCHA in the browser.")
-        print("=" * 60)
+        logging.info("\n" + "=" * 60)
+        logging.info("🔐 MANUAL INTERVENTION REQUIRED")
+        logging.info("=" * 60)
+        logging.info("\n📋 Please resolve the CAPTCHA in the browser.")
+        logging.info("=" * 60)
         
         self.play_alert_sound()
         
@@ -354,10 +361,10 @@ class CaptchaHandler:
         time.sleep(1)
         
         if self.detect_captcha():
-            print("   ⚠ CAPTCHA still present. Continuing anyway...")
+            logger.warning("⚠ CAPTCHA still present. Continuing anyway...")
             return False
         
-        print("   ✓ CAPTCHA resolved!")
+        logging.info("   ✓ CAPTCHA resolved!")
         self.captcha_solved = True
         return True
     
@@ -383,18 +390,18 @@ class CaptchaHandler:
         if not self.is_on_captcha_page() and not self.detect_captcha():
             return True  # No CAPTCHA present
         
-        print("\n🔐 CAPTCHA detected, attempting resolution...")
+        logging.info("\n🔐 CAPTCHA detected, attempting resolution...")
         
         # Step 3: Try clicking Consultar directly (maybe checkbox already checked)
         if self.click_consultar_button():
             time.sleep(CAPTCHA_AUTO_WAIT)
             if self.is_on_documents_page():
-                print("✅ Success! Page loaded after clicking Consultar")
+                logging.info("✅ Success! Page loaded after clicking Consultar")
                 self.captcha_solved = True
                 return True
         
         # Step 4: Click reCAPTCHA checkbox
-        print("   → Clicking reCAPTCHA checkbox...")
+        logging.info("   → Clicking reCAPTCHA checkbox...")
         if self.click_recaptcha_checkbox():
             time.sleep(2)
             
@@ -404,14 +411,14 @@ class CaptchaHandler:
                 
                 # Step 6: Check result
                 if self.is_on_documents_page():
-                    print("✅ Success! CAPTCHA resolved automatically")
+                    logging.info("✅ Success! CAPTCHA resolved automatically")
                     self.captcha_solved = True
                     return True
                 
                 # Step 7: Check for image challenge
                 if self.is_on_captcha_page():
                     if self.is_image_challenge_visible():
-                        print("   🖼️ Image challenge detected - manual resolution needed")
+                        logging.info("   🖼️ Image challenge detected - manual resolution needed")
                         return self.wait_for_manual_resolution()
                     else:
                         # Try one more time
@@ -433,7 +440,7 @@ class CaptchaHandler:
             return True
         
         # Step 9: Manual intervention needed
-        print("⚠️ Automatic resolution failed")
+        logger.warning("⚠️ Automatic resolution failed")
         return self.wait_for_manual_resolution()
 
 
@@ -449,7 +456,7 @@ def handle_captcha(driver) -> bool:
         from core.captcha import handle_captcha
         
         if handle_captcha(driver):
-            print("Ready to continue!")
+            logging.info("Ready to continue!")
     
     Args:
         driver: Selenium WebDriver instance
