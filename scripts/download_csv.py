@@ -36,6 +36,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+from core.navigation import set_year_filter
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -78,50 +80,6 @@ def navigate_to_contracts_page(driver):
     except TimeoutException:
         logging.info("✗ Timeout ao carregar página de contratos")
         return False
-
-
-def set_year_filter_for_download(driver, year):
-    """
-    Set the year filter before downloading.
-    """
-    if not year:
-        return True
-    
-    year = str(year)
-    logging.info(f"\n→ Ajustando filtro do ano para: {year}")
-    
-    try:
-        # Find year filter input
-        inputs = driver.find_elements(By.CSS_SELECTOR, ".v-filterselect-input")
-        
-        current_year = str(datetime.now().year)
-        target_input = None
-        
-        for inp in inputs:
-            val = (inp.get_attribute("value") or "").strip()
-            if val == current_year or val == year:
-                target_input = inp
-                break
-        
-        if target_input is None and inputs:
-            target_input = inputs[0]
-        
-        if target_input:
-            target_input.click()
-            time.sleep(0.3)
-            target_input.clear()
-            target_input.send_keys(year)
-            time.sleep(0.3)
-            target_input.send_keys("\n")
-            time.sleep(2)
-            logging.info(f"✓ Ano ajustado para: {year}")
-        
-        return True
-        
-    except Exception as e:
-        logger.error(f"⚠ Erro ao ajustar ano: {e}")
-        return True  # Continue anyway
-
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DOWNLOAD CSV
@@ -328,7 +286,7 @@ def download_contracts_csv(year=None, headless=False):
         # STEP 2: Set year filter (if provided)
         # ═══════════════════════════════════════════════════════════
         if year:
-            set_year_filter_for_download(driver, year)
+            set_year_filter(driver, year)
             time.sleep(2)
         
         # ═══════════════════════════════════════════════════════════

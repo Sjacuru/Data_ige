@@ -43,6 +43,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+from core.navigation import (
+    get_current_level,
+    set_year_filter,
+    filter_by_company,
+    click_company_button,
+    get_all_buttons_at_level,
+    click_specific_button,
+    has_processo_links
+)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -171,81 +181,8 @@ def read_company_ids_from_csv(filepath):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DRIVER SETUP was MOVED to core/driver.py
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # NAVIGATION FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
-
-def get_current_level(driver):
-    """Identify current level by column headers."""
-    try:
-        headers = driver.find_elements(
-            By.XPATH,
-            "//div[contains(@class,'v-grid-column-header-content')]"
-        )
-        
-        for header in headers:
-            text = header.text.strip().lower()
-            if "objeto" in text:
-                return "objeto"
-            elif "unidade gestora" in text:
-                return "unidade_gestora"
-            elif "órgão" in text or "orgao" in text:
-                return "orgao"
-            elif "favorecido" in text:
-                return "favorecido"
-        
-        return "unknown"
-    except:
-        return "unknown"
-
-
-def has_processo_links(driver):
-    """Check if processo links are visible."""
-    try:
-        links = driver.find_elements(By.XPATH, "//a[contains(@href, 'processo')]")
-        return len(links) > 0
-    except:
-        return False
-
-
-def set_year_filter(driver, year):
-    """Set year filter."""
-    if not year:
-        return
-    
-    year = str(year)
-    logging.info(f"   → Ajustando ano: {year}")
-    
-    try:
-        inputs = driver.find_elements(By.CSS_SELECTOR, ".v-filterselect-input")
-        current_year = str(datetime.now().year)
-        target_input = None
-        
-        for inp in inputs:
-            val = (inp.get_attribute("value") or "").strip()
-            if val == current_year:
-                target_input = inp
-                break
-        
-        if target_input is None and inputs:
-            target_input = inputs[0]
-        
-        if target_input:
-            target_input.click()
-            time.sleep(0.2)
-            target_input.send_keys(Keys.CONTROL, "a")
-            target_input.send_keys(Keys.DELETE)
-            target_input.send_keys(year)
-            target_input.send_keys(Keys.ENTER)
-            time.sleep(2)
-            
-    except Exception as e:
-        logger.error(f"   ⚠ Erro ao ajustar ano: {e}")
-
 
 def reset_to_contracts_page(driver):
     """Reset to contracts page."""
@@ -266,118 +203,6 @@ def reset_to_contracts_page(driver):
         return True
     except:
         return False
-
-
-def filter_by_company(driver, company_id):
-    """Filter by company ID."""
-    try:
-        filter_box = WebDriverWait(driver, TIMEOUT_SECONDS).until(
-            EC.presence_of_element_located((By.XPATH, LOCATORS["filter_input"]))
-        )
-        
-        filter_box.clear()
-        filter_box.send_keys(company_id)
-        time.sleep(1)
-        filter_box.send_keys(Keys.ENTER)
-        time.sleep(3)
-        
-        return True
-    except Exception as e:
-        logger.error(f"    ✗ Erro ao filtrar: {e}")
-        return False
-
-
-def click_company_button(driver, company_id):
-    """Click on company button."""
-    xpath = (
-        f"//div[contains(@class,'v-button-link') and @role='button']"
-        f"[.//span[contains(@class,'v-button-caption') and contains(text(), '{company_id}')]]"
-    )
-    
-    level_before = get_current_level(driver)
-    
-    for attempt in range(5):
-        try:
-            btn = WebDriverWait(driver, 3).until(
-                EC.presence_of_element_located((By.XPATH, xpath))
-            )
-            
-            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", btn)
-            time.sleep(0.3)
-            driver.execute_script("arguments[0].click();", btn)
-            time.sleep(2)
-            
-            level_after = get_current_level(driver)
-            if level_after != level_before:
-                return True
-            
-            # Try direct click
-            btn.click()
-            time.sleep(2)
-            if get_current_level(driver) != level_before:
-                return True
-                
-        except:
-            time.sleep(1)
-    
-    # Fallback
-    try:
-        buttons = driver.find_elements(By.XPATH, "//span[contains(@class,'v-button-caption')]")
-        for btn in buttons:
-            if company_id in btn.text:
-                parent = btn.find_element(By.XPATH, "./ancestor::div[@role='button']")
-                driver.execute_script("arguments[0].click();", parent)
-                time.sleep(2)
-                return True
-    except:
-        pass
-    
-    return False
-
-
-def get_all_buttons_at_level(driver, exclude_texts=None):
-    """Get all clickable buttons at current level."""
-    if exclude_texts is None:
-        exclude_texts = set()
-    
-    buttons = []
-    try:
-        all_buttons = driver.find_elements(By.XPATH, "//span[contains(@class,'v-button-caption')]")
-        
-        for b in all_buttons:
-            try:
-                txt = b.text.strip()
-                if txt and txt not in exclude_texts and " - " in txt:
-                    left = txt.split(" - ", 1)[0]
-                    if left.replace(".", "").replace("/", "").replace("-", "").isalnum():
-                        buttons.append(txt)
-            except:
-                continue
-    except:
-        pass
-    
-    return buttons
-
-
-def click_specific_button(driver, button_text):
-    """Click a button by its text."""
-    for attempt in range(3):
-        try:
-            btn = driver.find_element(
-                By.XPATH,
-                f"//span[contains(@class,'v-button-caption') and normalize-space(text())='{button_text}']"
-            )
-            parent = btn.find_element(By.XPATH, "./ancestor::div[@role='button']")
-            driver.execute_script("arguments[0].scrollIntoView({block:'center'});", parent)
-            time.sleep(0.3)
-            driver.execute_script("arguments[0].click();", parent)
-            time.sleep(1)
-            return True
-        except:
-            time.sleep(0.5)
-    
-    return False
-
 
 def get_all_document_links(driver):
     """Get all processo links from current page."""
