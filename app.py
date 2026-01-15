@@ -2165,11 +2165,6 @@ def render_help_tab():
     - Verifique se o módulo scraper está carregado (ver sidebar)
     """)
 
-
-# ============================================================
-# MAIN APP
-# ============================================================
-
 # ============================================================
 # MAIN APP
 # ============================================================
@@ -2179,26 +2174,39 @@ def main():
     render_header()
     
     # ════════════════════════════════════════════════════════
-    # 🆕 CHECK IF SCRAPING WAS TRIGGERED
+    # CHECK IF SCRAPING WAS TRIGGERED
+    # ════════════════════════════════════════════════════════
+    
+    if st.session_state.get("scraping_trigger"):
+        st.session_state.scraping_trigger = False  # Reset trigger
+        
+        year = st.session_state.get("scraping_year", 2025)
+        headless = st.session_state.get("scraping_headless", False)
+        
+        render_sidebar()
+        run_scraping_process(year, headless)
+        return
+
+    # ════════════════════════════════════════════════════════
+    # CHECK IF CSV DOWNLOAD WAS TRIGGERED
     # ════════════════════════════════════════════════════════
 
     if st.session_state.get("csv_download_trigger"):
-        st.session_state.csv_download_trigger = False  # Reset trigger
+        st.session_state.csv_download_trigger = False
         
         year = st.session_state.get("csv_download_year", 2025)
         headless = st.session_state.get("csv_download_headless", False)
         
-        # Render sidebar
         render_sidebar()
-        
+        run_csv_download_process(year, headless)
+        return
 
-        # Run scraping in main area (replaces tabs)
-        run_scraping_process(year, headless)
-        return  # Don't render tabs while scraping
-
+    # ════════════════════════════════════════════════════════
+    # CHECK IF CONTRACTS DOWNLOAD WAS TRIGGERED
+    # ════════════════════════════════════════════════════════
     
-    if st.session_state.get("csv_download_trigger"):
-        st.session_state.csv_download_trigger = False
+    if st.session_state.get("contracts_download_trigger"):
+        st.session_state.contracts_download_trigger = False
         
         selected_file = st.session_state.get("contracts_selected_file")
         max_downloads = st.session_state.get("contracts_max")
@@ -2237,6 +2245,6 @@ def main():
     with tab5:
         render_help_tab()
 
-
 if __name__ == "__main__":
     main()
+
