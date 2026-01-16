@@ -21,6 +21,7 @@ import os
 import json
 import re
 import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path 
 from typing import Optional, Callable
 from datetime import datetime
@@ -54,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 CONFORMITY_ENABLED = True  # Set to False to disable conformity checks
 
-TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+TESSERACT_PATH = r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
 TESSDATA_DIR = r"C:\Program Files\Tesseract-OCR\tessdata"
 POPPLER_PATH = r"C:\poppler-25.12.0\Library\bin"
 
@@ -76,7 +77,7 @@ model = ChatGroq(model_name=MODEL_NAME,
 pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 os.environ["TESSDATA_PREFIX"] = TESSDATA_DIR
 
-if not os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
+if not os.path.exists(r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"):
     raise FileNotFoundError("Tesseract executable not found!")
 
 # Risk keywords to flag in contracts
