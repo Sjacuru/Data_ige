@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class ConformityStatus(str, Enum):
     """Overall conformity status."""
-    CONFORME = "CONFORME"
+    CONFORME = "DADOS PUBLICADOS"
     NAO_CONFORME = "NÃO CONFORME"
     PARCIAL = "PARCIAL"
 

@@ -12,6 +12,13 @@ Features:
 - Contract type identification
 - 🆕 Data collection from ContasRio (scraping)
 """
+import os
+import shutil
+
+pdfinfo = shutil.which("pdfinfo")
+if pdfinfo:
+    os.environ["PATH"] = os.path.dirname(pdfinfo) + os.pathsep + os.environ["PATH"]
+
 import streamlit as st  
 from pathlib import Path  
   
@@ -25,7 +32,7 @@ from src.ui.logic import run_scraping_process, run_csv_download_process
   
 # Configuration imports  
 from config import ANALYSIS_SUMMARY_CSV  
-  
+
 # ============================================================  
 # APP CONFIGURATION  
 # ============================================================  
@@ -42,7 +49,25 @@ def init_session_state():
     if "csv_download_trigger" not in st.session_state: st.session_state.csv_download_trigger = False  
     if "scraping_in_progress" not in st.session_state: st.session_state.scraping_in_progress = False  
     if "csv_download_in_progress" not in st.session_state: st.session_state.csv_download_in_progress = False  
+    if "show_conformity" not in st.session_state: st.session_state.show_conformity = False  
+    if "current_extraction" not in st.session_state: st.session_state.current_extraction = None  
   
+    # Store the sample data you provided for the UI demo  
+    if "last_conformity_sample" not in st.session_state:  
+        st.session_state.last_conformity_sample = {  
+            "overall_status": "DADOS PUBLICADOS",  
+            "conformity_score": 100.0,  
+            "publication_check": {  
+                "status": "REPROVADO",  
+                "observation": "Publicado em 71 dias (FORA do prazo de 20 dias)"  
+            },  
+            "field_checks": [  
+                {"field_label": "Valor do Contrato", "contract_value": "R$ 572.734,00", "publication_value": "R$ 572.734,00", "status": "APROVADO"},  
+                {"field_label": "Número do Contrato", "contract_value": "215/2025", "publication_value": "215/2025", "status": "APROVADO"},  
+                {"field_label": "Objeto do Contrato", "contract_value": "Programa FabLearn", "publication_value": "Programa FabLearn", "status": "APROVADO"}  
+            ]  
+        }  
+
 # ============================================================  
 # MAIN APPLICATION LOOP  
 # ============================================================  

@@ -57,7 +57,7 @@ CONFORMITY_ENABLED = True  # Set to False to disable conformity checks
 
 TESSERACT_PATH = r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
 TESSDATA_DIR = r"C:\Program Files\Tesseract-OCR\tessdata"
-POPPLER_PATH = r"C:\poppler-25.12.0\Library\bin"
+POPPLER_PATH = os.getenv("POPPLER_HOME", r"C:\Users\sjacu\anaconda3\envs\MSE800_Salim\Library\bin")  
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env") 

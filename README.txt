@@ -460,7 +460,7 @@ Abas disponíveis:
 📊 Lógica de Conformidade
 Determinação de Status
 Status	                           Condição
-✅ CONFORME	                     Publicado + no prazo (≤20 dias) + todos os campos conferem
+✅ DADOS PUBLICADOS	                     Publicado + no prazo (≤20 dias) + todos os campos conferem
 ⚠️ PARCIAL	                      Publicado mas atrasado OU campos parcialmente conferem
 ❌ NÃO CONFORME	                 Não publicado OU divergências graves nos campos
 
