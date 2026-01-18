@@ -178,26 +178,29 @@
     "contratada_cnpj": "14.349.969/0001-87",
     "objeto": "realização de show artístico da DJ DANI FONTENELLE para o evento CARNAVAL 2025",
     "clausulas_principais": [
-      "Prestar os serviços de acordo com todas as exigências contidas na Proposta",
-      "Tomar as medidas preventivas necessárias para evitar danos a terceiros",
-      "Responsabilizar-se integralmente pelo ressarcimento de quaisquer danos e prejuízos",
-      "Atender às determinações e exigências formuladas pela CONTRATANTE"
+      "CLÁUSULA PRIMEIRA — DA LEGISLAÇÃO APLICÁVEL",
+      "CLÁUSULA SEGUNDA - DO OBJETO",
+      "CLÁUSULA TERCEIRA - DO VALOR",
+      "CLÁUSULA QUARTA - DOTAÇÃO ORÇAMENTÁRIA",
+      "CLÁUSULA QUINTA — DA FORMA E PRAZO DE PAGAMENTO",
+      "CLÁUSULA SEXTA — DA VIGÊNCIA DO CONTRATO",
+      "CLÁUSULA SÉTIMA - DAS OBRIGAÇÕES DA CONTRATADA"
     ],
     "tipo_contrato": "Prestação de Serviços",
     "modalidade_licitacao": null,
     "numero_contrato": "8,5/2025",
     "processo_administrativo": "TUR-PRO-2025/00350",
     "numero_processo": "TUR-PRO-2025/00350",
-    "foi_truncado": true,
+    "foi_truncado": false,
     "processo_id": "",
     "text_truncated": true,
-    "analysis_timestamp": "2026-01-18T19:29:54.581939"
+    "analysis_timestamp": "2026-01-19T00:23:23.310922"
   },
   "error": null,
   "error_stage": null,
   "conformity": {
     "processo": "TUR-PRO-2025/00350",
-    "analysis_timestamp": "2026-01-18T19:30:20.362596",
+    "analysis_timestamp": "2026-01-19T00:23:47.785394",
     "overall_status": "NÃO CONFORME",
     "conformity_score": 0.0,
     "summary": {

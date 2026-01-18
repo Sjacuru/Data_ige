@@ -46,8 +46,10 @@ except ImportError:
     DOWEB_BASE_URL = "https://doweb.rio.rj.gov.br"
     DOWEB_TEMP_PATH = os.path.join("data", "temp_doweb")
     TARGET_EXTRATO_TYPES = [
-        "EXTRATO DO CONTRATO",
-        "EXTRATO DE TERMO ADITIVO",
+        "EXTRATO DO CONTRATO",  
+        "EXTRATO DE TERMO ADITIVO",  
+        "EXTRATO DE INSTRUMENTO CONTRATUAL",  # Added this!  
+        "EXTRATO DE CONVÊNIO",  
     ]
 
 # Import from local modules

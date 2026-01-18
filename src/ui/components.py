@@ -248,19 +248,22 @@ def render_single_file_tab(stats, summary_df):
         # STEP 2
         if c2.button("2. Checar D.O.", use_container_width=True):
             if "current_extraction" in st.session_state:
-                add_audit_log(f"Iniciando busca no Diário Oficial para {selected}")
-                with st.status("Buscando no Diário Oficial...") as s:
+                # Use the hint_id if available, otherwise use what's in session state
+                processo_to_search = hint_id or st.session_state.current_extraction.get("processo_id")
+                
+                add_audit_log(f"Iniciando busca no Diário Oficial para ID: {processo_to_search}")
+                with st.status(f"Buscando ID {processo_to_search} no D.O. Rio...") as s:
                     # Get the extracted data
                     contract_data = st.session_state.current_extraction.get("extracted_data", {})
-                    # Run real conformity check
-                    result = run_conformity_check_logic(contract_data, headless=True)
+                    # Run real conformity check with EXPLICIT ID
+                    result = run_conformity_check_logic(contract_data, headless=True, processo=processo_to_search)
                     st.session_state.last_conformity_sample = result
                     st.session_state.show_conformity = True
                     s.update(label="Busca Concluída!", state="complete")
                 
                 status_val = result.get('overall_status', 'DESCONHECIDO')
-                add_audit_log(f"Busca no D.O. concluída: {status_val}")
-                st.toast("Verificação no Diário Oficial concluída!")
+                add_audit_log(f"Busca no D.O. concluída para {processo_to_search}: {status_val}")
+                st.toast(f"Verificação do ID {processo_to_search} concluída!")
             else:
                 st.error("Primeiro execute o Passo 1.")
 
@@ -283,15 +286,15 @@ def render_single_file_tab(stats, summary_df):
 
     else: # AUTOMÁTICO
         if st.button("🚀 Iniciar Auditoria Completa", type="primary", use_container_width=True):
-            add_audit_log(f"Iniciando auditoria automática para {selected}")
+            add_audit_log(f"Iniciando auditoria automática para {selected} (ID: {hint_id})")
             with st.status("Executando Auditoria Ponta-a-Ponta...") as status:
                 st.write("Lendo Contrato...")
                 res = run_single_extraction_logic(PROCESSOS_DIR / selected, hint_id)
                 st.session_state.current_extraction = res
                 
-                st.write("Verificando Publicação no D.O. Rio...")
+                st.write(f"Verificando Publicação do ID {hint_id} no D.O. Rio...")
                 contract_data = res.get("extracted_data", {})
-                result = run_conformity_check_logic(contract_data, headless=True)
+                result = run_conformity_check_logic(contract_data, headless=True, processo=hint_id)
                 st.session_state.last_conformity_sample = result
                 st.session_state.show_conformity = True
                 

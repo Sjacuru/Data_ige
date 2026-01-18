@@ -589,7 +589,7 @@ def run_conformity_check(
     
     # Build contract data dict for conformity check
     # PRIORITY: Use processo_id (from CSV/Filename) if available, otherwise fallback to AI
-    processo = processo_id or extracted_data.get("processo_administrativo") or extracted_data.get("numero_processo")
+    processo = processo_id or extracted_data.get("processo_id") or extracted_data.get("numero_processo") 
     
     contract_data = {
         "processo_id": processo_id,

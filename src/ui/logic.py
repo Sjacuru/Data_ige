@@ -53,7 +53,7 @@ def save_to_cache(pdf_name: str, result: dict):
     except Exception as e:
         add_audit_log(f"Erro ao salvar cache: {str(e)}", level="error")
 
-def run_conformity_check_logic(contract_data: dict, headless: bool = True):
+def run_conformity_check_logic(contract_data: dict, headless: bool = True, processo: str = None):
     """
     Executes the real conformity check using the extracted contract data.
     """
@@ -62,7 +62,7 @@ def run_conformity_check_logic(contract_data: dict, headless: bool = True):
     
     try:
         # Perform the real check
-        result = check_publication_conformity(contract_data, headless=headless)
+        result = check_publication_conformity(contract_data, processo=processo, headless=headless)
         return result.to_dict()
     except Exception as e:
         return {"error": f"Erro na verificação: {str(e)}"}
