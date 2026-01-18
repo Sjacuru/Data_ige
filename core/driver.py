@@ -146,8 +146,18 @@ def create_driver(
         # ─────────────────────────────────────────────────────────────
         # CREATE DRIVER
         # ─────────────────────────────────────────────────────────────
-        service = Service(ChromeDriverManager().install())
-        driver = webdriver.Chrome(service=service, options=options)
+        import shutil
+        chrome_bin = shutil.which("chromium-browser") or shutil.which("google-chrome")
+        if chrome_bin:
+            options.binary_location = chrome_bin
+            
+        try:
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
+        except Exception as e:
+            logger.warning(f"ChromeDriverManager failed, trying system default: {e}")
+            # Fallback for systems where ChromeDriverManager fails (like some Streamlit Cloud setups)
+            driver = webdriver.Chrome(options=options)
         
         # ─────────────────────────────────────────────────────────────
         # POST-CREATION SETUP

@@ -569,16 +569,20 @@ def search_and_extract_publication(
                 if not go_to_page(driver, page_num):
                     continue
             
-            # Get results on this page
+            # Filter for items that might have EXTRATO
             result_items = get_result_items(driver)
             
-            # Filter for items that might have EXTRATO
-            extrato_items = [item for item in result_items if item.has_extrato]
+            # 1. First priority: EXTRATO DO CONTRATO (Original)
+            contract_items = [item for item in result_items if "EXTRATO DO CONTRATO" in item.preview_text.upper()]
+            # 2. Second priority: Any other target type
+            other_items = [item for item in result_items if item.has_extrato and item not in contract_items]
             
-            logging.info(f"   📋 Page {page_num}: {len(extrato_items)} item(s) with EXTRATO")
+            sorted_items = contract_items + other_items
             
-            # Check each EXTRATO item
-            for item in extrato_items:
+            logging.info(f"   📋 Page {page_num}: {len(sorted_items)} item(s) to check (Priority: {len(contract_items)} Contract, {len(other_items)} Others)")
+            
+            # Check each prioritized item
+            for item in sorted_items:
                 results_checked += 1
                 logging.info(f"\n   → Checking result [{item.index}]: {item.publication_date} - Ed.{item.edition_number} - Pág.{item.page_number}")
                 

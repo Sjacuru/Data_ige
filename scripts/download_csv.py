@@ -38,6 +38,8 @@ logger = logging.getLogger(__name__)
 
 from core.navigation import set_year_filter
 
+from config import DATA_RAW_PATH
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -265,6 +267,8 @@ def download_contracts_csv(year=None, headless=False):
     Returns:
         Path to downloaded file or None
     """
+    os.makedirs(DATA_RAW_PATH, exist_ok=True)  
+    
     logging.info("\n" + "=" * 60)
     logging.info("     DOWNLOAD CSV - ContasRio")
     logging.info("=" * 60)

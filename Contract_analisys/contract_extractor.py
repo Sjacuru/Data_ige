@@ -21,7 +21,6 @@ import os
 import json
 import re
 import sys
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path 
 from typing import Optional, Callable
 from datetime import datetime
@@ -37,11 +36,32 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 
 from dotenv import load_dotenv, find_dotenv
 
-from text_preprocessor import preprocess_contract_text
+try:
+    from .text_preprocessor import preprocess_contract_text
+except (ImportError, ValueError):
+    try:
+        from text_preprocessor import preprocess_contract_text
+    except ImportError:
+        from Contract_analisys.text_preprocessor import preprocess_contract_text
 
 import platform
 
 import logging
+
+# Streamlit secrets support
+try:
+    import streamlit as st
+    HAS_STREAMLIT = True
+except ImportError:
+    HAS_STREAMLIT = False
+
+def get_secret(key, default=None):
+    if HAS_STREAMLIT:
+        try:
+            return st.secrets.get(key, os.getenv(key, default))
+        except:
+            pass
+    return os.getenv(key, default)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,30 +75,65 @@ logger = logging.getLogger(__name__)
 
 CONFORMITY_ENABLED = True  # Set to False to disable conformity checks
 
-TESSERACT_PATH = r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
-TESSDATA_DIR = r"C:\Program Files\Tesseract-OCR\tessdata"
-POPPLER_PATH = os.getenv("POPPLER_HOME", r"C:\Users\sjacu\anaconda3\envs\MSE800_Salim\Library\bin")  
+# Detect system
+is_windows = platform.system() == "Windows"
+
+# Tesseract executable path
+TESSERACT_PATH = os.getenv(
+    "TESSERACT_PATH",
+    r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
+    if is_windows else "tesseract"
+)
+
+# TESSDATA_DIR (points to tessdata folder)
+TESSDATA_DIR = os.getenv(
+    "TESSDATA_PREFIX",  # Note: Tesseract often uses this env var name
+    r"C:\Program Files\Tesseract-OCR\tessdata"
+    if is_windows else None
+)
+
+# Poppler path (for pdftoppm or similar)
+POPPLER_PATH = os.getenv(
+    "POPPLER_PATH",
+    r"C:\Users\sjacu\anaconda3\envs\MSE800_Salim\Library\bin"
+    if is_windows else None
+)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env") 
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY") 
+GROQ_API_KEY = get_secret("GROQ_API_KEY") 
 if not GROQ_API_KEY:
-    raise EnvironmentError("❌ GROQ_API_KEY not found in environment variables!")
+    logger.warning("⚠️ GROQ_API_KEY not found in environment variables!")
 
 
 MODEL_NAME = "llama-3.3-70b-versatile"
-model = ChatGroq(model_name=MODEL_NAME, 
-                  temperature=0.3, 
-                  max_tokens=2048,
-                  api_key=os.getenv("GROQ_API_KEY") 
-                  )
+if GROQ_API_KEY:
+    model = ChatGroq(model_name=MODEL_NAME, 
+                      temperature=0.3, 
+                      max_tokens=2048,
+                      api_key=os.getenv("GROQ_API_KEY") 
+                      )
+else:
+    model = None
 
 pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
-os.environ["TESSDATA_PREFIX"] = TESSDATA_DIR
+if TESSDATA_DIR:
+    os.environ["TESSDATA_PREFIX"] = TESSDATA_DIR
 
-if not os.path.exists(r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"):
-    raise FileNotFoundError("Tesseract executable not found!")
+# Check if Tesseract is available
+TESSERACT_FOUND = True
+if platform.system() == "Windows":
+    if not os.path.exists(TESSERACT_PATH):
+        TESSERACT_FOUND = False
+        logger.warning(f"Tesseract not found at {TESSERACT_PATH}")
+else:
+    import shutil
+    if not shutil.which("tesseract"):
+        TESSERACT_FOUND = False
+        logger.warning("Tesseract not found in PATH")
+
+EXTRACTOR_LOADED = (model is not None) and TESSERACT_FOUND
 
 # Risk keywords to flag in contracts
 # ============================================================

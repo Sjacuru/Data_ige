@@ -17,13 +17,17 @@ logger = logging.getLogger(__name__)
 # Test 1: JSON extraction
 logging.info("Test 1: JSON Extraction")
 test_cases = [
-    '{"valor": "R$ 100"}',
-    '```json\n{"valor": "R$ 100"}\n```',
-    'Here is the data:\n```\n{"valor": "R$ 100"}\n```\nDone!',
+    '{"valor_contrato": "R$ 100", "numero_processo": "SME-PRO-2025/19222"}',
+    '```json\n{"valor_contrato": "R$ 100", "numero_processo": "SME-PRO-2025/19222"}\n```',
+    'Here is the data:\n```\n{"valor_contrato": "R$ 100", "numero_processo": "SME-PRO-2025/19222"}\n```\nDone!',
 ]
 for tc in test_cases:
     result = extract_json_from_response(tc)
-    logging.info(f"  ✅ {result}")
+    if "numero_processo" in result:
+        logging.info(f"  ✅ Found field 'numero_processo': {result['numero_processo']}")
+    else:
+        logging.error(f"  ❌ Missing field 'numero_processo' in {result}")
+    logging.info(f"  ✅ Full result: {result}")
 
 # Test 2: Risk flags
 logging.info("\nTest 2: Risk Flags")
