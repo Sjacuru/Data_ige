@@ -50,6 +50,7 @@ DEFAULT_HEADLESS = True
 
 # Keys to look for processo number in contract data
 PROCESSO_KEYS = [
+    "processo_id",             # Prioritize the cross-referenced ID from CSV
     "processo_administrativo",
     "numero_processo",
     "processo",

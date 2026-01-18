@@ -12,12 +12,6 @@ Features:
 - Contract type identification
 - 🆕 Data collection from ContasRio (scraping)
 """
-import os
-import shutil
-
-pdfinfo = shutil.which("pdfinfo")
-if pdfinfo:
-    os.environ["PATH"] = os.path.dirname(pdfinfo) + os.pathsep + os.environ["PATH"]
 import streamlit as st
 import pandas as pd
 from pathlib import Path
@@ -162,7 +156,7 @@ def main():
         "📄 Arquivo Individual", "📦 Processamento em Lote", "📊 Resultados", "🔍 Conformidade", "❓ Ajuda"
     ])
     
-    with tab1: render_single_file_tab(stats)
+    with tab1: render_single_file_tab(stats, summary_df)
     with tab2: render_batch_tab(stats)
     with tab3: render_results_tab()
     with tab4: render_conformity_tab()

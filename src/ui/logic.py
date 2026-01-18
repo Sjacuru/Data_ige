@@ -310,7 +310,7 @@ def compare_data_sources(scraped_path: Path, portal_path: Path) -> dict:
     
     return result
 
-def run_single_extraction_logic(pdf_path: Path):
+def run_single_extraction_logic(pdf_path: Path, hint_id: str = ""):
     """
     Executes extraction with local caching to save credits.
     """
@@ -320,11 +320,16 @@ def run_single_extraction_logic(pdf_path: Path):
     cached = get_cached_extraction(pdf_name)
     if cached:
         add_audit_log(f"Cache encontrado para {pdf_name}. Carregando dados locais.")
+        # Ensure we use the latest hint_id from CSV even if cache has old ID
+        if hint_id:
+            cached["processo_id"] = hint_id
+            if "extracted_data" in cached:
+                cached["extracted_data"]["processo_id"] = hint_id
         return cached
 
     # 2. Run Real Extraction
     add_audit_log(f"Cache não encontrado. Iniciando Extração AI para {pdf_name}...")
-    result = process_single_contract(str(pdf_path))
+    result = process_single_contract(str(pdf_path), hint_id)
     
     # 3. Save to Cache if successful
     if result.get("success"):

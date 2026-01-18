@@ -75,29 +75,9 @@ logger = logging.getLogger(__name__)
 
 CONFORMITY_ENABLED = True  # Set to False to disable conformity checks
 
-# Detect system
-is_windows = platform.system() == "Windows"
-
-# Tesseract executable path
-TESSERACT_PATH = os.getenv(
-    "TESSERACT_PATH",
-    r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
-    if is_windows else "tesseract"
-)
-
-# TESSDATA_DIR (points to tessdata folder)
-TESSDATA_DIR = os.getenv(
-    "TESSDATA_PREFIX",  # Note: Tesseract often uses this env var name
-    r"C:\Program Files\Tesseract-OCR\tessdata"
-    if is_windows else None
-)
-
-# Poppler path (for pdftoppm or similar)
-POPPLER_PATH = os.getenv(
-    "POPPLER_PATH",
-    r"C:\Users\sjacu\anaconda3\envs\MSE800_Salim\Library\bin"
-    if is_windows else None
-)
+TESSERACT_PATH = get_secret("TESSERACT_PATH", r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tesseract.exe" if platform.system() == "Windows" else "tesseract")
+TESSDATA_DIR = get_secret("TESSDATA_PREFIX", r"C:\Users\sjacu\AppData\Local\Programs\Tesseract-OCR\tessdata" if platform.system() == "Windows" else None)
+POPPLER_PATH = get_secret("POPPLER_PATH", r"C:\Users\sjacu\anaconda3\envs\MSE800_Salim\Library\bin" if platform.system() == "Windows" else None)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env") 
@@ -112,7 +92,7 @@ if GROQ_API_KEY:
     model = ChatGroq(model_name=MODEL_NAME, 
                       temperature=0.3, 
                       max_tokens=2048,
-                      api_key=os.getenv("GROQ_API_KEY") 
+                      api_key=GROQ_API_KEY 
                       )
 else:
     model = None
@@ -344,19 +324,45 @@ def setup_ocr():
     Force and validate Tesseract OCR.
     Must be called before any OCR operation.
     """
-    if not os.path.exists(TESSERACT_PATH):
-        raise FileNotFoundError(f"Tesseract not found: {TESSERACT_PATH}")
-
-    pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
+    global TESSERACT_FOUND
+    
+    # Try to find tesseract
+    tesseract_cmd = TESSERACT_PATH
+    
+    if platform.system() == "Windows":
+        if not os.path.exists(tesseract_cmd):
+            TESSERACT_FOUND = False
+            return False
+    else:
+        import shutil
+        if not shutil.which(tesseract_cmd):
+            # Try common paths as fallback
+            common_paths = ["/usr/bin/tesseract", "/usr/local/bin/tesseract", "/Users/sjacu/AppData/Local/ProgramsTesseract-OCR"]
+            found = False
+            for p in common_paths:
+                if os.path.exists(p):
+                    tesseract_cmd = p
+                    found = True
+                    break
+            if not found:
+                TESSERACT_FOUND = False
+                return False
+    
+    pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
 
     # Validate execution (fast, no OCR yet)
     try:
         pytesseract.get_tesseract_version()
+        TESSERACT_FOUND = True
+        return True
     except Exception as e:
-        raise RuntimeError(f"Tesseract OCR not usable: {e}")
+        logger.warning(f"Tesseract OCR not usable: {e}")
+        TESSERACT_FOUND = False
+        return False
 
 def extract_text_from_pdf(pdf_path: str) -> dict:
     try:
+        # Don't fail here if OCR is missing, just try native extraction
         setup_ocr()
 
         doc = fitz.open(pdf_path)
@@ -374,9 +380,14 @@ def extract_text_from_pdf(pdf_path: str) -> dict:
 
         # Decide extraction method
         if avg_chars < 300:
-            logging.info("🧠 Low text density detected → switching to full OCR (pdf2image)")
-            raw_text = extract_text_with_pdf2image(pdf_path)
-            source = "ocr_pdf2image"
+            if TESSERACT_FOUND:
+                logging.info("🧠 Low text density detected → switching to full OCR (pdf2image)")
+                raw_text = extract_text_with_pdf2image(pdf_path)
+                source = "ocr_pdf2image"
+            else:
+                logging.warning("⚠️ Low text density but Tesseract not found! Using native text anyway.")
+                raw_text = native_text
+                source = "native_insufficient"
         else:
             logging.info("📄 Native text layer sufficient")
             raw_text = native_text
@@ -566,14 +577,6 @@ def run_conformity_check(
 ) -> Optional[dict]:
     """
     Run publication conformity check for extracted contract.
-    
-    Args:
-        extracted_data: Data extracted from contract by AI
-        processo_id: Processo number (if known)
-        headless: Run browser in headless mode
-        
-    Returns:
-        Conformity result dict or None if check failed/disabled
     """
     if not CONFORMITY_ENABLED:
         logging.info("⏭️ Conformity check disabled")
@@ -585,26 +588,23 @@ def run_conformity_check(
         return None
     
     # Build contract data dict for conformity check
+    # PRIORITY: Use processo_id (from CSV/Filename) if available, otherwise fallback to AI
+    processo = processo_id or extracted_data.get("processo_administrativo") or extracted_data.get("numero_processo")
+    
     contract_data = {
-        "processo_administrativo": extracted_data.get("processo_administrativo") or processo_id,
-        "numero_processo": extracted_data.get("numero_processo") or processo_id,
+        "processo_id": processo_id,
+        "processo_administrativo": extracted_data.get("processo_administrativo"),
+        "numero_processo": extracted_data.get("numero_processo"),
         "numero_contrato": extracted_data.get("numero_contrato"),
         "valor_contrato": extracted_data.get("valor_contrato"),
         "data_assinatura": extracted_data.get("data_assinatura"),
         "data_inicio": extracted_data.get("data_inicio"),
         "data_fim": extracted_data.get("data_fim"),
         "contratante": extracted_data.get("contratante"),
-        "contratante_cnpj": extracted_data.get("contratante_cnpj"),
         "contratada": extracted_data.get("contratada"),
-        "contratada_cnpj": extracted_data.get("contratada_cnpj"),
         "objeto": extracted_data.get("objeto"),
-        "vigencia_meses": extracted_data.get("vigencia_meses"),
-        "modalidade_licitacao": extracted_data.get("modalidade_licitacao"),
-        "tipo_contrato": extracted_data.get("tipo_contrato"),
     }
     
-    # Check if we have enough data
-    processo = contract_data.get("processo_administrativo") or contract_data.get("numero_processo")
     if not processo:
         logger.warning("⚠️ No processo number found - skipping conformity check")
         return None
@@ -771,12 +771,16 @@ def find_processo_id_for_file(file_name: str, summary_df: pd.DataFrame) -> str:
         return result
     
     file_stem = Path(file_name).stem.upper()
+    file_stem_clean = re.sub(r'[.\-/\s]', '', file_stem)
     
     # Try to match by Processo column
     if "Processo" in summary_df.columns:
         for _, row in summary_df.iterrows():
             processo = str(row.get("Processo", "")).upper()
-            if processo and (processo in file_stem or file_stem in processo):
+            processo_clean = re.sub(r'[.\-/\s]', '', processo)
+            
+            if processo and (processo in file_stem or file_stem in processo or 
+                            processo_clean in file_stem_clean or file_stem_clean in processo_clean):
                 result.update({
                     "processo_id": row.get("Processo", ""),
                     "empresa": row.get("Empresa", ""),

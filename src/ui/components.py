@@ -12,7 +12,7 @@ from src.ui.utils import (
 )
 from src.ui.logic import compare_data_sources, run_conformity_check_logic, run_single_extraction_logic
 from Contract_analisys.contract_extractor import (
-    process_single_contract, export_to_excel, export_to_json, get_folder_stats, TYPES_KEYWORDS
+    process_single_contract, export_to_excel, export_to_json, get_folder_stats, TYPES_KEYWORDS, find_processo_id_for_file
 )
 
 # Constants from config
@@ -204,7 +204,7 @@ def render_audit_logs():
             color = "blue" if log["level"] == "info" else "red" if log["level"] == "error" else "green"
             st.markdown(f"**{log['timestamp']}** — :{color}[{log['message']}]")
 
-def render_single_file_tab(stats):
+def render_single_file_tab(stats, summary_df):
     st.header("🎯 Processamento de Contrato")
     
     # Render logs at the top
@@ -216,6 +216,15 @@ def render_single_file_tab(stats):
 
     selected = st.selectbox("Selecione o PDF para análise:", stats["files"], key="proc_select")
     
+    # Find ID from CSV as a hint
+    match_data = find_processo_id_for_file(selected, summary_df)
+    hint_id = match_data.get("processo_id", "")
+    
+    if hint_id:
+        st.caption(f"🆔 ID Identificado via CSV: **{hint_id}**")
+    else:
+        st.caption("🆔 ID não encontrado no CSV de resumo.")
+
     st.divider()
     
     # Mode Selection
@@ -231,7 +240,7 @@ def render_single_file_tab(stats):
         if c1.button("1. Extração AI", use_container_width=True):
             add_audit_log(f"Iniciando extração AI para {selected}")
             with st.status("IA Analisando PDF...") as s:
-                res = run_single_extraction_logic(PROCESSOS_DIR / selected)
+                res = run_single_extraction_logic(PROCESSOS_DIR / selected, hint_id)
                 st.session_state.current_extraction = res
                 s.update(label="Extração Completa!", state="complete")
             add_audit_log(f"Extração concluída para {selected}")
@@ -277,7 +286,7 @@ def render_single_file_tab(stats):
             add_audit_log(f"Iniciando auditoria automática para {selected}")
             with st.status("Executando Auditoria Ponta-a-Ponta...") as status:
                 st.write("Lendo Contrato...")
-                res = process_single_contract(str(PROCESSOS_DIR / selected))
+                res = run_single_extraction_logic(PROCESSOS_DIR / selected, hint_id)
                 st.session_state.current_extraction = res
                 
                 st.write("Verificando Publicação no D.O. Rio...")
