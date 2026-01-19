@@ -55,6 +55,8 @@ try:
 except ImportError:
     HAS_STREAMLIT = False
 
+from Contract_analisys.cached_contract_extractor import process_single_contract_cached
+
 def get_secret(key, default=None):
     if HAS_STREAMLIT:
         try:
@@ -889,7 +891,7 @@ def process_all_contracts(
         processo_id = match_data["processo_id"]
 
         # Process the contract
-        result = process_single_contract(str(pdf_path), processo_id)
+        result = process_single_contract_cached(pdf_path, processo_id)
         
         # Add cross-reference data
         result["csv_match"] = match_data

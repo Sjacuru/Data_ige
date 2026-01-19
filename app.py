@@ -55,6 +55,8 @@ try:
 except ImportError:
     DRIVER_AVAILABLE = False
 
+from Contract_analisys.cached_contract_extractor import process_single_contract_cached
+
 # ============================================================
 # APP CONFIGURATION
 # ============================================================

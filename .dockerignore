@@ -1,0 +1,68 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+data/temp_*
+data/downloads/*.pdf
+data/downloads/processos/*.pdf
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Large files (keep only sample data)
+*.zip
+*.tar.gz
+*.rar
+
+# Keep structure but ignore large downloads
+data/downloads/*
+!data/downloads/.gitkeep
+data/extractions/*
+!data/extractions/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
