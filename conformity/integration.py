@@ -12,9 +12,12 @@ Flow:
 """
 
 import json
+import re
 from pathlib import Path
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Tuple
 from datetime import datetime
+
+
 
 from typing import Tuple # for older Python versions
 
@@ -22,6 +25,8 @@ from typing import Tuple # for older Python versions
 import sys
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+
+from conformity.scraper.doweb_scraper import search_and_extract_publication_v2
 
 # Import from conformity modules
 from conformity.scraper.doweb_scraper import search_and_extract_publication
@@ -57,30 +62,88 @@ PROCESSO_KEYS = [
     "processo_instrutivo",
 ]
 
-
 # =========================================================================
 # HELPER FUNCTIONS
 # =========================================================================
 
-def extract_processo_from_contract(contract_data: Dict) -> Optional[str]:
+def normalize_processo_format(processo: str) -> str:
     """
-    Extract processo number from contract data.
+    Normalize processo number to standard format.
     
-    Tries multiple possible keys.
+    Handles:
+    - SME-PRO-2025/19222 (keep as is)
+    - SME/001234/2019 (keep as is)
+    - 001/04/000123/2020 (keep as is)
+    """
+    if not processo:
+        return ""
     
-    Args:
-        contract_data: Dictionary with contract information
-        
+    # Remove extra whitespace
+    processo = processo.strip()
+    
+    # Remove common prefixes like "Nº", "N°", "No."
+    processo = re.sub(r'^(n[º°]?\.?\s*)', '', processo, flags=re.IGNORECASE)
+    
+    return processo
+
+
+def extract_processo_from_contract(contract_data: Dict) -> Tuple[Optional[str], str]:
+    """
+    Extract processo number from contract data with better logic.
+    
+    Priority:
+    1. processo_administrativo (main field from AI extraction)
+    2. numero_processo (secondary field)
+    3. processo_instrutivo (from DOWeb publication)
+    4. processo (generic fallback)
+    
     Returns:
-        Processo number or None
+        Tuple of (processo_number, source_field)
     """
-    for key in PROCESSO_KEYS:
-        value = contract_data.get(key)
-        if value and isinstance(value, str) and len(value) > 5:
-            logging.info(f"   📋 Found processo in '{key}': {value}")
-            return value
+    # Define search order with priorities
+    search_order = [
+        ("processo_administrativo", 1),  # Highest priority
+        ("numero_processo", 2),
+        ("processo_instrutivo", 3),
+        ("processo", 4),
+    ]
     
-    return None
+    found_processos = []
+    
+    for field_name, priority in search_order:
+        value = contract_data.get(field_name)
+        if value and isinstance(value, str) and len(value) > 5:
+            normalized = normalize_processo_format(value)
+            
+            # Validate format (must contain letters and numbers)
+            if re.search(r'[A-Z]{2,4}', normalized, re.IGNORECASE) and re.search(r'\d{4}', normalized):
+                found_processos.append({
+                    'value': normalized,
+                    'field': field_name,
+                    'priority': priority
+                })
+    
+    if not found_processos:
+        logging.warning("   ⚠️ No valid processo number found in contract data")
+        logging.info(f"   Available fields: {list(contract_data.keys())}")
+        return None, ""
+    
+    # Sort by priority and take the best one
+    found_processos.sort(key=lambda x: x['priority'])
+    best = found_processos[0]
+    
+    logging.info(f"   ✓ Using processo from '{best['field']}': {best['value']}")
+    
+    # Log if there are multiple different processos (potential issue)
+    if len(found_processos) > 1:
+        unique_values = set(p['value'] for p in found_processos)
+        if len(unique_values) > 1:
+            logging.warning(f"   ⚠️ Multiple different processos found:")
+            for p in found_processos:
+                logging.info(f"      - {p['field']}: {p['value']}")
+            logging.info(f"   → Using highest priority: {best['value']}")
+    
+    return best['value'], best['field']
 
 
 def validate_contract_data(contract_data: Dict) -> tuple[bool, str]:
@@ -95,14 +158,15 @@ def validate_contract_data(contract_data: Dict) -> tuple[bool, str]:
     
     if not isinstance(contract_data, dict):
         return False, "Contract data must be a dictionary"
-    
+
+
     # Check for processo
-    processo = extract_processo_from_contract(contract_data)
+    processo, source = extract_processo_from_contract(contract_data)
     if not processo:
-        return False, "No processo number found in contract data"
+        available_keys = [k for k in contract_data.keys() if 'processo' in k.lower()]
+        return False, f"No valid processo number found. Available processo fields: {available_keys}"
     
     return True, ""
-
 
 # =========================================================================
 # MAIN INTEGRATION FUNCTION
@@ -111,14 +175,14 @@ def validate_contract_data(contract_data: Dict) -> tuple[bool, str]:
 def check_publication_conformity(
     contract_data: Dict,
     processo: Optional[str] = None,
-    headless: bool = DEFAULT_HEADLESS,
+    headless: bool = True,
     skip_doweb_search: bool = False,
-    publication_result: Optional[PublicationResult] = None
-) -> ConformityResult:
+    publication_result = None
+) -> 'ConformityResult':
     """
     Main integration function: Check if contract was published and compare data.
     
-    This is the entry point for conformity checking.
+    IMPROVED: Better processo extraction and validation.
     
     Args:
         contract_data: Dictionary with contract information (from contract_extractor)
@@ -129,25 +193,6 @@ def check_publication_conformity(
         
     Returns:
         ConformityResult with full analysis
-    
-    Example:
-        ```python
-        from conformity.integration import check_publication_conformity
-        
-        contract_data = {
-            "processo_administrativo": "SME-PRO-2025/19222",
-            "numero_contrato": "215/2025",
-            "valor_contrato": "R$ 572.734,00",
-            ...
-        }
-        
-        result = check_publication_conformity(contract_data)
-        
-        if result.overall_status == ConformityStatus.CONFORME:
-            logging.info("✅ Contract is conformant!")
-        else:
-            logger.error(f"❌ Issues found: {result.overall_status.value}")
-        ```
     """
     logging.info("\n" + "=" * 60)
     logging.info("🔍 CONFORMITY CHECK: Publication Verification")
@@ -158,43 +203,57 @@ def check_publication_conformity(
     is_valid, error = validate_contract_data(contract_data)
     
     if not is_valid:
-        logger.error(f"   ❌ Validation failed: {error}")
+        logging.error(f"   ❌ Validation failed: {error}")
         return ConformityResult(
             processo=processo or "UNKNOWN",
             overall_status=ConformityStatus.NAO_CONFORME,
             error=f"Invalid contract data: {error}"
         )
     
-    # Step 2: Get processo number
+    # Step 2: Get processo number with improved extraction
     logging.info("\n📋 Step 2: Extracting processo number...")
-    if not processo:
-        processo = extract_processo_from_contract(contract_data)
     
     if not processo:
-        logging.info("   ❌ No processo number found")
+        processo, source_field = extract_processo_from_contract(contract_data)
+        if processo:
+            logging.info(f"   ✓ Extracted from '{source_field}': {processo}")
+    else:
+        # User provided processo - normalize it
+        processo = normalize_processo_format(processo)
+        logging.info(f"   ✓ Using provided processo: {processo}")
+        source_field = "user_provided"
+    
+    if not processo:
+        logging.error("   ❌ No valid processo number found")
         return ConformityResult(
             processo="UNKNOWN",
             overall_status=ConformityStatus.NAO_CONFORME,
-            error="Could not extract processo number from contract data"
+            error="Could not extract valid processo number from contract data"
         )
     
-    logging.info(f"   ✓ Processo: {processo}")
+    # Validate processo format
+    if not re.search(r'[A-Z]{2,4}', processo, re.IGNORECASE):
+        logging.warning(f"   ⚠️ Processo format looks unusual: {processo}")
     
     # Step 3: Search DOWEB for publication
-    logging.info("\n📋 Step 3: Searching D.O. Rio for publication...")
+    logging.info(f"\n📋 Step 3: Searching D.O. Rio for: {processo}")
     
     if skip_doweb_search and publication_result:
         logging.info("   ⏭️ Skipping search (using provided publication_result)")
         pub_result = publication_result
     else:
-        pub_result = search_and_extract_publication(
+        from conformity.scraper.doweb_scraper import search_and_extract_publication
+        pub_result = search_and_extract_publication_v2(
             processo=processo,
+            contract_date=contract_data.get("data_assinatura"),  # Pass date for better scoring
             headless=headless
-        )
-    
+        )        
+
+
     # Step 4: Analyze conformity
     logging.info("\n📋 Step 4: Analyzing conformity...")
     
+    from conformity.analyzer.publication_conformity import analyze_publication_conformity
     conformity_result = analyze_publication_conformity(
         contract_data=contract_data,
         publication_result=pub_result
@@ -205,6 +264,7 @@ def check_publication_conformity(
     logging.info("📊 CONFORMITY CHECK COMPLETE")
     logging.info("=" * 60)
     logging.info(f"   Processo: {processo}")
+    logging.info(f"   Source: {source_field}")
     logging.info(f"   Status: {conformity_result.overall_status.value}")
     logging.info(f"   Score: {conformity_result.conformity_score:.1f}%")
     
@@ -221,7 +281,6 @@ def check_publication_conformity(
     logging.info("=" * 60)
     
     return conformity_result
-
 
 # =========================================================================
 # BATCH PROCESSING
@@ -392,4 +451,31 @@ if __name__ == "__main__":
         f"data/conformity/test_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
     )
 
+# =========================================================================
+# DEBUG HELPER
+# =========================================================================
+
+def debug_processo_extraction(contract_data: Dict) -> None:
+    """
+    Debug helper to see what processo values are in the contract data.
+    """
+    logging.info("\n" + "=" * 60)
+    logging.info("🔍 DEBUG: Processo Fields in Contract Data")
+    logging.info("=" * 60)
+    
+    processo_fields = {k: v for k, v in contract_data.items() if 'processo' in k.lower()}
+    
+    if not processo_fields:
+        logging.info("   ❌ No processo fields found!")
+        logging.info(f"   Available fields: {list(contract_data.keys())[:10]}")
+    else:
+        logging.info(f"   Found {len(processo_fields)} processo field(s):")
+        for field, value in processo_fields.items():
+            normalized = normalize_processo_format(str(value)) if value else ""
+            logging.info(f"   • {field}: '{value}' → normalized: '{normalized}'")
+    
+    # Try extraction
+    processo, source = extract_processo_from_contract(contract_data)
+    logging.info(f"\n   ✅ Selected: {processo} (from '{source}')")
+    logging.info("=" * 60)
     

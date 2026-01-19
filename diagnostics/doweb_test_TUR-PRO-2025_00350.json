@@ -1,0 +1,31 @@
+{
+  "processo_searched": "TUR-PRO-2025/00350",
+  "search_timestamp": "2026-01-19T12:01:34.049006",
+  "found": true,
+  "search_results_total": 5,
+  "results_checked": 1,
+  "pages_navigated": 1,
+  "publication": {
+    "date": "09/04/2025",
+    "edition": "18",
+    "page": "105",
+    "download_link": "https://doweb.rio.rj.gov.br/portal/edicoes/download/7608/124"
+  },
+  "extracted_data": {
+    "orgao": "RIOTUR-EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO",
+    "tipo_extrato": "TERMO DE ACEITE",
+    "processo_instrutivo": "TUR-PRO-2025/00350",
+    "numero_contrato": "085/2025",
+    "data_assinatura": "23/09/2025",
+    "partes": "Daniella Fontenelle Gonçalves Lerma Silva",
+    "objeto": "apresentações artísticas nos eventos do Terreirão do Samba no Carnaval 2025",
+    "prazo": null,
+    "valor": null,
+    "programa_trabalho": null,
+    "natureza_despesa": null,
+    "nota_empenho": null,
+    "fundamento": null
+  },
+  "error": null,
+  "error_stage": null
+}

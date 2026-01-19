@@ -512,6 +512,8 @@ IMPORTANTE:
 - Use null para campos não encontrados
 - Datas no formato DD-MM-YYYY
 - Valores monetários como string (ex: "R$ 1.234,56")
+- Se processo_id foi fornecido como "{processo_id}", use-o como referência mas SEMPRE 
+  verifique se há um processo no texto também.
     
 TEXTO DO CONTRATO:
 {truncated_text}
@@ -531,10 +533,14 @@ Extraia este JSON:
   "tipo_contrato": null, se não encontrar o tipo do contrato (ex: "Prestação de Serviços", "Fornecimento", "Obra", etc.)
   "modalidade_licitacao": null, se não encontrar a modalidade de licitação se aplicável
   "numero_contrato": null, se não encontrar o número/identificador do contrato
-  "processo_administrativo": null, se não encontrar o número do processo administrativo relacionado ao contrato (formto: XXX-XXX-0000/00000 or 0000/###/000000 or ###/000000)
-  "numero_processo": null se não encontrar o número do processo relacionado ao contrato (string), geralmente encontrado no cabeçalho ou no início do contrato
+  "processo_administrativo": null, se não encontrar o número do processo administrativo relacionado ao contrato (possiveis formatos: XXX-XXX-0000/00000 or 0000/###/000000 or ###/000000)
+  "numero_processo": null, se não encontrar o número do processo relacionado ao contrato (string), geralmente encontrado no cabeçalho ou no início do contrato (possiveis formatos: XXX-XXX-0000/00000 or 0000/###/000000 or ###/000000)
   "foi_truncado": {"true" if was_truncated else "false"}
-}}"""
+}}
+LEMBRE-SE: 
+- processo_administrativo = número do processo que originou o contrato (prioritário)
+- numero_processo = outro número de processo SE houver um diferente
+- numero_contrato = número do contrato em si (diferente do processo)"""
 
     try:
         response = model.invoke(prompt)
@@ -553,11 +559,39 @@ Extraia este JSON:
                 "raw_response": content[:500]
             }
         
+        # ═══════════════════════════════════════════════════════════
+        # POST-PROCESSING: Validate processo fields
+        # ═══════════════════════════════════════════════════════════
+
+        proc_admin = extracted.get("processo_administrativo")
+        num_proc = extracted.get("numero_processo")
+        
+        # If both are present and identical, clear numero_processo
+        if proc_admin and num_proc:
+            # Normalize both for comparison
+            norm_admin = re.sub(r'[^\w]', '', proc_admin).lower()
+            norm_num = re.sub(r'[^\w]', '', num_proc).lower()
+            
+            if norm_admin == norm_num:
+                logging.info(f"   ℹ️  processo_administrativo and numero_processo are identical, clearing numero_processo")
+                extracted["numero_processo"] = None
+        
+        # If processo_id was provided but nothing was extracted, use it as fallback
+        if processo_id and not proc_admin and not num_proc:
+            logging.info(f"   ℹ️  No processo found in text, using provided processo_id: {processo_id}")
+            extracted["processo_administrativo"] = processo_id
+        
+        # Validation warning
+        if not proc_admin and not num_proc:
+            logging.warning(f"   ⚠️  WARNING: No processo number extracted!")
+        
     except Exception as e:
         result = {
             "error": str(e),
             "error_type": type(e).__name__
         }
+        extracted = result
+        
     
     # Add metadata
     extracted["processo_id"] = processo_id
