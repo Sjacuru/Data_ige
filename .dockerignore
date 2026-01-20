@@ -6,6 +6,9 @@
 # Python
 __pycache__
 *.py[cod]
+*.pyc
+*.pyo
+*.pyd
 *$py.class
 *.so
 .Python
@@ -22,6 +25,7 @@ venv/
 env/
 ENV/
 .venv
+.venv/
 
 # IDE
 .vscode/
@@ -43,8 +47,7 @@ logs/
 *.tmp
 *.temp
 data/temp_*
-data/downloads/*.pdf
-data/downloads/processos/*.pdf
+#data/downloads/processos/*.pdf
 
 # Documentation
 *.md
@@ -60,9 +63,19 @@ docs/
 *.rar
 
 # Keep structure but ignore large downloads
-data/downloads/*
+
 !data/downloads/.gitkeep
 data/extractions/*
 !data/extractions/.gitkeep
 data/outputs/*
 !data/outputs/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
+
+!data/downloads/processos/
+!data/downloads/processos/TURCAP202500477.pdf
+
+node_modules/
+tests/
+*.log
+Dockerfile
