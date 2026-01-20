@@ -278,12 +278,24 @@ def render_single_file_tab(stats, summary_df):
         # Rendering Results based on clicks
         if st.session_state.get("current_extraction"):
             with st.expander("📄 Dados Extraídos do PDF (Passo 1)", expanded=True):
-                st.json(st.session_state.current_extraction)
-        
-        if st.session_state.get("show_conformity"):
-            # Using the JSON sample you provided as the visual output
-            render_conformity_details(st.session_state.get("last_conformity_sample"))
+                extraction_data = st.session_state.current_extraction
 
+                if extraction_data.get("processo_url"):
+                    st.link_button("📄 Abrir Processo Completo", extraction_data["processo_url"])
+
+                st.json(extraction_data)
+
+        if st.session_state.get("show_conformity"):
+            conformity_data = st.session_state.get("last_conformity_sample")
+
+            if conformity_data and conformity_data.get("publication_check", {}).get("download_link"):
+                st.link_button(
+                    "📰 Ver Publicação no D.O. Rio", 
+                    conformity_data["publication_check"]["download_link"]
+                )
+            
+            render_conformity_details(conformity_data)
+            
     else: # AUTOMÁTICO
         if st.button("🚀 Iniciar Auditoria Completa", type="primary", use_container_width=True):
             add_audit_log(f"Iniciando auditoria automática para {selected} (ID: {hint_id})")
@@ -347,6 +359,8 @@ def create_results_dataframe(results: list) -> pd.DataFrame:
             "Tipos Identificados": types_info.get("primary_type", "N/A"),
             "Conformidade": conformity.get("overall_status", "⏳ Pendente") if conformity else "⏳ Pendente",
             "Score Conf.": f"{conformity.get('conformity_score', 0):.0f}%" if conformity else "N/A",
+            "Link Processo": r.get("processo_url", ""),
+            "Link D.O.": r.get("doweb_url", ""),
             "Páginas": r.get("total_pages", 0),
             "CSV Match": "✅" if csv_match.get("matched") else "❌",
             "Erro": r.get("error", "") or "",
@@ -386,7 +400,27 @@ def render_results_tab():
         filtered_df = filtered_df[mask]
     
     st.subheader(f"📋 Resultados ({len(filtered_df)} de {len(df)})")
-    st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+    
+    # Configure column display with clickable links
+    column_config = {
+        "Link Processo": st.column_config.LinkColumn(
+            "Link Processo",
+            help="Clique para ver no processo.rio",
+            display_text="🔗 Ver"
+        ),
+        "Link D.O.": st.column_config.LinkColumn(
+            "Link D.O.",
+            help="Clique para ver a publicação oficial",
+            display_text="📰 Ver"
+        )
+    }
+    
+    st.dataframe(
+        filtered_df, 
+        use_container_width=True, 
+        hide_index=True,
+        column_config=column_config
+    )
 
     # Export Section
     st.divider()
@@ -437,6 +471,20 @@ def render_results_tab():
                 st.markdown("### 🛡️ Conformidade")
                 render_conformity_badge(result_item.get("conformity"))
                 
+                st.markdown("### 🔗 Links Externos")
+        
+                processo_url = result_item.get("processo_url")
+                if processo_url:
+                    st.link_button("📄 Ver Processo Completo", processo_url, use_container_width=True)
+                else:
+                    st.caption("🔗 Link do processo não disponível")
+                
+                doweb_url = result_item.get("doweb_url")
+                if doweb_url:
+                    st.link_button("📰 Ver Publicação no D.O.", doweb_url, use_container_width=True)
+                else:
+                    st.caption("📰 Publicação não encontrada ou não verificada")
+
                 st.markdown("### 📂 Metadados")
                 st.write(f"**Páginas:** {result_item.get('total_pages')}")
                 st.write(f"**Tempo:** {result_item.get('processing_time', 0):.2f}s")
@@ -502,9 +550,24 @@ def render_conformity_tab():
     for r in st.session_state.results:
         conformity = r.get("conformity")
         file_name = r.get("file_name", "Desconhecido")
-        
+        processo_id = r.get("processo_id", "N/A")
+
         if conformity:
             status = conformity.get("overall_status", "DESCONHECIDO")
+
+            with st.expander(f"📄 {file_name} — {processo_id} — {status}"):
+                # Add quick links at the top
+                col1, col2 = st.columns(2)
+                with col1:
+                    if r.get("processo_url"):
+                        st.link_button("📄 Ver Processo", r["processo_url"], use_container_width=True)
+                with col2:
+                    if r.get("doweb_url"):
+                        st.link_button("📰 Ver D.O.", r["doweb_url"], use_container_width=True)
+                
+                st.divider()
+                render_conformity_details(conformity)
+
             with st.expander(f"{file_name} — {status}"):
                 render_conformity_details(conformity)
         else:

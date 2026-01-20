@@ -55,8 +55,6 @@ try:
 except ImportError:
     HAS_STREAMLIT = False
 
-from Contract_analisys.cached_contract_extractor import process_single_contract_cached
-
 def get_secret(key, default=None):
     if HAS_STREAMLIT:
         try:
@@ -742,7 +740,9 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
         "type_analysis": type_analysis,
         "extracted_data": ai_analysis,
         "error": ai_error,
-        "error_stage": "ai_analysis" if ai_error else None
+        "error_stage": "ai_analysis" if ai_error else None,
+        "processo_url": f"https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n={processo_id}" if processo_id else None,
+        "doweb_url": None
     }
     
     # ================================================================
@@ -761,6 +761,11 @@ def process_single_contract(pdf_path: str, processo_id: str = "") -> dict:
         
         result["conformity"] = conformity_result
         
+        if conformity_result and conformity_result.get("publication_check"):
+            pub = conformity_result["publication_check"]
+            if pub.get("download_link"):
+                result["doweb_url"] = pub["download_link"]
+
         if conformity_result and not conformity_result.get("error"):
             status = conformity_result.get("overall_status", "UNKNOWN")
             score = conformity_result.get("conformity_score", 0)
@@ -891,7 +896,7 @@ def process_all_contracts(
         processo_id = match_data["processo_id"]
 
         # Process the contract
-        result = process_single_contract_cached(pdf_path, processo_id)
+        result = process_single_contract(pdf_path, processo_id)
         
         # Add cross-reference data
         result["csv_match"] = match_data
