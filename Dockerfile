@@ -33,6 +33,9 @@ COPY . .
 
 # Create directories
 RUN mkdir -p data/downloads/processos data/outputs data/extractions data/temp_doweb
+COPY data/downloads/processos/TURCAP202500477.pdf data/downloads/processos/
+RUN ls -lh data/downloads/processos/ && echo "PDF files copied successfully"
+
 
 # Copy test PDF if exists
 #RUN if [ -f data/downloads/processos/TURCAP202500477.pdf ]; then cp data/downloads/processos/TURCAP202500477.pdf /app/data/downloads/processos/; fi

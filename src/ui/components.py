@@ -237,8 +237,8 @@ def render_single_file_tab(stats, summary_df):
         c1, c2, c3 = st.columns(3)
         
         # STEP 1
-        if c1.button("1. Extração AI", use_container_width=True):
-            add_audit_log(f"Iniciando extração AI para {selected}")
+        if c1.button("1. Extração IA", use_container_width=True):
+            add_audit_log(f"Iniciando extração II para {selected}")
             with st.status("IA Analisando PDF...") as s:
                 res = run_single_extraction_logic(PROCESSOS_DIR / selected, hint_id)
                 st.session_state.current_extraction = res

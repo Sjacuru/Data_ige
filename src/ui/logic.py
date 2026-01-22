@@ -328,7 +328,7 @@ def run_single_extraction_logic(pdf_path: Path, hint_id: str = ""):
         return cached
 
     # 2. Run Real Extraction
-    add_audit_log(f"Cache não encontrado. Iniciando Extração AI para {pdf_name}...")
+    add_audit_log(f"Cache não encontrado. Iniciando Extração IA para {pdf_name}...")
     result = process_single_contract(str(pdf_path), hint_id)
     
     # 3. Save to Cache if successful
