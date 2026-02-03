@@ -1,5 +1,5 @@
-from DATA_IGE.infrastructure.web.selenium_row_provider import SeleniumRowProvider
-from domain.scraping.contasrio_scraper import ContasRioScraper
+from New_Data_ige.infrastructure.web.selenium_row_provider import SeleniumRowProvider
+from New_Data_ige.domain.scraping.contasrio_scraper import ContasRioScraper
 from core.driver import create_driver
 
 def main():

@@ -143,10 +143,18 @@ def process_single_company(driver, company_data):
     """
     Process a single company: navigate, extract, analyze.
     Explores ALL branches and returns a LIST of reports (one per processo found).
+    
+    Args:
+        company_data: CompanyData object (not dict anymore!)
     """
-    company_id = company_data.get("ID")
+    # ═══════════════════════════════════════════════════════════
+    # CHANGED: Access properties instead of dict keys
+    # ═══════════════════════════════════════════════════════════
+    company_id = company_data.id  # Was: company_data.get("ID")
+    company_name = company_data.name  # Was: company_data.get("Company")
+    
     logging.info(f"\n{'='*60}")
-    logging.info(f"PROCESSANDO: {company_id} - {company_data.get('Company', 'N/A')}")
+    logging.info(f"PROCESSANDO: {company_id} - {company_name}")
     logging.info(f"{'='*60}")
     
     # ═══════════════════════════════════════════════════════════
@@ -157,7 +165,7 @@ def process_single_company(driver, company_data):
         return []
     
     # Get company caption for path discovery
-    original_caption = f"{company_id} - {company_data.get('Company', '')}"
+    original_caption = f"{company_id} - {company_name}"
     
     time.sleep(1)
     
@@ -201,7 +209,11 @@ def process_single_company(driver, company_data):
     
     if not all_doc_links:
         logger.warning("⚠️ Nenhum processo encontrado")
-        report_data = company_data.copy()
+        
+        # ═══════════════════════════════════════════════════════
+        # CHANGED: Build dict from CompanyData for report
+        # ═══════════════════════════════════════════════════════
+        report_data = company_data.to_dict()  # Convert to dict for report
         report_data["document_url"] = None
         report_data["document_text"] = None
         
@@ -217,9 +229,12 @@ def process_single_company(driver, company_data):
         for i, doc_link in enumerate(all_doc_links, 1):
             logging.info(f"\n   --- Relatório {i}/{len(all_doc_links)} ---")
             
-            report_data = company_data.copy()
+            # ═══════════════════════════════════════════════════════
+            # CHANGED: Build dict from CompanyData for each report
+            # ═══════════════════════════════════════════════════════
+            report_data = company_data.to_dict()  # Convert to dict
             report_data["document_url"] = doc_link["href"]
-            report_data["document_text"] = doc_link["processo"]  # ✅ Original preserved
+            report_data["document_text"] = doc_link["processo"]
             
             logging.info(f"   📎 Processo: {report_data['document_text']}")
             logging.info(f"   🔗 URL: {report_data['document_url'][:60]}...")
@@ -235,7 +250,7 @@ def process_single_company(driver, company_data):
             if USE_DOCUMENT_EXTRACTOR and is_processo_page(doc_link['href']):
                 empresa_info = {
                     "id": company_id,
-                    "name": company_data.get('Company', '')
+                    "name": company_name  # Use local variable
                 }
                 text_content, extraction_meta = process_with_document_extractor(
                     driver, doc_link['href'], empresa_info
@@ -270,7 +285,7 @@ def process_single_company(driver, company_data):
             report = generate_analysis_report(report_data, analysis_results)
             all_reports.append(report)
             
-            logging.info(f"   ✓ Relatório gerado com document_text: {report.get('document_text', 'MISSING!')}")  # ✅ Original preserved
+            logging.info(f"   ✓ Relatório gerado com document_text: {report.get('document_text', 'MISSING!')}")
     
     logging.info(f"\n✓ {len(all_reports)} relatório(s) gerado(s) para esta empresa")
     return all_reports
@@ -335,7 +350,7 @@ def main():
                     logger.warning(f"⚠ Nenhum relatório gerado para esta empresa")
                     
             except Exception as e:
-                logger.error(f"✗ Erro ao processar empresa {company.get('ID')}: {e}")
+                logger.error(f"✗ Erro ao processar empresa {company.id}: {e}")
                 # Continue with next company
                 continue
             
