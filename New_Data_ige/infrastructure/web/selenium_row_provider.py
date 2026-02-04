@@ -15,7 +15,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import re
-
+from New_Data_ige.infrastructure.dtos.company_dto import CompanyRowDTO
 
 class SeleniumRowProvider:
     """
@@ -31,6 +31,14 @@ class SeleniumRowProvider:
     📚 IMPLEMENTS: IRowProvider protocol (duck typing)
     Python doesn't enforce this, but it follows the contract:
     - Has get_rows() method that returns List[str]
+
+    NEW: Returns structured DTOs instead of raw strings
+    OLD: Returned List[str] of raw text
+    
+    Benefits:
+    - Pre-parsed structure reduces coupling
+    - Can validate before passing to domain
+    - Easier to debug (see what Selenium extracted)
     """
     
     def __init__(self, driver: webdriver.Chrome, scroll_delay: float = 3.0):
@@ -45,6 +53,131 @@ class SeleniumRowProvider:
         self.driver = driver
         self.scroll_delay = scroll_delay
     
+    def get_rows_as_dtos(self) -> List[CompanyRowDTO]:
+        """
+        NEW: Return DTOs instead of raw strings.
+        
+        Benefits:
+        - Pre-parsed structure
+        - Can validate before passing to domain
+        - Easier to debug
+        """
+        raw_rows = self._scroll_and_collect_raw()
+        
+        # Convert to DTOs
+        dtos = []
+        for raw_text in raw_rows:
+            dto = self._parse_raw_to_dto(raw_text)
+            if dto:
+                dtos.append(dto)
+        
+        return dtos
+    
+    def _scroll_and_collect_raw(self) -> List[str]:
+        """
+        Scroll table and collect raw text.
+        
+        (This is the existing logic from your selenium_row_provider.py)
+        """
+        scroller = self.driver.find_element(By.CSS_SELECTOR, ".v-grid-scroller")
+        
+        all_rows = set()
+        last_scroll = -1
+        stopped_count = 0
+        
+        # Validation pattern
+        complete_row_pattern = re.compile(
+            r'^[\w\d\.\/\-]+\s*-\s*.+\s+-?[\d\.,]+\s+-?[\d\.,]+\s+-?[\d\.,]+.*$'
+        )
+        
+        def is_complete_row(text: str) -> bool:
+            if not text or "-" not in text:
+                return False
+            return bool(complete_row_pattern.match(text.strip()))
+        
+        # Scroll loop
+        while True:
+            time.sleep(self.scroll_delay)
+            
+            visible_rows = self.driver.find_elements(By.CSS_SELECTOR, ".v-grid-row")
+            
+            for row in visible_rows:
+                try:
+                    row_text = row.text.strip()
+                    if is_complete_row(row_text):
+                        all_rows.add(row_text)
+                except:
+                    continue
+            
+            self.driver.execute_script(
+                "arguments[0].scrollTop += arguments[0].clientHeight;",
+                scroller
+            )
+            time.sleep(self.scroll_delay)
+            
+            current_scroll = scroller.get_property("scrollTop")
+            if current_scroll == last_scroll:
+                stopped_count += 1
+            else:
+                stopped_count = 0
+            
+            if stopped_count >= 5:
+                break
+            
+            last_scroll = current_scroll
+        
+        return list(all_rows)
+    
+    def _parse_raw_to_dto(self, raw_text: str) -> CompanyRowDTO | None:
+        """
+        Parse raw Selenium text → DTO.
+        
+        Example:
+            Input: "12.345.678/0001-99 - Empresa ABC 1.000,00 500,00 500,00 300,00 200,00"
+            Output: CompanyRowDTO(id_part="12.345.678/0001-99", name_part="Empresa ABC", ...)
+        """
+        
+        # Skip invalid rows
+        if not raw_text or not raw_text.strip():
+            return None
+        
+        if "total" in raw_text.lower():
+            return None
+        
+        if re.match(r'^[\d\.,\s\-]+$', raw_text.strip()):
+            return None
+        
+        # Extract ID and rest
+        id_match = re.match(r'^([\w\d\.\/\-]+)\s*-\s*(.+)$', raw_text.strip())
+        if not id_match:
+            return None
+        
+        id_part = id_match.group(1).strip()
+        rest_text = id_match.group(2).strip()
+        
+        # Find currency numbers
+        currency_numbers = re.findall(r'-?[\d\.]+,\d{2}', rest_text)
+        if len(currency_numbers) < 5:
+            return None
+        
+        value_parts = currency_numbers[-5:]  # Last 5 numbers
+        
+        # Extract name
+        first_number = value_parts[0]
+        name_end = rest_text.find(first_number)
+        name_part = rest_text[:name_end].strip()
+        
+        if not name_part:
+            return None
+        
+        # Create DTO
+        return CompanyRowDTO(
+            raw_text=raw_text,
+            id_part=id_part,
+            name_part=name_part,
+            value_parts=value_parts
+        )
+
     def get_rows(self) -> List[str]:
         """
         📖 MIGRATED FROM: scroll_and_collect_rows()

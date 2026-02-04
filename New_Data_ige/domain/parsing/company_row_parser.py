@@ -8,12 +8,14 @@ But now it's:
 - Testable without Selenium
 - Single Responsibility (only parsing)
 - Returns domain objects (CompanyData)
+
+UPDATED: Now uses DTOs as input instead of raw strings.
 """
 
 import re
 from typing import Optional
 from New_Data_ige.domain.models.company import CompanyData
-
+from New_Data_ige.infrastructure.dtos.company_dto import CompanyRowDTO
 
 class CompanyRowParser:
     """
@@ -24,6 +26,15 @@ class CompanyRowParser:
     - Returns CompanyData objects (not dicts)
     - No dependency on Selenium
     - Easy to test with plain strings
+
+    NEW: Works with DTOs (structured data from Selenium)
+    OLD: Used to parse raw text directly
+    
+    Benefits:
+    - Clear separation: DTO = infrastructure, CompanyData = domain
+    - Easier to test with mock DTOs
+    - Domain layer doesn't know about Selenium
+
     """
     
     def parse(self, row_text: str) -> Optional[CompanyData]:
@@ -118,39 +129,107 @@ class CompanyRowParser:
             # CompanyData validation failed (empty id/name)
             return None
 
+    def parse_from_dto(self, dto: CompanyRowDTO) -> Optional[CompanyData]:
+        """
+        Parse DTO → Domain object.
+        
+        Args:
+            dto: CompanyRowDTO from Selenium
+        
+        Returns:
+            CompanyData if valid, None if validation fails
+        
+        Example:
+            >>> dto = CompanyRowDTO(
+            ...     raw_text="...",
+            ...     id_part="12.345.678/0001-99",
+            ...     name_part="Empresa ABC",
+            ...     value_parts=["1.000,00", "500,00", "500,00", "300,00", "200,00"]
+            ... )
+            >>> parser = CompanyRowParser()
+            >>> company = parser.parse_from_dto(dto)
+            >>> company.id
+            '12.345.678/0001-99'
+        """
+        
+        # ═══════════════════════════════════════════════════════════
+        # VALIDATION: Domain layer enforces rules
+        # ═══════════════════════════════════════════════════════════
+        
+        if not dto.id_part or not dto.id_part.strip():
+            return None
+        
+        if not dto.name_part or not dto.name_part.strip():
+            return None
+        
+        if len(dto.value_parts) < 5:
+            return None
+        
+        # ═══════════════════════════════════════════════════════════
+        # CREATE DOMAIN OBJECT
+        # ═══════════════════════════════════════════════════════════
+        
+        try:
+            return CompanyData(
+                id=dto.id_part,
+                name=dto.name_part,
+                total_contratado=dto.value_parts[0],
+                empenhado=dto.value_parts[1],
+                saldo_executar=dto.value_parts[2],
+                liquidado=dto.value_parts[3],
+                pago=dto.value_parts[4],
+                source_row=dto.raw_text  # Keep original for debugging
+            )
+        except ValueError as e:
+            # CompanyData validation failed
+            return None
 
-# ═══════════════════════════════════════════════════════════
+
+# ============================================================
 # STANDALONE TEST
-# ═══════════════════════════════════════════════════════════
+# ============================================================
 
 if __name__ == "__main__":
     print("\n" + "="*70)
-    print("🧪 TESTING CompanyRowParser")
+    print("🧪 TESTING CompanyRowParser with DTOs")
     print("="*70)
     
     parser = CompanyRowParser()
     
-    test_rows = [
-        ("Perfect row", "12.345.678/0001-99 - Empresa Teste LTDA 1.000,00 500,00 500,00 300,00 200,00"),
-        ("Negative values", "98.765.432/0001-11 - Empresa Negativa -1.500,00 2.000,00 -500,00 1.000,00 900,00"),
-        ("CPF", "123.456.789-00 - Pessoa Física 5.000,00 2.500,00 2.500,00 1.000,00 800,00"),
-        ("Complex name", "11.222.333/0001-44 - ACME Corp. & Cia LTDA - EPP 10.000,00 5.000,00 5.000,00 3.000,00 2.000,00"),
-        ("Empty row (should skip)", ""),
-        ("TOTAL row (should skip)", "TOTAL 100.000,00 50.000,00 50.000,00 30.000,00 20.000,00"),
-        ("Only numbers (should skip)", "1.000,00 500,00 500,00 300,00 200,00"),
-        ("Not enough values (should skip)", "12.345.678/0001-99 - Empresa X 1.000,00 500,00"),
-    ]
+    # Test 1: Valid DTO → Valid CompanyData
+    print("\n✅ Test 1: Valid DTO")
+    dto = CompanyRowDTO(
+        raw_text="12.345.678/0001-99 - Empresa ABC 1.000,00 500,00 500,00 300,00 200,00",
+        id_part="12.345.678/0001-99",
+        name_part="Empresa ABC",
+        value_parts=["1.000,00", "500,00", "500,00", "300,00", "200,00"]
+    )
     
-    for name, row in test_rows:
-        result = parser.parse(row)
-        
-        if result:
-            print(f"\n✅ {name}")
-            print(f"   ID: {result.id}")
-            print(f"   Name: {result.name[:40]}")
-            print(f"   Total: {result.total_contratado}")
-        else:
-            print(f"\n⊘ {name} → SKIPPED (as expected)")
+    company = parser.parse_from_dto(dto)
+    
+    if company:
+        print(f"   ✅ Parsed successfully")
+        print(f"   ID: {company.id}")
+        print(f"   Name: {company.name}")
+        print(f"   Total: {company.total_contratado}")
+    else:
+        print(f"   ❌ Failed to parse")
+    
+    # Test 2: Invalid DTO → None
+    print("\n⚠️ Test 2: Invalid DTO (missing values)")
+    invalid_dto = CompanyRowDTO(
+        raw_text="invalid",
+        id_part="12.345.678/0001-99",
+        name_part="Empresa ABC",
+        value_parts=["1.000,00"]  # Only 1 value (need 5)
+    )
+    
+    company = parser.parse_from_dto(invalid_dto)
+    
+    if company:
+        print(f"   ❌ Should not have parsed!")
+    else:
+        print(f"   ✅ Correctly rejected invalid DTO")
     
     print("\n" + "="*70)
     print("✅ Parser tests completed!")

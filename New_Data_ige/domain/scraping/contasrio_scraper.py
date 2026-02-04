@@ -18,7 +18,9 @@ from dataclasses import dataclass
 from typing import List, Optional, Protocol
 from enum import Enum
 import re
-
+from New_Data_ige.domain.models.company import CompanyData
+from New_Data_ige.domain.parsing.company_row_parser import CompanyRowParser
+from New_Data_ige.infrastructure.dtos.company_dto import CompanyRowDTO
 
 # ============================================================================
 # 📚 LEARNING CONCEPT 1: Data Classes for Domain Models
@@ -68,48 +70,29 @@ class Company:
 
 @dataclass(frozen=True)
 class ScrapingResult:
-    """
-    Result of a scraping operation.
-    
-    📚 LEARNING: Result objects make success/failure explicit
-    Instead of returning None or throwing exceptions randomly.
-    """
-    companies: List[Company]
+    """Result of scraping operation."""
+    companies: List[CompanyData]
     total_found: int
     total_parsed: int
     errors: List[str]
     
-    skipped_empty: int = 0
-    skipped_total_rows: int = 0
-    skipped_numbers_only: int = 0
-    skipped_no_match: int = 0
-
-    @property
-    def summary(self) -> str:
-        """Generate detailed summary (like old code)."""
-        return f"""
-    Parsing Summary:
-    ✓ Successfully parsed: {self.total_parsed}
-    ⊘ Empty rows: {self.skipped_empty}
-    ⊘ Total rows: {self.skipped_total_rows}
-    ⊘ Numbers only: {self.skipped_numbers_only}
-    ⊘ No match: {self.skipped_no_match}
-    ✗ Errors: {len(self.errors)}
-    ─────────────────────
-    Total processed: {self.total_found}
-    """
-
     @property
     def success(self) -> bool:
-        """Operation succeeded if we got at least some data."""
         return len(self.companies) > 0
     
     @property
     def success_rate(self) -> float:
-        """Percentage of rows successfully parsed."""
         if self.total_found == 0:
             return 0.0
         return (self.total_parsed / self.total_found) * 100
+
+
+class IRowProvider(Protocol):
+    """Contract for row providers."""
+    def get_rows_as_dtos(self) -> List[CompanyRowDTO]:
+        """Return DTOs from data source."""
+        ...
+
 
 
 # ============================================================================
@@ -320,6 +303,17 @@ class ContasRioScraper:
     for company in result.companies:  # Clean objects
         print(company.name, company.total_contracted)
     ```
+        High-level scraper using DTO flow.
+    
+    NEW Flow:
+    1. Row provider → DTOs (infrastructure)
+    2. Parser → Domain objects (domain)
+    3. Return result
+    
+    Benefits:
+    - Clear layers: infrastructure → domain
+    - Domain doesn't know about Selenium
+    - Easy to swap providers (Selenium → File → API)
     """
     
     def __init__(self, row_provider: IRowProvider):
@@ -339,26 +333,61 @@ class ContasRioScraper:
         self.row_provider = row_provider
         self.parser = CompanyRowParser()
     
-    def scrape(self, year: Optional[int] = None) -> ScrapingResult:
+    def scrape_with_dtos(self) -> ScrapingResult:
         """
-        Execute the scraping operation.
+        NEW: Use DTO flow.
         
-        📚 LEARNING: Orchestration without implementation
-        
-        This method ORCHESTRATES but doesn't IMPLEMENT.
-        - Getting rows: delegated to row_provider
-        - Parsing rows: delegated to parser
-        - This just connects them
-        
-        💡 Single Responsibility: Coordinate, don't do.
+        Flow:
+        1. Selenium → DTOs
+        2. DTOs → Domain objects
         """
-        # Get raw data (HOW is hidden in row_provider)
-        raw_rows = self.row_provider.get_rows()
+        # Get DTOs from Selenium
+        dtos = self.row_provider.get_rows_as_dtos()
         
-        # Parse into domain objects (pure business logic)
-        result = self.parser.parse_all(raw_rows)
+        # Parse DTOs → Domain
+        companies = []
+        for dto in dtos:
+            company = self.parser.parse_from_dto(dto)
+            if company:
+                companies.append(company)
         
-        return result
+        return ScrapingResult(
+            companies=companies,
+            total_found=len(dtos),
+            total_parsed=len(companies),
+            errors=[]
+        )
+
+    def scrape(self) -> ScrapingResult:
+        """
+        Execute scraping with DTO flow.
+        
+        Returns:
+            ScrapingResult with companies and metadata
+        """
+        
+        # Step 1: Get DTOs from provider (infrastructure layer)
+        dtos = self.row_provider.get_rows_as_dtos()
+        
+        # Step 2: Parse DTOs → Domain (domain layer)
+        companies = []
+        errors = []
+        
+        for dto in dtos:
+            try:
+                company = self.parser.parse_from_dto(dto)
+                if company:
+                    companies.append(company)
+            except Exception as e:
+                errors.append(f"Parse error for {dto.id_part}: {str(e)}")
+        
+        # Step 3: Return result
+        return ScrapingResult(
+            companies=companies,
+            total_found=len(dtos),
+            total_parsed=len(companies),
+            errors=errors
+        )
 
 
 # ============================================================================

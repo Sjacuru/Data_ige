@@ -11,6 +11,8 @@ from pdf2image import convert_from_path, pdfinfo_from_path
 import pytesseract
 import traceback
 from typing import Optional
+from infrastructure.dtos.company_dto import CompanyRowDTO
+from New_Data_ige.domain.models.company import CompanyData
 
 import logging
 
@@ -131,3 +133,26 @@ def parse_contract_data(text):
     contract_data["cnpj_found"] = re.findall(cnpj_pattern, text)
     
     return contract_data
+
+class CompanyRowParser:
+    def parse_from_dto(self, dto: CompanyRowDTO) -> Optional[CompanyData]:
+        """
+        NEW: Parse from DTO instead of raw text.
+        
+        Benefits:
+        - Clear separation: DTO = infrastructure, CompanyData = domain
+        - Easier to test with mock DTOs
+        - Can validate DTO separately before parsing
+        """
+        if len(dto.value_parts) < 5:
+            return None
+        
+        return CompanyData(
+            id=dto.id_part,
+            name=dto.name_part,
+            total_contratado=dto.value_parts[0],
+            empenhado=dto.value_parts[1],
+            saldo_executar=dto.value_parts[2],
+            liquidado=dto.value_parts[3],
+            pago=dto.value_parts[4],
+        )
