@@ -4,12 +4,22 @@ Orchestrates the full workflow: retrieve, identify, analyze, answer.
 """
 
 import sys
+import os
 import time
-from src.reporter import save_companies_with_links  
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
+
 from infrastructure.extractors.document_extractor import DocumentExtractor, extract_processo_documents
+from infrastructure.web.driver import initialize_driver
+#from application.workflows.conformity_workflow import check_conformity
+from application.workflows.extract_contract import extract_contracts_for_company
+from application.workflows.extract_publication import extract_publication_for_processo
+
 
 # Add src to path
-sys.path.insert(0, 'src')
+#sys.path.insert(0, 'src')
 
 from infrastructure.scrapers.contasrio.scraper import (
     initialize_driver,
@@ -35,8 +45,8 @@ from infrastructure.scrapers.contasrio.parser import (
     extract_text_from_url, 
     parse_contract_data
 )
-from src.analyzer import analyze_contract
-from src.reporter import (
+from infrastructure.extractors.analyzer import analyze_contract
+from infrastructure.persistence.reporter import (
     generate_analysis_report,
     save_to_excel,
     save_to_csv,  
@@ -308,6 +318,7 @@ def main():
         logging.info("✗ Não foi possível iniciar o navegador. Encerrando.")
         return
     
+    all_reports = []
     try:
         # Navigate to home
         if not navigate_to_home(driver):
@@ -332,7 +343,7 @@ def main():
         # ═══════════════════════════════════════════════════════════
         # PROCESS ALL COMPANIES
         # ═══════════════════════════════════════════════════════════
-        all_reports = []
+
         total_companies = len(all_companies)
         
         for idx, company in enumerate(all_companies, 1):

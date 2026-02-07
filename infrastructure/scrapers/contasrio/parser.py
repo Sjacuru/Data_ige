@@ -11,8 +11,7 @@ from pdf2image import convert_from_path, pdfinfo_from_path
 import pytesseract
 import traceback
 from typing import Optional
-from infrastructure.dtos.company_dto import CompanyRowDTO
-from New_Data_ige.domain.models.company import CompanyData
+
 
 import logging
 

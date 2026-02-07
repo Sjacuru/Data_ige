@@ -189,6 +189,15 @@ def create_driver(
         return None
 
 
+def initialize_driver(headless=False):
+    """
+    Initialize Chrome WebDriver.
+    
+    This is a wrapper around core.driver.create_driver() for backward compatibility.
+    """
+    return create_driver(headless=headless)
+
+
 def close_driver(driver: Optional[webdriver.Chrome]) -> None:
     """
     Safely close the WebDriver.
