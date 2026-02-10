@@ -16,7 +16,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@dataclass
+@dataclass(slots=True)
 class PublicationResult:
     """
     Result of searching and extracting a publication from D.O. Rio.
