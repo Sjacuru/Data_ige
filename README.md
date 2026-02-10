@@ -12,12 +12,12 @@ The **Contract Analysis System** automates the extraction and compliance verific
 
 ### The Problem
 
-Public contract auditors spend 60-80% of their time on simple, repetitive compliance checks:
+Public contract auditors spend much of their time on simple, repetitive compliance checks:
 - Was the contract published on time?
 - Do the published details match the contract?
 - Are all required parties listed?
 
-This leaves only 20-40% of time for complex analysis that truly requires human expertise.
+This leaves less time for complex analysis that truly requires human expertise.
 
 ### The Solution
 
@@ -30,78 +30,11 @@ An AI-assisted system that:
 
 **Key Innovation:** Hybrid approach combining deterministic rules (dates, identifiers) with AI-powered semantic matching (party names, contract descriptions).
 
----
-
-## 🎯 Current Status: Phase 0 - Proof of Concept
-
-**Goal:** Validate technical feasibility of automated contract auditing
-
-**What's Working:**
-- ✅ Scrapes contracts from ContasRio portal (Rio de Janeiro)
-- ✅ Extracts publications from DoWeb (Official Gazette)
-- ✅ AI-powered data extraction using LLMs (Groq)
-- ✅ Basic compliance validation (20-day publication rule)
-- ✅ Excel report generation
-
-**Not Yet Implemented:**
-- ⏳ Advanced compliance rules (Phase 4)
-- ⏳ Interactive dashboard (Phase 4)
-- ⏳ AI supervisor bot (Phase 5)
-- ⏳ Production deployment & monitoring (Phase 6)
-
----
-
-## 🚀 Quick Start
-
 ### Prerequisites
 
 - Python 3.9 or higher
 - Google Chrome browser (for web scraping)
 - Groq API key (for AI extraction) - [Get one free](https://console.groq.com)
-
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/contract-analysis.git
-cd contract-analysis
-```
-
-2. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
-
-3. **Configure environment**
-
-Create a `.env` file in the project root:
-```env
-GROQ_API_KEY=your_groq_api_key_here
-CHROME_HEADLESS=false  # Set to 'true' for headless mode
-FILTER_YEAR=2025       # Year to filter contracts
-```
-
-4. **Run the application**
-```bash
-# Option A: Use the helper script (recommended)
-run.bat
-
-# Option B: Run directly
-python application/main.py
-```
-
-### First Run
-
-On first run, the system will:
-1. Open Chrome browser
-2. Navigate to ContasRio portal
-3. Collect contract data
-4. Search for publications in DoWeb
-5. Generate an Excel report in `data/outputs/`
-
-**Expected runtime:** 2-5 minutes per company (depending on number of contracts)
-
----
 
 ## 📂 Project Structure
 
@@ -148,158 +81,6 @@ This project follows **Domain-Driven Design (DDD)** and **Clean Architecture**:
 
 **Why this matters:** You can test business rules without starting a browser, swap AI providers easily, and add new data sources without changing core logic.
 
----
-
-## 🔧 Configuration
-
-### Essential Settings (`config.py`)
-
-```python
-# Chrome WebDriver
-CHROME_HEADLESS = False  # Set True for background execution
-
-# Data Filtering
-FILTER_YEAR = 2025      # Year to filter contracts
-
-# Groq AI Configuration
-GROQ_API_KEY = "..."    # Set in .env file
-GROQ_MODEL = "llama-3.3-70b-versatile"  # LLM model
-
-# File Paths
-DATA_DIR = "data/"
-DOWNLOADS_DIR = "data/downloads/"
-OUTPUTS_DIR = "data/outputs/"
-```
-
-### Advanced Settings
-
-See `config.py` for additional options:
-- Timeout settings
-- Retry logic
-- Cache configuration
-- Logging levels
-
----
-
-## 📖 Usage Examples
-
-### Example 1: Analyze a Single Company
-
-```python
-from application.workflows.extract_contract import extract_contracts_for_company
-from infrastructure.web.driver import initialize_driver
-
-# Initialize browser
-driver = initialize_driver(headless=False)
-
-# Extract contracts for company
-company_data = CompanyData(id="12345", name="ACME Corp")
-results = extract_contracts_for_company(driver, company_data)
-
-# Results contain extracted contract data
-for result in results:
-    print(f"Contract: {result['processo']}")
-    print(f"URL: {result['document_url']}")
-    print(f"Text length: {len(result['text_content'])}")
-```
-
-### Example 2: Search for Publications
-
-```python
-from application.workflows.extract_publication import extract_publication_for_processo
-
-# Search DoWeb for publication
-processo = "TUR-PRO-2025/00477"
-result = extract_publication_for_processo(driver, processo)
-
-if result['publication_found']:
-    print(f"Publication found: {result['publication_url']}")
-else:
-    print("Publication not found")
-```
-
-### Example 3: Check Conformity
-
-```python
-from domain.services.conformity_checker import ConformityChecker
-
-# Initialize checker
-checker = ConformityChecker()
-
-# Check if publication is timely
-contract_date = "2025-01-01"
-publication_date = "2025-01-15"
-
-result = checker.check_publication_timeliness(contract_date, publication_date)
-# Returns: {'compliant': True, 'days_difference': 14}
-```
-
----
-
-## 🧪 Testing
-
-### Run All Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=domain --cov=infrastructure --cov=application
-
-# Run only fast tests (no browser)
-pytest tests_new/unit/
-
-# Run integration tests (with browser)
-pytest tests_new/integration/
-```
-
-### Test Structure
-
-- **Unit Tests:** Fast, test business logic in isolation
-- **Integration Tests:** Slow, test with real browser and APIs
-
----
-
-## 🛠️ Development
-
-### Setting Up Development Environment
-
-1. **Install development dependencies**
-```bash
-pip install -r requirements-dev.txt  # If exists
-```
-
-2. **Install pre-commit hooks** (optional)
-```bash
-pre-commit install
-```
-
-3. **Run code formatter**
-```bash
-black .
-```
-
-### Adding a New Feature
-
-1. **Domain First:** Add business logic to `domain/services/`
-2. **Infrastructure:** Add technical implementation to `infrastructure/`
-3. **Workflow:** Orchestrate in `application/workflows/`
-4. **Test:** Add tests to `tests_new/`
-
-### Code Style
-
-- Follow PEP 8
-- Use type hints where helpful
-- Write docstrings for public functions
-- Keep functions focused (Single Responsibility Principle)
-
----
-
-## 📊 How It Works
-
-### Complete Workflow
-
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. SCRAPE CONTRACTS (ContasRio Portal)                     │
@@ -311,7 +92,7 @@ black .
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ 2. EXTRACT CONTRACT DATA (AI-Powered)                      │
-│    ├─ Extract text from PDFs                               │
+│    ├─ Extract data from text in PDFs                               │
 │    ├─ Send to LLM (Groq) with structured prompt            │
 │    ├─ Parse JSON response                                  │
 │    └─ Save structured data                                 │
@@ -355,30 +136,26 @@ black .
 ## 🗺️ Roadmap
 
 ### Phase 0: Proof of Concept ✅ (Current)
-- [x] Contract extraction from ContasRio
-- [x] Publication extraction from DoWeb
-- [x] Basic compliance validation
-- [x] Excel report generation
+- [ ] Contract extraction from ContasRio
+- [ ] Publication extraction from DoWeb
+- [ ] Basic compliance validation
+- [ ] Excel report generation
 
 ### Phase 1: Technical Validation (Q2 2025)
 - [ ] 90%+ extraction accuracy
 - [ ] 85%+ publication search success rate
-- [ ] <2 minute processing per contract
 - [ ] Automated testing suite
 
 ### Phase 2: User Validation (Q3 2025)
-- [ ] 3+ auditors using tool
-- [ ] 40%+ time savings demonstrated
-- [ ] User satisfaction >7/10
+- [ ] savings demonstrated
 - [ ] Feedback-driven improvements
 
 ### Phase 3: Business Validation (Q4 2025)
-- [ ] ROI analysis completed
 - [ ] Zero false negatives on critical rules
 - [ ] Management approval for Phase 4
 
 ### Phase 4: Epic Implementation (2026)
-- [ ] Advanced compliance rules (40+ rules)
+- [ ] Advanced compliance rules 
 - [ ] Interactive dashboard
 - [ ] Quality check workflows
 - [ ] Configurable rule engine
@@ -396,37 +173,6 @@ black .
 
 ---
 
-## 🤝 Contributing
-
-We welcome contributions! This tool is designed to serve public auditors across Brazil.
-
-### How to Contribute
-
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Commit your changes** (`git commit -m 'Add amazing feature'`)
-4. **Push to the branch** (`git push origin feature/amazing-feature`)
-5. **Open a Pull Request**
-
-### Contribution Guidelines
-
-- Write tests for new features
-- Follow existing code style
-- Update documentation
-- Add yourself to CONTRIBUTORS.md
-
-### Areas We Need Help
-
-- 🌐 Support for other Brazilian cities/states
-- 🔍 Additional compliance rules
-- 🎨 UI/UX improvements
-- 📚 Documentation and tutorials
-- 🧪 Test coverage
-
----
-
-## 🔒 Security & Privacy
-
 ### Data Handling
 
 - ✅ Contract data processed locally (not sent to third parties except LLM)
@@ -442,9 +188,6 @@ We welcome contributions! This tool is designed to serve public auditors across 
 
 ⚠️ **Portal Changes:** System may break if source portals change structure.
 
-### Reporting Security Issues
-
-Please report security vulnerabilities to [security@yourdomain.com] - do not create public issues.
 
 ---
 
@@ -468,19 +211,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Support
-
-### Getting Help
-
-- 📖 **Documentation:** Check this README and code comments
-- 🐛 **Bug Reports:** [Open an issue](https://github.com/yourusername/contract-analysis/issues)
-- 💡 **Feature Requests:** [Open an issue](https://github.com/yourusername/contract-analysis/issues)
-- 💬 **Discussions:** [GitHub Discussions](https://github.com/yourusername/contract-analysis/discussions)
-
-### Contact
-
-- **Project Lead:** [Your Name](mailto:your.email@example.com)
-- **Institution:** Rio de Janeiro Municipal Account Court
+- **Project contact:** (mailto:sjacuru@gmail.com.br)
+- **Institution:** Rio de Janeiro Municipal Account Court / Tribunal de Contas do Município do Rio de Janeiro
 
 ---
 
@@ -506,11 +238,5 @@ This tool is provided for legitimate public auditing purposes only. Users are re
 ---
 
 <div align="center">
-
-**Made with ❤️ for public auditors**
-
-[Report Bug](https://github.com/yourusername/contract-analysis/issues) · 
-[Request Feature](https://github.com/yourusername/contract-analysis/issues) · 
-[Documentation](https://github.com/yourusername/contract-analysis/wiki)
 
 </div>
