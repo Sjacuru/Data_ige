@@ -201,7 +201,7 @@ class ConformityResult:
             f"═══════════════════════════════════════════════════",
             f"  Processo: {self.processo}",
             f"  Status: {self.overall_status.value}",
-            f"  Score: {self.conformity_score:.1f}%",
+            f"  Score: {self.conformity_score:.2f}%",
             f"───────────────────────────────────────────────────",
         ]
         
