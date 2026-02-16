@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+__pycache__
+*.pyc
+
+# Ambientes Virtuais (Conda, venv)
+# Ignora a pasta do ambiente Conda se ela fosse criada dentro do projeto (o que não é o seu caso, mas é bom prevenir)
+venv/
+.venv/
+.venv
+env/
+.env/
+.env
+
+# Ignora a pasta de ambientes Conda (se você criou o ambiente globalmente, não deve subir para o GitHub)
+# IMPORTANTE: Se o seu ambiente Conda NÃO estiver dentro do repositório, você NÃO precisa dessa linha.
+# Mas se você for armazenar dados temporários, use algo assim:
+*.log
+*.csv
+/dados_temporarios/
+/dados_temporarios

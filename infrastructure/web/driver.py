@@ -1,206 +1,115 @@
 """
-core/driver.py - Unified WebDriver initialization for all scrapers.
-
-Merged from:
-- src/scraper.py
-- scripts/download_csv.py
-- scripts/process_from_csv.py
-- scripts/extract_processo_documents.py
-- conformity/scraper/doweb_scraper.py
-
-Usage:
-    from infrastructure.web.driver import create_driver, close_driver
-    
-    # Basic usage
-    driver = create_driver()
-    
-    # With options
-    driver = create_driver(
-        headless=True,
-        download_dir="./downloads",
-        anti_detection=True
-    )
-    
-    # Always close when done
-    close_driver(driver)
+WebDriver management utilities.
+Handles Chrome WebDriver initialization, configuration, and cleanup.
 """
 
-import os
-from pathlib import Path
+import logging
 from typing import Optional
-
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 
-import logging
+from dotenv import load_dotenv
+# Load environment variables
+load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+from config.settings import HEADLESS_MODE, TIMEOUT_SECONDS
+
 logger = logging.getLogger(__name__)
 
-# =========================================================================
-# CONFIGURATION
-# =========================================================================
-
-DEFAULT_WINDOW_SIZE = "1920,1080"
-DEFAULT_TIMEOUT = 10
-
-
-# =========================================================================
-# MAIN DRIVER FUNCTION
-# =========================================================================
 
 def create_driver(
-    headless: bool = False,
+    headless: Optional[bool] = None,
     download_dir: Optional[str] = None,
-    anti_detection: bool = False,
-    window_size: str = DEFAULT_WINDOW_SIZE,
-    implicit_wait: int = DEFAULT_TIMEOUT
+    anti_detection: bool = False
 ) -> Optional[webdriver.Chrome]:
     """
-    Create and configure a Chrome WebDriver instance.
-    
-    This is the single source of truth for driver initialization
-    across all scrapers in the project.
+    Create and configure Chrome WebDriver.
     
     Args:
-        headless: Run browser without visible window
-        download_dir: Directory for file downloads (None = browser default)
-        anti_detection: Add options to avoid bot detection
-        window_size: Browser window size (default: 1920x1080)
-        implicit_wait: Implicit wait timeout in seconds (default: 10)
-    
+        headless: Run in headless mode (overrides config if provided)
+        download_dir: Directory for file downloads (if needed)
+        anti_detection: Enable anti-detection measures for CAPTCHA portals
+        
     Returns:
-        Configured Chrome WebDriver instance, or None if failed
-    
-    Examples:
-        # Basic scraping (no downloads)
-        driver = create_driver()
-        
-        # Headless mode
-        driver = create_driver(headless=True)
-        
-        # With download directory
-        driver = create_driver(download_dir="./data/downloads")
-        
-        # For sites with bot detection
-        driver = create_driver(anti_detection=True)
-        
-        # Full options
-        driver = create_driver(
-            headless=False,
-            download_dir="./downloads",
-            anti_detection=True
-        )
+        Configured WebDriver instance or None if initialization failed
     """
     try:
+        # Determine headless mode
+        use_headless = headless if headless is not None else HEADLESS_MODE
+        
+        logger.info("Initializing WebDriver...")
+        logger.info(f"  Headless: {use_headless}")
+        if download_dir:
+            logger.info(f"  Download dir: {download_dir}")
+        
+        # Configure Chrome options
         options = Options()
         
-        # ─────────────────────────────────────────────────────────────
-        # HEADLESS MODE
-        # ─────────────────────────────────────────────────────────────
-        if headless:
-            options.add_argument("--headless")
+        # Headless mode
+        if use_headless:
+            options.add_argument("--headless=new")
+            options.add_argument("--disable-gpu")
         
-        # ─────────────────────────────────────────────────────────────
-        # STABILITY OPTIONS (used by all scrapers)
-        # ─────────────────────────────────────────────────────────────
+        # Standard options
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument(f"--window-size={window_size}")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--start-maximized")
         
-        # ─────────────────────────────────────────────────────────────
-        # ANTI-DETECTION OPTIONS (for processo.rio, etc.)
-        # ─────────────────────────────────────────────────────────────
+        # Disable automation flags
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
+        
+        # Anti-detection measures
         if anti_detection:
             options.add_argument("--disable-blink-features=AutomationControlled")
-            options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            options.add_experimental_option('useAutomationExtension', False)
+            options.add_experimental_option("prefs", {
+                "profile.default_content_setting_values.notifications": 2,
+                "credentials_enable_service": False,
+                "profile.password_manager_enabled": False
+            })
         
-        # ─────────────────────────────────────────────────────────────
-        # DOWNLOAD PREFERENCES
-        # ─────────────────────────────────────────────────────────────
-        prefs = {}
-        
+        # Download directory configuration
         if download_dir:
-            # Ensure directory exists
-            download_path = Path(download_dir).absolute()
-            download_path.mkdir(parents=True, exist_ok=True)
-            
-            prefs.update({
-                "download.default_directory": str(download_path),
+            prefs = {
+                "download.default_directory": str(download_dir),
                 "download.prompt_for_download": False,
                 "download.directory_upgrade": True,
                 "safebrowsing.enabled": True,
-                "plugins.always_open_pdf_externally": True,
-            })
-        
-        if prefs:
+                "plugins.always_open_pdf_externally": True
+            }
             options.add_experimental_option("prefs", prefs)
         
-        # ─────────────────────────────────────────────────────────────
-        # CREATE DRIVER
-        # ─────────────────────────────────────────────────────────────
-        import shutil
-        chrome_bin = shutil.which("chromium-browser") or shutil.which("google-chrome")
-        if chrome_bin:
-            options.binary_location = chrome_bin
-            
-        try:
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=options)
-        except Exception as e:
-            logger.warning(f"ChromeDriverManager failed, trying system default: {e}")
-            # Fallback for systems where ChromeDriverManager fails (like some Streamlit Cloud setups)
-            driver = webdriver.Chrome(options=options)
+        # Initialize driver
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
         
-        # ─────────────────────────────────────────────────────────────
-        # POST-CREATION SETUP
-        # ─────────────────────────────────────────────────────────────
+        # Set timeouts
+        driver.implicitly_wait(TIMEOUT_SECONDS)
+        driver.set_page_load_timeout(TIMEOUT_SECONDS * 3)
+        
+        # Anti-detection: Override navigator.webdriver
         if anti_detection:
-            # Remove webdriver property to avoid detection
-            driver.execute_script(
-                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-            )
+            driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+                "source": """
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
+                """
+            })
         
-        if implicit_wait > 0:
-            driver.implicitly_wait(implicit_wait)
-        
-        # ─────────────────────────────────────────────────────────────
-        # SUCCESS
-        # ─────────────────────────────────────────────────────────────
-        logging.info("✓ Driver initialized successfully!")
-        if download_dir:
-            logging.info(f"  Download folder: {download_path}")
-        if headless:
-            logging.info("  Mode: headless")
-        if anti_detection:
-            logging.info("  Anti-detection: enabled")
-        
+        logger.info("✓ WebDriver initialized successfully. (file driver.py)")
         return driver
         
     except Exception as e:
-        logger.error(f"✗ Error initializing driver: {e}")
+        logger.error(f"✗ Failed to initialize WebDriver: {e}")
         return None
-
-
-def initialize_driver(headless=False):
-    """
-    Initialize Chrome WebDriver.
-    
-    This is a wrapper around core.driver.create_driver() for backward compatibility.
-    """
-    return create_driver(headless=headless)
-
-
+#%%
 def close_driver(driver: Optional[webdriver.Chrome]) -> None:
     """
-    Safely close the WebDriver.
+    Safely close WebDriver and clean up resources.
     
     Args:
         driver: WebDriver instance to close (can be None)
@@ -208,108 +117,23 @@ def close_driver(driver: Optional[webdriver.Chrome]) -> None:
     if driver:
         try:
             driver.quit()
-            logging.info("✓ Driver closed.")
+            logger.info("✓ WebDriver closed")
         except Exception as e:
-            logger.error(f"⚠ Error closing driver: {e}")
+            logger.error(f"⚠ Error closing WebDriver: {e}")
 
-
-# =========================================================================
-# CONVENIENCE FUNCTIONS
-# =========================================================================
-
-def create_scraper_driver(headless: bool = False) -> Optional[webdriver.Chrome]:
-    """
-    Create driver for basic scraping (ContasRio, etc.).
-    
-    No download directory, no anti-detection.
-    """
-    return create_driver(headless=headless)
-
-
-def create_download_driver(
-    download_dir: str,
-    headless: bool = False
-) -> Optional[webdriver.Chrome]:
-    """
-    Create driver configured for file downloads.
-    
-    Args:
-        download_dir: Directory to save downloaded files
-        headless: Run in headless mode
-    """
-    return create_driver(
-        headless=headless,
-        download_dir=download_dir
-    )
-
-
-def create_processo_driver(
-    download_dir: str,
-    headless: bool = False
-) -> Optional[webdriver.Chrome]:
-    """
-    Create driver for processo.rio (with anti-detection).
-    
-    Args:
-        download_dir: Directory to save downloaded files
-        headless: Run in headless mode (not recommended for CAPTCHA)
-    """
-    if headless:
-        logger.warning("⚠️ Warning: Headless mode may fail with CAPTCHA")
-    
-    return create_driver(
-        headless=headless,
-        download_dir=download_dir,
-        anti_detection=True
-    )
 
 def is_driver_available() -> bool:
     """
-    Check if Chrome/ChromeDriver is available.
+    Check if Chrome/ChromeDriver is available on system.
     
     Returns:
-        bool: True if driver can be initialized
+        True if available, False otherwise
     """
     try:
-        
-        # Try to get ChromeDriver path (doesn't start browser)
-        ChromeDriverManager().install()
-        return True
-    except Exception as e:
-        logger.warning(f"⚠️ Driver not available: {e}")
+        driver = create_driver(headless=True)
+        if driver:
+            close_driver(driver)
+            return True
         return False
-
-# =========================================================================
-# STANDALONE TEST
-# =========================================================================
-
-if __name__ == "__main__":
-    logging.info("=" * 60)
-    logging.info("🧪 Testing core/driver.py")
-    logging.info("=" * 60)
-    
-    logging.info("\n1. Testing basic driver creation...")
-    driver = create_driver()
-    if driver:
-        logging.info(f"   Current URL: {driver.current_url}")
-        close_driver(driver)
-    
-    logging.info("\n2. Testing driver with download directory...")
-    driver = create_driver(download_dir="./test_downloads")
-    if driver:
-        close_driver(driver)
-    
-    logging.info("\n3. Testing anti-detection driver...")
-    driver = create_driver(anti_detection=True)
-    if driver:
-        close_driver(driver)
-    
-    logging.info("\n✅ All tests completed!")
-    
-    # Cleanup test folder
-    import shutil
-    try:
-        shutil.rmtree("./test_downloads")
-        logging.info("   Cleaned up test folder")
-    except:
-        pass
+    except Exception:
+        return False

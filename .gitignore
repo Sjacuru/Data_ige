@@ -7,15 +7,45 @@ __pycache__
 # Ignora a pasta do ambiente Conda se ela fosse criada dentro do projeto (o que não é o seu caso, mas é bom prevenir)
 venv/
 .venv/
-.venv
 env/
 .env/
-.env
 
 # Ignora a pasta de ambientes Conda (se você criou o ambiente globalmente, não deve subir para o GitHub)
 # IMPORTANTE: Se o seu ambiente Conda NÃO estiver dentro do repositório, você NÃO precisa dessa linha.
 # Mas se você for armazenar dados temporários, use algo assim:
 *.log
 *.csv
-/dados_temporarios/
-/dados_temporarios
+
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Data (keep structure, ignore content)
+data/temp/*
+!data/temp/.gitkeep
+data/extractions/*
+!data/extractions/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
+logs/*
+!logs/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

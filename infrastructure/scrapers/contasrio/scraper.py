@@ -1,874 +1,275 @@
 """
-scraper.py:
-- scroll_and_collect_rows: 2-pass scroll, validate rows, wait+0.5s
-- parse_row_data: negative nums, alphanumeric IDs, last 5 currency numbers
-- filter_by_company: wait 3s
-- click_company_button: 5 retries, 3 click methods, verify level transition
-- get_all_document_links: search 'processo' href, extract from URL, return list
-- get_current_level, get_all_buttons_at_level, click_specific_button, has_processo_links
-- discover_all_paths, discover_paths_recursive (tree traversal)
-- reset_and_navigate_to_company (BASE_URL first, verify transitions)
-- follow_path_and_collect
-- REMOVED: click_ug_button, click_next_level
-main.py:
-- process_single_company: reset first, discover paths, collect processos, return list
-- main: loop ALL companies, progress counter, periodic save, error handling
-reporter.py:
-- add "document_text", "document_url", "Processo", "Link Documento"
-Key: doc_link["processo"] → "document_text" → Excel "Processo"
-Reset: BASE_URL → CONTRACTS_URL → year → filter → click → verify
-Known issue: Path discovery may mix buttons from different branches (to fix later)
+ContasRio portal scraper.
+Handles navigation and data extraction from ContasRio contracts portal.
 """
-"""
-scraper.py - Web scraping functions for ContasRio portal.
-Handles browser automation, navigation, and data extraction.
-"""
-
-import numbers
-import re
 import time
+import logging
+from typing import List, Optional
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import (
-    TimeoutException,
-    StaleElementReferenceException,
-    NoSuchElementException
-)
-from datetime import datetime
+from selenium.common.exceptions import TimeoutException
 
-# Import configuration
-import sys
-sys.path.append('..')
-from config import (
-    TIMEOUT_SECONDS, MAX_RETRIES, SCROLL_DELAY,
-    BASE_URL, CONTRACTS_URL, VALUE_COLUMNS, LOCATORS
-)
+from typing import cast
 
-# Import from core modules                              
-from infrastructure.web.driver import create_driver, close_driver 
-
-import logging
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
+from config.settings import CONTASRIO_BASE_URL, CONTASRIO_CONTRACTS_URL, FILTER_YEAR
+from config.portals import CONTASRIO_LOCATORS
 from infrastructure.web.navigation import (
     wait_for_element,
-    get_current_level,
-    set_year_filter,
-    filter_by_company,
-    click_company_button,
-    get_all_buttons_at_level,
-    click_specific_button,
-    has_processo_links
+    wait_for_elements,
+    click_element_safe,
+    scroll_to_bottom,
+    get_current_url
 )
+from infrastructure.scrapers.contasrio.parsers import CompanyRowParser
+from domain.models.processo_link import CompanyData, ProcessoLink
+
+logger = logging.getLogger(__name__)
 
 
-
-# =============================================================================
-# DRIVER MANAGEMENT (wrapper for backward compatibility)
-# =============================================================================
-
-def initialize_driver(headless=False):
+class ContasRioScraper:
     """
-    Initialize Chrome WebDriver.
-    
-    This is a wrapper around core.driver.create_driver() for backward compatibility.
+    Scraper for ContasRio portal.
+    Discovers companies and processo links.
     """
-    return create_driver(headless=headless)
-
-# =============================================================================
-# NAVIGATION
-# =============================================================================
-
-def navigate_to_home(driver):
-    """
-    Navigate to the home page and wait for it to load.
     
-    Args:
-        driver: WebDriver instance
+    def __init__(self, driver: webdriver.Chrome):
+        """
+        Initialize scraper.
         
-    Returns:
-        True if successful, False otherwise
-    """
-    try:
-        driver.get(BASE_URL)
-        logging.info("Checando se o Site funciona. Aguardando carregamento da tela Home...")
+        Args:
+            driver: Selenium WebDriver instance
+        """
+        self.driver = driver
+    
+    def discover_all_processos(self) -> List[ProcessoLink]:
+        """
+        Main discovery workflow.
         
-        wait_for_element(driver, (By.XPATH, LOCATORS["home_menu"]))
-        logging.info("✓ Home carregada!")
-        return True
+        Workflow:
+        1. Navigate to contracts page
+        2. Apply filters
+        3. Collect all companies
+        4. For each company, discover processo links
         
-    except TimeoutException:
-        logging.info("✗ Timeout ao carregar, site pode estar fora do ar.")
-        return False
-
-def navigate_to_contracts(driver, year=None):
-    """
-    Navigate to the contracts page with retry logic.
-    
-    Args:
-        driver: WebDriver instance
-        year: Optional integer/string, e.g. 2022. If provided, selects this year.
+        Returns:
+            List of discovered ProcessoLink objects
+        """
+        logger.info("=" * 70)
+        logger.info("🔍 STAGE 1: DISCOVERY - ContasRio Portal")
+        logger.info("=" * 70)
         
-    Returns:
-        True if successful, False otherwise
-    """
-    driver.get(CONTRACTS_URL)
-    
-    for attempt in range(1, MAX_RETRIES + 1):
-        try:
-            logging.info(f"Tentativa {attempt}: Aguardando carregamento do painel...")
-            wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]))
-            logging.info("✓ Painel carregado com sucesso!")
-
-            # NEW: set the year filter before any scrolling happens
-            if year:
-                set_year_filter(driver, year)
-
-            return True
-            
-        except TimeoutException:
-            logging.info(f"Timeout na tentativa {attempt}.")
-            if attempt == MAX_RETRIES:
-                logger.error(f"✗ O painel não carregou após {MAX_RETRIES} tentativas.")
-                return False
-            logging.info("Atualizando a página...")
-            driver.refresh()
-            time.sleep(2)
-    
-    return False
-
-# =============================================================================
-# DATA COLLECTION
-# =============================================================================
-
-def scroll_and_collect_rows(driver):
-    """
-    Scroll through the dynamic table and collect all row data.
-    Includes validation and verification pass for reliability.
-    """
-    logging.info("Iniciando scroll para carregar todas as linhas...")
-    
-    scroller = driver.find_element(By.CSS_SELECTOR, LOCATORS["grid_scroller"])
-    
-    all_rows = set()
-    last_scroll = -1
-    stopped_count = 0
-    
-    # ═══════════════════════════════════════════════════════════
-    # VALIDATION PATTERN: A complete row must match this
-    # ID - Company Name + numbers at the end
-    # ═══════════════════════════════════════════════════════════
-    complete_row_pattern = re.compile(
-        r'^[\w\d\.\/\-]+\s*-\s*.+\s+-?[\d\.,]+\s+-?[\d\.,]+\s+-?[\d\.,]+.*$'
-    )
-    
-    def is_complete_row(text):
-        """Check if row has ID, company name, AND numbers."""
-        if not text or "-" not in text:
-            return False
-        return bool(complete_row_pattern.match(text.strip()))
-    
-    # ═══════════════════════════════════════════════════════════
-    # FIRST PASS: Scroll and collect
-    # ═══════════════════════════════════════════════════════════
-    logging.info("   Primeira passagem...")
-    
-    while True:
-        time.sleep(SCROLL_DELAY + 0.5)
+        all_processos = []
         
-        visible_rows = driver.find_elements(By.CSS_SELECTOR, LOCATORS["grid_row"])
-        
-        for row in visible_rows:
-            try:
-                row_text = row.text.strip()
-                if is_complete_row(row_text):
-                    all_rows.add(row_text)
-            except StaleElementReferenceException:
-                continue
-        
-        driver.execute_script(
-            "arguments[0].scrollTop += arguments[0].clientHeight;",
-            scroller
-        )
-        time.sleep(SCROLL_DELAY)
-        
-        current_scroll = scroller.get_property("scrollTop")
-        if current_scroll == last_scroll:
-            stopped_count += 1
-        else:
-            stopped_count = 0
-            
-        if stopped_count >= 5:
-            break
-            
-        last_scroll = current_scroll
-    
-    first_pass_count = len(all_rows)
-    logging.info(f"   Primeira passagem: {first_pass_count} linhas")
-    
-    # ═══════════════════════════════════════════════════════════
-    # VERIFICATION PASS: Scroll back to top and collect again
-    # ═══════════════════════════════════════════════════════════
-    logging.info("   Passagem de verificação...")
-    
-    driver.execute_script("arguments[0].scrollTop = 0;", scroller)
-    time.sleep(1)
-    
-    last_scroll = -1
-    stopped_count = 0
-    
-    while True:
-        time.sleep(SCROLL_DELAY + 0.3)
-        
-        visible_rows = driver.find_elements(By.CSS_SELECTOR, LOCATORS["grid_row"])
-        
-        for row in visible_rows:
-            try:
-                row_text = row.text.strip()
-                if is_complete_row(row_text):
-                    all_rows.add(row_text)
-            except StaleElementReferenceException:
-                continue
-        
-        driver.execute_script(
-            "arguments[0].scrollTop += arguments[0].clientHeight;",
-            scroller
-        )
-        time.sleep(SCROLL_DELAY)
-        
-        current_scroll = scroller.get_property("scrollTop")
-        if current_scroll == last_scroll:
-            stopped_count += 1
-        else:
-            stopped_count = 0
-            
-        if stopped_count >= 5:
-            break
-            
-        last_scroll = current_scroll
-    
-    new_rows = len(all_rows) - first_pass_count
-    logging.info(f"   Verificação: +{new_rows} novas linhas encontradas")
-    logging.info(f"✓ Scroll finalizado! Total de linhas: {len(all_rows)}")
-    
-    return all_rows
-
-def parse_row_data(raw_rows: set) -> list[CompanyData]:
-    """
-    Parse raw row text into CompanyData objects.
-    
-    Args:
-        raw_rows: Set of raw text strings from Selenium scraping
-        
-    Returns:
-        List of CompanyData objects (valid rows only)
-    
-    This is the FINAL version - returns domain objects, not dicts.
-    """
-    logging.info("Processando dados das linhas...")
-    logging.info(f"\nDEBUG: Total de linhas brutas recebidas: {len(raw_rows)}")
-    
-    parser = CompanyRowParser()
-    companies = []
-    
-    # Track skips for logging
-    skip_empty = 0
-    skip_total = 0
-    skip_numbers_only = 0
-    skip_no_match = 0
-    
-    for row_text in raw_rows:
-        company = parser.parse(row_text)
-        
-        if company:
-            companies.append(company)
-        else:
-            # Track why it was skipped (for debugging logs)
-            if not row_text.strip():
-                skip_empty += 1
-            elif "total" in row_text.lower():
-                skip_total += 1
-            elif re.match(r'^[\d\.,\s\-]+$', row_text.strip()):
-                skip_numbers_only += 1
-            else:
-                skip_no_match += 1
-    
-    # Summary log
-    logging.info(f"\n{'='*60}")
-    logging.info(f"RESUMO DO PARSING:")
-    logging.info(f"  ✓ Processadas com sucesso: {len(companies)}")
-    logging.info(f"  ⊘ Vazias ignoradas: {skip_empty}")
-    logging.info(f"  ⊘ Linhas 'total' ignoradas: {skip_total}")
-    logging.info(f"  ⚠ Apenas números (incompletas): {skip_numbers_only}")
-    logging.info(f"  ⚠ Não reconhecidas: {skip_no_match}")
-    logging.info(f"  ─────────────────────────────")
-    total_accounted = len(companies) + skip_empty + skip_total + skip_numbers_only + skip_no_match
-    logging.info(f"  Σ Total contabilizado: {total_accounted} / {len(raw_rows)}")
-    logging.info(f"{'='*60}")
-    
-    # Show first 5 for debugging
-    logging.info("\n✓ Primeiros 5 registros:")
-    for i, company in enumerate(companies[:5], start=1):
-        logging.info(f"{i}: {company}")
-    
-    return companies
-
-# =============================================================================
-# LEVEL DETECTION AND PATH DISCOVERY
-# =============================================================================
-
-def discover_paths_recursive(driver, current_path, all_paths, company_id, original_caption, max_depth=10):
-    """
-    Recursively discover all paths by exploring each branch.
-    """
-    if len(current_path) >= max_depth:
-        return
-    
-    # ═══════════════════════════════════════════════════════════
-    # WAIT FOR PAGE TO LOAD (from original click_next_level)
-    # ═══════════════════════════════════════════════════════════
-    logging.info("\n   → Aguardando botões carregarem...")
-    
-    buttons = []
-    level = "unknown"
-    
-    for attempt in range(6):
-        time.sleep(1.5)
-        
-        # Check if we're at the deepest level (processo links visible)
-        if has_processo_links(driver):
-            all_paths.append(current_path.copy())
-            logging.info(f"   ✓ Caminho completo encontrado: {' → '.join(current_path) if current_path else '(direto)'}")
-            return
-        
-        # Get current level
-        level = get_current_level(driver)
-        
-        # Get all buttons at this level (exclude what's already in path + company)
-        exclude = set(current_path) | {original_caption}
-        buttons = get_all_buttons_at_level(driver, exclude)
-        
-        if buttons:
-            logging.info(f"   Tentativa {attempt + 1}: Nível '{level}', {len(buttons)} botão(ões) encontrado(s)")
-            break
-        else:
-            logging.info(f"   Tentativa {attempt + 1}: Nível '{level}', aguardando botões...")
-    
-    if not buttons:
-        # No buttons found after retries - check for processo links one more time
-        if has_processo_links(driver):
-            all_paths.append(current_path.copy())
-            logging.info(f"   ✓ Caminho completo (sem botões): {' → '.join(current_path) if current_path else '(direto)'}")
-        elif current_path:
-            # Record incomplete path
-            all_paths.append(current_path.copy())
-            logging.info(f"   ⚠ Caminho incompleto: {' → '.join(current_path)}")
-        else:
-            logging.info("   ✗ Nenhum botão encontrado no primeiro nível")
-        return
-    
-    logging.info(f"   Botões encontrados: {buttons[:5]}{'...' if len(buttons) > 5 else ''}")
-    
-    # Explore each button
-    for i, btn_text in enumerate(buttons):
-        logging.info(f"\n   --- Explorando branch {i+1}/{len(buttons)}: {btn_text} ---")
-        
-        # Click this button
-        if click_specific_button(driver, btn_text):
-            # Recurse with updated path
-            new_path = current_path + [btn_text]
-            discover_paths_recursive(driver, new_path, all_paths, company_id, original_caption, max_depth)
-            
-            # Reset to explore next branch (if there are more)
-            if i < len(buttons) - 1:
-                logging.info(f"   ↩ Resetando para explorar próximo branch...")
-                if not reset_and_navigate_to_company(driver, company_id):
-                    logging.info("   ✗ Falha ao resetar")
-                    return
-                
-                # Re-navigate to current path position
-                for path_btn in current_path:
-                    time.sleep(0.5)
-                    if not click_specific_button(driver, path_btn):
-                        logger.error(f"    ✗ Falha ao re-navegar para: {path_btn}")
-                        return
-        else:
-            logger.error(f"    ✗ Não foi possível clicar em: {btn_text}")
-
-def reset_and_navigate_to_company(driver, company_id):
-    """
-    Reset to contracts page and navigate back to company.
-    """
-    from config import FILTER_YEAR, CONTRACTS_URL, BASE_URL
-    
-    logging.info(f"\n   ↩ Resetando para página de contratos...")
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 1: Go to HOME first to fully reset Vaadin state
-    # ═══════════════════════════════════════════════════════════
-    logging.info(f"   STEP 1: Navegando para HOME para resetar estado...")
-    driver.get(BASE_URL)
-    time.sleep(2)
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 2: Now navigate to contracts page
-    # ═══════════════════════════════════════════════════════════
-    logging.info(f"   STEP 2: Navegando para página de contratos...")
-    driver.get(CONTRACTS_URL)
-    time.sleep(2)
-    
-    # Wait for page to load
-    try:
-        wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]), timeout=10)
-        logging.info("   STEP 2: ✓ Tabela carregada")
-    except TimeoutException:
-        logging.info("   STEP 2: ⚠ Timeout, tentando refresh...")
-        driver.refresh()
-        time.sleep(3)
-        try:
-            wait_for_element(driver, (By.XPATH, LOCATORS["table_rows"]), timeout=10)
-            logging.info("   STEP 2: ✓ Tabela carregada após refresh")
-        except TimeoutException:
-            logging.info("   STEP 2: ✗ Falha ao carregar página")
-            return False
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 3: Set year filter if needed
-    # ═══════════════════════════════════════════════════════════
-    if FILTER_YEAR:
-        logging.info(f"   STEP 3: Aplicando filtro de ano: {FILTER_YEAR}")
-        set_year_filter(driver, FILTER_YEAR)
-        time.sleep(1)
-    else:
-        logging.info("   STEP 3: Sem filtro de ano")
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 4: Verify we're at 'favorecido' level
-    # ═══════════════════════════════════════════════════════════
-    level = get_current_level(driver)
-    logging.info(f"   STEP 4: Nível atual: '{level}'")
-    
-    if level != "favorecido":
-        logging.info(f"   STEP 4: ⚠ Esperado 'favorecido', forçando refresh completo...")
-        # Force complete refresh
-        driver.get(BASE_URL)
-        time.sleep(2)
-        driver.get(CONTRACTS_URL)
-        time.sleep(3)
-        if FILTER_YEAR:
-            set_year_filter(driver, FILTER_YEAR)
-        time.sleep(1)
-        
-        level = get_current_level(driver)
-        logging.info(f"   STEP 4: Nível após refresh: '{level}'")
-        
-        if level != "favorecido":
-            logging.info("   STEP 4: ✗ Não conseguiu resetar para 'favorecido'")
-            return False
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 5: Filter by company
-    # ═══════════════════════════════════════════════════════════
-    logging.info(f"   STEP 5: Filtrando por empresa: {company_id}")
-    if not filter_by_company(driver, company_id):
-        logging.info("   STEP 5: ✗ Falha ao filtrar")
-        return False
-    logging.info("   STEP 5: ✓ Filtro aplicado")
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 6: Wait for filter results to load
-    # ═══════════════════════════════════════════════════════════
-    logging.info("   STEP 6: Aguardando resultados do filtro...")
-    time.sleep(3)
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 7: Click on company
-    # ═══════════════════════════════════════════════════════════
-    logging.info(f"   STEP 7: Clicando na empresa...")
-    caption = click_company_button(driver, company_id)
-    if not caption:
-        logging.info("   STEP 7: ✗ Falha ao clicar na empresa")
-        return False
-    
-    logging.info(f"   STEP 7: ✓ Empresa clicada: {caption[:50]}...")
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 8: Verify we're now at 'orgao' level
-    # ═══════════════════════════════════════════════════════════
-    time.sleep(2)
-    level = get_current_level(driver)
-    logging.info(f"   STEP 8: Nível após clicar empresa: '{level}'")
-    
-    if level != "orgao":
-        logging.info(f"   STEP 8: ⚠ Esperado 'orgao', atual: '{level}'")
-        # Still return True, the click might have worked but level detection is off
-    
-    return True
-
-def discover_all_paths(driver, company_id, original_caption):
-    """
-    Discover all paths from company to deepest level.
-    
-    Args:
-        driver: WebDriver instance
-        company_id: Company ID
-        original_caption: Company button caption
-        
-    Returns:
-        List of paths, where each path is a list of button texts
-    """
-    logging.info("\n" + "="*60)
-    logging.info("DESCOBRINDO TODOS OS CAMINHOS")
-    logging.info("="*60)
-    
-    all_paths = []
-    discover_paths_recursive(driver, [], all_paths, company_id, original_caption)
-    
-    logging.info(f"\n✓ Total de caminhos descobertos: {len(all_paths)}")
-    for i, path in enumerate(all_paths, 1):
-        logging.info(f"   {i}: {' → '.join(path)}")
-    
-    return all_paths
-
-def follow_path_and_collect(driver, company_id, path):
-    """
-    Follow a specific path and collect all processos.
-    """
-    logging.info(f"\n   → Seguindo caminho: {' → '.join(path) if path else '(nível atual)'}")
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 1: Reset and navigate to company
-    # ═══════════════════════════════════════════════════════════
-    if not reset_and_navigate_to_company(driver, company_id):
-        logging.info("   ✗ Falha ao resetar para seguir caminho")
-        return []
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 2: Wait for page to transition after company click
-    # ═══════════════════════════════════════════════════════════
-    logging.info("   → Aguardando transição de página...")
-    time.sleep(2)
-    
-    # Wait for buttons to appear (like original click_next_level did)
-    for attempt in range(6):
-        buttons = get_all_buttons_at_level(driver, exclude_texts=set())
-        if buttons:
-            logging.info(f"   ✓ {len(buttons)} botões disponíveis após {attempt + 1} tentativa(s)")
-            break
-        time.sleep(0.8)
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 3: Follow the path
-    # ═══════════════════════════════════════════════════════════
-    for i, btn_text in enumerate(path):
-        logging.info(f"   → Clicando em [{i+1}/{len(path)}]: {btn_text}")
-        
-        # Wait for this specific button to be clickable
-        if not click_specific_button(driver, btn_text):
-            logger.error(f"    ✗ Falha ao clicar em: {btn_text}")
+        # Step 1: Navigate to contracts page
+        logger.info("\n📋 Step 1: Navigating to contracts page...")
+        if not self._navigate_to_contracts():
+            logger.error("✗ Failed to navigate to contracts page")
             return []
         
-        # Wait for page to update after each click
-        logging.info(f"   → Aguardando próximo nível...")
-        time.sleep(1.5)
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 4: Wait for deepest level
-    # ═══════════════════════════════════════════════════════════
-    time.sleep(1.5)
-    
-    # Check if we're at deepest level
-    for attempt in range(5):
-        if has_processo_links(driver):
-            logging.info("   ✓ Links de processo encontrados")
-            break
-        time.sleep(1)
-    
-    # ═══════════════════════════════════════════════════════════
-    # STEP 5: Collect processos
-    # ═══════════════════════════════════════════════════════════
-    doc_links = get_all_document_links(driver)
-    
-    logging.info(f"   ✓ Coletados {len(doc_links)} processo(s):")
-    for dl in doc_links:
-        logging.info(f"      - {dl.get('processo', 'N/A')}: {dl.get('href', 'N/A')[:50]}...")
-    
-    return doc_links
-
-def get_all_document_links(driver):
-    """
-    Find and return ALL document links (processos) from the page.
-    Searches for all links containing 'processo' in the href.
-    
-    Args:
-        driver: WebDriver instance
+        # Step 2: Apply filters
+        logger.info("\n📋 Step 2: Applying filters...")
+        if not self._apply_filters():
+            logger.warning("⚠ Filter application failed, continuing anyway...")
         
-    Returns:
-        List of dictionaries with 'href' and 'processo', or empty list if none found
-    """
-    logging.info("\n→ Procurando links de processos...")
-    
-    results = []
-    
-    try:
-        time.sleep(1)
+        # Step 3: Collect companies
+        logger.info("\n📋 Step 3: Collecting companies...")
+        companies = self._collect_companies()
+        logger.info(f"✓ Found {len(companies)} companies")
         
-        # Find ALL links containing 'processo' in href
-        try:
-            links = WebDriverWait(driver, TIMEOUT_SECONDS).until(
-                EC.presence_of_all_elements_located((
-                    By.XPATH,
-                    "//a[contains(@href, 'processo')]"
-                ))
-            )
+        if not companies:
+            logger.error("✗ No companies found")
+            return []
+        
+        # Step 4: For each company, discover processos
+        logger.info("\n📋 Step 4: Discovering processos for each company...")
+        for i, company in enumerate(companies, 1):
+            logger.info(f"\n   [{i}/{len(companies)}] Processing: {company.company_name}")
             
-            logging.info(f"   Encontrados {len(links)} link(s) de processo")
+            processos = self._discover_company_processos(company)
+            all_processos.extend(processos)
             
-            for link in links:
-                try:
-                    href = link.get_attribute("href")
-                    processo = link.text.strip()
-                    
-                    # If text is empty, extract from URL
-                    if not processo and href:
-                        if "?n=" in href:
-                            processo = href.split("?n=")[-1]
-                        elif "processo/" in href:
-                            processo = href.split("processo/")[-1]
-                    
-                    # Still empty? Try JavaScript
-                    if not processo:
-                        processo = driver.execute_script(
-                            "return arguments[0].innerText || arguments[0].textContent || '';", 
-                            link
-                        ).strip()
-                    
-                    if href:  # Only add if we have a valid href
-                        results.append({
-                            "href": href,
-                            "processo": processo
-                        })
-                        logging.info(f"   ✓ Processo: {processo}")
-                        logging.info(f"     URL: {href}")
-                        
-                except StaleElementReferenceException:
-                    continue
-                except Exception as e:
-                    logger.error(f"   ⚠ Erro ao processar link: {e}")
-                    continue
-                    
-        except TimeoutException:
-            logging.info("   Nenhum link de processo encontrado (timeout)")
+            logger.info(f"   ✓ Found {len(processos)} processos")
+            logger.info(f"   Running total: {len(all_processos)} processos")
         
-        # Fallback: Search for any external link with processo pattern
-        if not results:
-            logging.info("   Tentando método alternativo...")
-            try:
-                links = driver.find_elements(
-                    By.XPATH,
-                    "//a[starts-with(@href, 'http')]"
-                )
-                
-                for link in links:
-                    href = link.get_attribute("href") or ""
-                    text = link.text.strip()
-                    
-                    if "processo" in href.lower() or "PRO-" in text:
-                        processo = text
-                        if not processo and "?n=" in href:
-                            processo = href.split("?n=")[-1]
-                        
-                        results.append({
-                            "href": href,
-                            "processo": processo
-                        })
-                        logging.info(f"   ✓ Processo (alternativo): {processo}")
-                        
-            except Exception as e:
-                logger.error(f"   Método alternativo falhou: {e}")
+        # Summary
+        logger.info("\n" + "=" * 70)
+        logger.info(f"✓ DISCOVERY COMPLETE")
+        logger.info(f"   Companies processed: {len(companies)}")
+        logger.info(f"   Total processos found: {len(all_processos)}")
+        logger.info("=" * 70)
         
-        if results:
-            logging.info(f"\n✓ Total de processos encontrados: {len(results)}")
-        else:
-            logging.info("✗ Nenhum link de processo encontrado")
-        
-        return results
-        
-    except Exception as e:
-        logger.error(f"✗ Erro ao buscar links: {e}")
-        return []
-
-class CompanyRowParser:
-    """
-    Parses raw company row text into structured CompanyData objects.
+        return all_processos
     
-    This is the "new way" to do what parse_row_data() did in your scraper.py.
-    Key differences:
-    - Returns CompanyData objects (not dicts)
-    - No dependency on Selenium
-    - Easy to test with plain strings
-
-    NEW: Works with DTOs (structured data from Selenium)
-    OLD: Used to parse raw text directly
-    
-    Benefits:
-    - Clear separation: DTO = infrastructure, CompanyData = domain
-    - Easier to test with mock DTOs
-    - Domain layer doesn't know about Selenium
-
-    """
-    
-    def parse(self, row_text: str) -> Optional[CompanyData]:
+    def _navigate_to_contracts(self) -> bool:
         """
-        Parse a single row of text into CompanyData.
-        
-        Args:
-            row_text: Raw text like "12.345.678/0001-99 - Empresa LTDA 1.000,00 ..."
+        Navigate to contracts page.
         
         Returns:
-            CompanyData object if valid, None if invalid/skip
-        
-        Examples:
-            >>> parser = CompanyRowParser()
-            >>> result = parser.parse("12.345.678/0001-99 - Empresa X 1.000,00 500,00 500,00 300,00 200,00")
-            >>> result.id
-            '12.345.678/0001-99'
-            >>> result.name
-            'Empresa X'
+            True if successful, False otherwise
         """
-        
-        # ═══════════════════════════════════════════════════════════
-        # STEP 1: Basic validation - skip invalid rows
-        # ═══════════════════════════════════════════════════════════
-        
-        if not row_text or not row_text.strip():
-            return None
-        
-        row_text = row_text.strip()
-        
-        # Skip "TOTAL" summary rows
-        if "total" in row_text.lower():
-            return None
-        
-        # Skip rows that are only numbers (incomplete/broken rows)
-        if re.match(r'^[\d\.,\s\-]+$', row_text):
-            return None
-        
-        # ═══════════════════════════════════════════════════════════
-        # STEP 2: Extract ID and remaining text
-        # ═══════════════════════════════════════════════════════════
-        
-        # Pattern: "ID - RestOfText"
-        id_match = re.match(r'^([\w\d\.\/\-]+)\s*-\s*(.+)$', row_text)
-        
-        if not id_match:
-            return None  # Doesn't match expected format
-        
-        company_id = id_match.group(1).strip()
-        rest_text = id_match.group(2).strip()
-        
-        # ═══════════════════════════════════════════════════════════
-        # STEP 3: Find currency numbers (Brazilian format: 1.234,56)
-        # ═══════════════════════════════════════════════════════════
-        
-        # This pattern matches: -1.234,56 or 1.234,56 (with optional negative sign)
-        currency_numbers = re.findall(r'-?[\d\.]+,\d{2}', rest_text)
-        
-        if len(currency_numbers) < 5:
-            return None  # Need at least 5 financial values
-        
-        # Take the LAST 5 numbers (handles cases where CPF/CNPJ is in the middle)
-        numbers = currency_numbers[-5:]
-        
-        # ═══════════════════════════════════════════════════════════
-        # STEP 4: Extract company name (everything before first currency number)
-        # ═══════════════════════════════════════════════════════════
-        
-        first_number = numbers[0]
-        split_position = rest_text.find(first_number)
-        company_name = rest_text[:split_position].strip()
-        
-        if not company_name:
-            return None  # No company name found
-        
-        # ═══════════════════════════════════════════════════════════
-        # STEP 5: Create and return CompanyData object
-        # ═══════════════════════════════════════════════════════════
-        
         try:
-            return CompanyData(
-                id=company_id,
-                name=company_name,
-                total_contratado=numbers[0],
-                empenhado=numbers[1],
-                saldo_executar=numbers[2],
-                liquidado=numbers[3],
-                pago=numbers[4],
-                source_row=row_text  # Keep original for debugging
-            )
-        except ValueError:
-            # CompanyData validation failed (empty id/name)
-            return None
+            # It doesn't have to exist. We navigate traight to the page
+            # First navigate to base URL
+            logger.info(f"   → Navigating to: {CONTASRIO_CONTRACTS_URL}")
+            self.driver.get(CONTASRIO_CONTRACTS_URL)
+            time.sleep(2)
 
-    def parse_from_dto(self, dto: CompanyRowDTO) -> Optional[CompanyData]:
+            # Wait for page to load
+            if not wait_for_element(self.driver, By.TAG_NAME, "body", timeout=10):
+                logger.error("   ✗ Page body not found")
+                return False
+            
+            # "SOFT 404" CHECK ERROR (in case of sudden link/resource change) 
+            error_xpath = "//*[contains(text(), 'O recurso requisitado não foi encontrado')]"
+            error_element = wait_for_element(self.driver, By.XPATH, error_xpath, timeout=3)
+
+            if error_element:
+                logger.error("   ✗ SOFT 404 DETECTED: 'Resource not found' message appeared.")
+                return False
+
+            current_url = get_current_url(self.driver)
+            logger.info(f"   ✓ Current URL: {current_url}")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"   ✗ Navigation failed: {e}")
+            return False
+    
+    def _apply_filters(self) -> bool:
         """
-        Parse DTO → Domain object.
-        
-        Args:
-            dto: CompanyRowDTO from Selenium
+        Apply year filter if configured.
         
         Returns:
-            CompanyData if valid, None if validation fails
-        
-        Example:
-            >>> dto = CompanyRowDTO(
-            ...     raw_text="...",
-            ...     id_part="12.345.678/0001-99",
-            ...     name_part="Empresa ABC",
-            ...     value_parts=["1.000,00", "500,00", "500,00", "300,00", "200,00"]
-            ... )
-            >>> parser = CompanyRowParser()
-            >>> company = parser.parse_from_dto(dto)
-            >>> company.id
-            '12.345.678/0001-99'
+            True if successful or no filter needed, False otherwise
         """
+        try:
+            if not FILTER_YEAR:
+                logger.info("   ⏭️ No year filter configured")
+                return True
+            
+            logger.info(f"   → Looking for year filter selector...")
+            
+            # Try to find year filter element
+            year_filter = wait_for_element(
+                self.driver,
+                By.TAG_NAME,
+                CONTASRIO_LOCATORS["year_filter"],
+                timeout=5
+            )
+            
+            if not year_filter:
+                logger.warning("   ⚠ Year filter not found (may not exist on this portal)")
+                return True
+            
+            # Select year
+            logger.info(f"   → Setting year to: {FILTER_YEAR}")
+            year_filter.send_keys(str(FILTER_YEAR))
+            time.sleep(1)
+            
+            logger.info(f"   ✓ Applied filter: Year {FILTER_YEAR}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"   ✗ Filter application failed: {e}")
+            return False
+    
+    def _collect_companies(self) -> List[CompanyData]:
+        """
+        Collect all company rows from the table.
         
-        # ═══════════════════════════════════════════════════════════
-        # VALIDATION: Domain layer enforces rules
-        # ═══════════════════════════════════════════════════════════
-        
-        if not dto.id_part or not dto.id_part.strip():
-            return None
-        
-        if not dto.name_part or not dto.name_part.strip():
-            return None
-        
-        if len(dto.value_parts) < 5:
-            return None
-        
-        # ═══════════════════════════════════════════════════════════
-        # CREATE DOMAIN OBJECT
-        # ═══════════════════════════════════════════════════════════
+        Returns:
+            List of CompanyData objects
+        """
+        companies = []
         
         try:
-            return CompanyData(
-                id=dto.id_part,
-                name=dto.name_part,
-                total_contratado=dto.value_parts[0],
-                empenhado=dto.value_parts[1],
-                saldo_executar=dto.value_parts[2],
-                liquidado=dto.value_parts[3],
-                pago=dto.value_parts[4],
-                source_row=dto.raw_text  # Keep original for debugging
+            logger.info("   → Scrolling to load all companies...")
+            scroll_to_bottom(self.driver, pause=0.5)
+            time.sleep(1)
+            
+            logger.info("   → Looking for company table...")
+            
+            # Wait for table rows
+            rows = wait_for_elements(
+                self.driver,
+                cast(By, By.TAG_NAME),
+                CONTASRIO_LOCATORS["company_rows"],
+                timeout=10,
+                min_count=1
             )
-        except ValueError as e:
-            # CompanyData validation failed
-            return None
+            
+            if not rows:
+                logger.warning("   ⚠ No company rows found with CSS selector")
+                # Try alternative: find table and get all rows
+                rows = self._find_table_rows_alternative()
+            
+            logger.info(f"   ✓ Found {len(rows)} rows in table")
+            
+            # Parse each row
+            for i, row in enumerate(rows, 1):
+                company = CompanyRowParser.parse_row(row, i)
+                if company:
+                    companies.append(company)
+            
+            logger.info(f"   ✓ Successfully parsed {len(companies)} companies")
+            
+            return companies
+            
+        except Exception as e:
+            logger.error(f"   ✗ Company collection failed: {e}")
+            return []
+    
+    def _find_table_rows_alternative(self) -> List:
+        """
+        Alternative method to find table rows.
+        
+        Returns:
+            List of row elements
+        """
+        try:
+            # Look for any table
+            tables = self.driver.find_elements(By.TAG_NAME, "table")
+            
+            if not tables:
+                return []
+            
+            # Use first table (or largest table)
+            table = tables[0]
+            
+            # Get all rows from tbody
+            tbody = table.find_element(By.TAG_NAME, "tbody")
+            rows = tbody.find_elements(By.TAG_NAME, "tr")
+            
+            logger.info(f"   ✓ Found {len(rows)} rows using alternative method")
+            return rows
+            
+        except Exception as e:
+            logger.debug(f"   Alternative row finding failed: {e}")
+            return []
+    
+    def _discover_company_processos(self, company: CompanyData) -> List[ProcessoLink]:
+        """
+        Discover all processos for a specific company.
+        
+        Args:
+            company: CompanyData object
+            
+        Returns:
+            List of ProcessoLink objects for this company
+        """
+        from infrastructure.scrapers.contasrio.navigation import PathNavigator
+        
+        processos = []
+        
+        try:
+            navigator = PathNavigator(self.driver)
+            processos = navigator.discover_company_paths(company)
+            
+            # Update company contract count
+            company.total_contracts = len(processos)
+            
+        except Exception as e:
+            logger.error(f"   ✗ Discovery failed for {company.company_name}: {e}")
+        
+        return processos
