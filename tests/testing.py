@@ -1,19 +1,16 @@
-from infrastructure.logging_config import setup_logging
-import logging
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
-# Setup logging
-log_file = setup_logging("test", log_level=logging.INFO)
-print(f"Log file: {log_file}")
+options = Options()
+options.add_argument("--headless")  # try old headless
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
 
-# Test logging at different levels
-logger = logging.getLogger(__name__)
-logger.debug("This is a debug message")
-logger.info("This is an info message")
-logger.warning("This is a warning message")
-logger.error("This is an error message")
+driver = webdriver.Chrome(options=options)
+driver.get("https://www.google.com")
+print("Google loaded")
 
-# Check log file exists
-from pathlib import Path
-assert Path(log_file).exists()
+driver.get("https://contasrio.rio.rj.gov.br/ContasRio/")
+print("ContasRio base loaded")
 
-print("✓ Logging test passed")
+driver.quit()

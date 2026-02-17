@@ -1,3 +1,0 @@
-echo. > data\raw\.gitkeep
-echo. > data\processed\.gitkeep
-echo. > data\outputs\.gitkeep

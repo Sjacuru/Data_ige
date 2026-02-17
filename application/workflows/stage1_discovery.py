@@ -65,7 +65,7 @@ class Stage1DiscoveryWorkflow:
                 result.add_error(error_msg)
                 return result
             
-            logger.info("✓ WebDriver initialized successfully (funcyion in Stage 1 discovery file)")
+            logger.info("✓ WebDriver initialized successfully (function in Stage1_discovery file)")
             
             # Step 2: Create scraper
             logger.info("\n📋 Step 2: Creating ContasRio scraper...")

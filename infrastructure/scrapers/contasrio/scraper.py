@@ -9,6 +9,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
+from selenium.webdriver.chrome.options import Options
+
 from typing import cast
 
 from config.settings import CONTASRIO_BASE_URL, CONTASRIO_CONTRACTS_URL, FILTER_YEAR
@@ -108,15 +110,33 @@ class ContasRioScraper:
             True if successful, False otherwise
         """
         try:
-            # It doesn't have to exist. We navigate traight to the page
+            # It doesn't have to exist. We navigate traight to the page, but some errors were hapening 
+            # and I returned the original structure by following AI suggestion
+            logger.info(f"   → Navigating to: {CONTASRIO_BASE_URL}")
+            #self.driver.set_page_load_timeout(30) Can be deleted after working properly
+            self.driver.get(CONTASRIO_BASE_URL)
+            
             # First navigate to base URL
             logger.info(f"   → Navigating to: {CONTASRIO_CONTRACTS_URL}")
+            #self.driver.set_page_load_timeout(30) Can be deleted after working properly
             self.driver.get(CONTASRIO_CONTRACTS_URL)
-            time.sleep(2)
+
+            #Debug - delete after functionality works
+            print("Ready state:", self.driver.execute_script("return document.readyState"))
+            print("Current URL:", self.driver.current_url)  
+
+            BREADCRUMB_XPATH = "//span[@class='bread_0' and contains(text(),'Contrato por Favorecido')]"
+            breadcrumb = wait_for_element(
+                self.driver,
+                By.XPATH,
+                BREADCRUMB_XPATH,
+                timeout=20,     # allow slow load
+                visible=True
+            )
 
             # Wait for page to load
-            if not wait_for_element(self.driver, By.TAG_NAME, "body", timeout=10):
-                logger.error("   ✗ Page body not found")
+            if not breadcrumb:
+                logger.error("✗ Contracts page breadcrumb (Contrato por favorecido) not found")
                 return False
             
             # "SOFT 404" CHECK ERROR (in case of sudden link/resource change) 
@@ -127,6 +147,7 @@ class ContasRioScraper:
                 logger.error("   ✗ SOFT 404 DETECTED: 'Resource not found' message appeared.")
                 return False
 
+            # Just for checking. Can be deleted once it is working properly.
             current_url = get_current_url(self.driver)
             logger.info(f"   ✓ Current URL: {current_url}")
             
