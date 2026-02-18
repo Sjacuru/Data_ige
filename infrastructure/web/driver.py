@@ -37,6 +37,7 @@ def create_driver(
     Returns:
         Configured WebDriver instance or None if initialization failed
     """
+    
     try:
         # Determine headless mode
         use_headless = headless if headless is not None else HEADLESS_MODE
@@ -49,18 +50,22 @@ def create_driver(
         # Configure Chrome options
         options = Options()
 
+        import shutil
+        chrome_bin = shutil.which("chrome") or shutil.which("google-chrome")
+        if chrome_bin:
+            options.binary_location = chrome_bin
+
         # Load page strategy
-        options.page_load_strategy = "eager"
+        options.page_load_strategy = "normal"
         
-        # Headless mode
+        # # Headless mode
         if use_headless:
             options.add_argument("--headless=new")
             options.add_argument("--disable-gpu")
 
-        # Standard options
+        # # Standard options
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--window-size=1920,1080")
         options.add_argument("--start-maximized")
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-background-networking")
@@ -107,11 +112,6 @@ def create_driver(
         # Initialize driver
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
-        driver.set_page_load_timeout(30)
-        
-        # Set timeouts - because options.page_load_strategy = "eager" was added to the code this will be shadowed for testing
-        #driver.implicitly_wait(TIMEOUT_SECONDS)
-        #driver.set_page_load_timeout(TIMEOUT_SECONDS * 3)
         
         # Anti-detection: Override navigator.webdriver
         if anti_detection:

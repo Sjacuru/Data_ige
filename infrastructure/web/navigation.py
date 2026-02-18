@@ -45,17 +45,27 @@ def wait_for_element(
     timeout = timeout or TIMEOUT_SECONDS
     
     try:
+
+        locator = (by, value)
+
         condition = (
-            EC.visibility_of_element_located((str(by), value))
+            EC.visibility_of_element_located(locator)
             if visible
-            else EC.presence_of_element_located((str(by), value))
+            else EC.presence_of_element_located(locator)
         )
-        
-        element = WebDriverWait(driver, timeout).until(condition)
-        return element
-        
+    
+        return WebDriverWait(driver, 120).until(
+            lambda d: d.find_elements(By.CSS_SELECTOR, "span.v-button-caption")[0]
+            if len(d.find_elements(By.CSS_SELECTOR, "span.v-button-caption")) > 0
+            else False
+        )
+
+
+    
+
+
     except TimeoutException:
-        logger.debug(f"⚠ Element not found: {value}")
+        logger.debug(f"⚠ Element not found within {timeout}s: {value}")
         return None
 
 
@@ -158,37 +168,59 @@ def scroll_to_element(driver: webdriver.Chrome, element: WebElement) -> None:
 
 def scroll_to_bottom(
     driver: webdriver.Chrome,
-    pause: float = 0.5,
-    max_scrolls: int = 20
+    grid_css: str = "div.v-grid",
+    pause: float = 2.0,
+    max_scrolls: int = 200,
+    scroll_increment: int = 300
 ) -> None:
     """
-    Scroll to bottom of page gradually to load dynamic content.
+    Scroll inside a Vaadin grid's internal scrollable container.
     
     Args:
         driver: WebDriver instance
+        grid_css: CSS selector for the grid container
         pause: Pause between scrolls (seconds)
-        max_scrolls: Maximum number of scroll attempts
+        max_scrolls: Safety limit
+        scroll_increment: Pixels to scroll per step
     """
+    # Vaadin grid's scrollable element is the `.v-grid-scroller-vertical`
+    # or the `.v-grid-tablewrapper` depending on Vaadin version.
+    # Fallback: find the scrollable div inside the grid.
     
-    last_height = driver.execute_script("return document.body.scrollHeight")
-    scrolls = 0
+    scroller = driver.execute_script("""
+        var grid = document.querySelector(arguments[0]);
+        if (!grid) return null;
+        
+        // Vaadin 7/8 uses a vertical scroller div
+        var vertScroller = grid.querySelector('.v-grid-scroller-vertical');
+        if (vertScroller) return vertScroller;
+        
+        // Fallback: the table wrapper itself
+        var wrapper = grid.querySelector('.v-grid-tablewrapper');
+        if (wrapper) return wrapper;
+        
+        return grid;
+    """, grid_css)
     
-    while scrolls < max_scrolls:
-        # Scroll down
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    if not scroller:
+        logger.warning("Could not find grid scroller element")
+        return
+    
+    for i in range(max_scrolls):
+        old_top = driver.execute_script("return arguments[0].scrollTop;", scroller)
+        driver.execute_script(
+            "arguments[0].scrollTop += arguments[1];",
+            scroller,
+            scroll_increment
+        )
         time.sleep(pause)
+        new_top = driver.execute_script("return arguments[0].scrollTop;", scroller)
         
-        # Calculate new scroll height
-        new_height = driver.execute_script("return document.body.scrollHeight")
-        
-        # Break if no new content loaded
-        if new_height == last_height:
-            break
-            
-        last_height = new_height
-        scrolls += 1
+        if new_top == old_top:
+            logger.debug(f"   Grid scroll complete after {i + 1} steps")
+            return
     
-    logger.debug(f"   Scrolled {scrolls} times to bottom")
+    logger.debug(f"   Grid scroll hit max_scrolls ({max_scrolls})")
 
 
 def get_current_url(driver: webdriver.Chrome) -> str:

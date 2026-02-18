@@ -73,6 +73,11 @@ class CompanyData:
     
     # Discovery metadata
     discovered_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    # Raw cell data for debugging — excluded from repr for cleanliness
+    raw_cells: Optional[List[str]] = field(
+        default=None, repr=False
+    )
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
