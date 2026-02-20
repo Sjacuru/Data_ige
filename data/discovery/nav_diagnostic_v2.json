@@ -1,0 +1,50 @@
+{
+  "diagnostic_date": "2026-02-19T01:57:22.123760",
+  "companies_probed": [
+    {
+      "company_index": 0,
+      "levels": [
+        {
+          "label": "company_0_ORGAO_LEVEL",
+          "depth": 1,
+          "timestamp": "2026-02-19T01:57:50.596706",
+          "url": "https://contasrio.rio.rj.gov.br/ContasRio/#!Contratos/Contrato%20por%20Favorecido",
+          "breadcrumbs": [
+            "Favorecido:\n01282704000167 - GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL"
+          ],
+          "drillable_button_count": 1,
+          "drillable_buttons_sample": [
+            "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A"
+          ]
+        },
+        {
+          "label": "company_0_UG_LEVEL",
+          "depth": 2,
+          "timestamp": "2026-02-19T01:57:58.230152",
+          "url": "https://contasrio.rio.rj.gov.br/ContasRio/#!Contratos/Contrato%20por%20Favorecido",
+          "breadcrumbs": [
+            "Favorecido:\n01282704000167 - GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL",
+            "Órgão:\n3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A"
+          ],
+          "drillable_button_count": 1,
+          "drillable_buttons_sample": [
+            "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+          ]
+        },
+        {
+          "label": "company_0_LEVEL_3",
+          "depth": 3,
+          "timestamp": "2026-02-19T01:58:03.739830",
+          "url": "https://contasrio.rio.rj.gov.br/ContasRio/#!Contratos/Contrato%20por%20Favorecido",
+          "breadcrumbs": [
+            "Favorecido:\n01282704000167 - GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL",
+            "Órgão:\n3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+            "Unidade Gestora:\n330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+          ],
+          "drillable_button_count": 0,
+          "drillable_buttons_sample": []
+        }
+      ]
+    }
+  ]
+}

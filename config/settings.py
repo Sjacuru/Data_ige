@@ -14,7 +14,7 @@ load_dotenv()
 CONTASRIO_BASE_URL = os.getenv("CONTASRIO_BASE_URL", "https://www.rio.rj.gov.br/web/contasrio")
 CONTASRIO_CONTRACTS_URL = os.getenv("CONTASRIO_CONTRACTS_URL", "https://contasrio.rio.rj.gov.br/ContasRio/#!Contratos/Contrato%20por%20Favorecido")
 
-FILTER_YEAR = os.getenv("FILTER_YEAR", "2026")
+FILTER_YEAR = os.getenv("FILTER_YEAR")
 
 # Browser settings
 HEADLESS_MODE = os.getenv("HEADLESS_MODE", "false").lower() == "true"

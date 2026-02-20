@@ -1,0 +1,1453 @@
+{
+  "diagnostic_date": "2026-02-19T02:02:29.787416",
+  "depth3_inventory": {
+    "all_buttons": [
+      {
+        "class": "v-button v-widget link v-button-link",
+        "tag": "DIV",
+        "text": "01282704000167 - GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL",
+        "visible": true
+      },
+      {
+        "class": "v-button v-widget link v-button-link",
+        "tag": "DIV",
+        "text": "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "visible": true
+      },
+      {
+        "class": "v-button v-widget link v-button-link",
+        "tag": "DIV",
+        "text": "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR",
+        "visible": true
+      },
+      {
+        "class": "v-button v-disabled v-widget clear-button v-button-clear-button icon-only v-button-icon-only borderless v-button-borderless v-has-height",
+        "tag": "DIV",
+        "text": "",
+        "visible": true
+      },
+      {
+        "class": "v-button v-widget borderless-colored v-button-borderless-colored icon-only v-button-icon-only v-has-width",
+        "tag": "DIV",
+        "text": "",
+        "visible": true
+      },
+      {
+        "class": "v-button v-widget borderless-colored v-button-borderless-colored icon-only v-button-icon-only tiny v-button-tiny v-has-width",
+        "tag": "DIV",
+        "text": "",
+        "visible": true
+      },
+      {
+        "class": "v-button v-widget borderless-colored v-button-borderless-colored icon-only v-button-icon-only tiny v-button-tiny v-has-width",
+        "tag": "DIV",
+        "text": "",
+        "visible": false
+      },
+      {
+        "class": "v-button v-widget borderless-colored v-button-borderless-colored icon-only v-button-icon-only tiny v-button-tiny v-has-width",
+        "tag": "DIV",
+        "text": "",
+        "visible": false
+      },
+      {
+        "class": "v-button v-widget borderless-colored v-button-borderless-colored icon-only v-button-icon-only tiny v-button-tiny v-has-width",
+        "tag": "DIV",
+        "text": "",
+        "visible": false
+      },
+      {
+        "class": "v-button v-widget dashboard-boardlet-content v-button-dashboard-boardlet-content",
+        "tag": "DIV",
+        "text": "",
+        "visible": true
+      },
+      {
+        "class": "v-button v-widget dashboard-boardlet-content v-button-dashboard-boardlet-content",
+        "tag": "DIV",
+        "text": "",
+        "visible": true
+      },
+      {
+        "class": "v-button v-widget dashboard-boardlet-content v-button-dashboard-boardlet-content",
+        "tag": "DIV",
+        "text": "",
+        "visible": true
+      },
+      {
+        "class": "v-button v-widget dashboard-boardlet-content v-button-dashboard-boardlet-content v-button-primary",
+        "tag": "DIV",
+        "text": "",
+        "visible": true
+      }
+    ],
+    "all_grid_cells": [
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Contrato"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Objeto"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Descrição"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Situação"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Processo"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Data Início de Vigência"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Data Fim de Vigência"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Total Contratado"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Empenhado"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Saldo a Executar"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Liquidado"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "columnheader",
+        "text": "Pago"
+      },
+      {
+        "class": "v-grid-cell v-grid-cell-focused",
+        "role": "gridcell",
+        "text": "TOTAL"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "2.150.000,00"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "2.150.000,00"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "0,00"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "1.935.000,00"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "1.935.000,00"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "gridcell",
+        "text": "2517996"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "gridcell",
+        "text": "REFERENTE A INCENTIVO CULTURAL PARA APOIO E APRIMORAMENTO DE ATIVIDADES QUE ENSEJAM O PREPARO E A REALIZAÇÃO DO DESFILE OFICIAL DO GRUPO ESPECIAL - CA"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "gridcell",
+        "text": "GRES UNIDOS DE VILA ISABEL - CARNAVAL 2026"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "gridcell",
+        "text": "Assinado"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "gridcell",
+        "text": "TUR-PRO-2025/01221"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "gridcell",
+        "text": "06/01/2026"
+      },
+      {
+        "class": "v-grid-cell",
+        "role": "gridcell",
+        "text": "31/12/2026"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "2.150.000,00"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "2.150.000,00"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "0,00"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "1.935.000,00"
+      },
+      {
+        "class": "v-grid-cell align-right",
+        "role": "gridcell",
+        "text": "1.935.000,00"
+      }
+    ],
+    "all_grid_rows": [
+      {
+        "cells": [
+          "Contrato",
+          "Objeto",
+          "Descrição",
+          "Situação",
+          "Processo",
+          "Data Início de Vigência",
+          "Data Fim de Vigência",
+          "Total Contratado",
+          "Empenhado",
+          "Saldo a Executar",
+          "Liquidado",
+          "Pago"
+        ],
+        "class": "v-grid-row",
+        "role": "rowheader"
+      },
+      {
+        "cells": [
+          "TOTAL",
+          "2.150.000,00",
+          "2.150.000,00",
+          "0,00",
+          "1.935.000,00",
+          "1.935.000,00"
+        ],
+        "class": "v-grid-row v-grid-row-focused v-grid-row-has-data",
+        "role": "row"
+      },
+      {
+        "cells": [
+          "2517996",
+          "REFERENTE A INCENTIVO CULTURAL PARA APOIO E APRIMORAMENTO DE ATIVIDADES QUE ENSEJAM O PREPARO E A REALIZAÇÃO DO DESFILE OFICIAL DO GRUPO ESPECIAL - CA",
+          "GRES UNIDOS DE VILA ISABEL - CARNAVAL 2026",
+          "Assinado",
+          "TUR-PRO-2025/01221",
+          "06/01/2026",
+          "31/12/2026",
+          "2.150.000,00",
+          "2.150.000,00",
+          "0,00",
+          "1.935.000,00",
+          "1.935.000,00"
+        ],
+        "class": "v-grid-row v-grid-row-stripe v-grid-row-has-data",
+        "role": "row"
+      }
+    ],
+    "all_links": [
+      {
+        "class": "",
+        "href": "//carioca.rio",
+        "text": ""
+      },
+      {
+        "class": "",
+        "href": "https://www.1746.rio",
+        "text": ""
+      },
+      {
+        "class": "",
+        "href": "http://www.rio.rj.gov.br/web/transparencia",
+        "text": ""
+      },
+      {
+        "class": "",
+        "href": "https://twitter.com/Prefeitura_Rio",
+        "text": ""
+      },
+      {
+        "class": "",
+        "href": "https://www.facebook.com/PrefeituradoRio",
+        "text": ""
+      },
+      {
+        "class": "",
+        "href": "https://www.instagram.com/prefeitura_rio",
+        "text": ""
+      },
+      {
+        "class": "",
+        "href": "https://www.youtube.com/prefeiturario",
+        "text": ""
+      },
+      {
+        "class": "",
+        "href": "/ContasRio",
+        "text": ""
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "A PREFEITURA"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://prefeitura.rio/orgaos_municipais/",
+        "text": "ÓRGÃOS MUNICIPAIS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/arquivogeral",
+        "text": "ARQUIVO DA CIDADE"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/transparencia",
+        "text": "ACESSO À INFORMAÇÃO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://meudominio.rio",
+        "text": "DOMÍNIO.RIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://data.rio",
+        "text": "DATA.RIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/portfolio-institucional/principal",
+        "text": "PORTFÓLIO DE GESTÃO INSTITUCIONAL"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://www.rio.rj.gov.br/ebooks/livro_fundamentos_de_gestao/",
+        "text": "- Livro Fundamentos de Gestão Institucional"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "TURISMO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/riotur",
+        "text": "RIOTUR"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://riotur.rio/",
+        "text": "RIOTUR.RIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/cidadedasartes",
+        "text": "CIDADE DAS ARTES"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://portomaravilha.com.br/",
+        "text": "PORTO MARAVILHA"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/riozoo",
+        "text": "ZOOLÓGICO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/planetario",
+        "text": "PLANETÁRIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/bibliotecas",
+        "text": "BIBLIOTECAS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/centros-culturais",
+        "text": "CENTROS CULTURAIS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc//lonas-culturais",
+        "text": "LONAS CULTURAIS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/arenas",
+        "text": "ARENAS CARIOCAS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/museus",
+        "text": "MUSEUS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/teatros",
+        "text": "TEATROS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/teatros-de-guignol",
+        "text": "TEATROS DE GUIGNOL"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "CIDADÃO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/guest/servicos",
+        "text": "GUIA DE SERVIÇOS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://www.1746.rio",
+        "text": "CENTRAL DE ATENDIMENTO 1746"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/proconcarioca",
+        "text": "PROCON CARIOCA"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://carioca.rio/",
+        "text": "CARIOCA DIGITAL"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://carioca.rio/",
+        "text": "RIO MAIS FÁCIL"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "SERVIDOR"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/portaldoservidor",
+        "text": "PORTAL DO SERVIDOR"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/previrio",
+        "text": "PREVIRIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www2.rio.rj.gov.br/sicop/",
+        "text": "CONSULTA A PROCESSOS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://smaonline.rio.rj.gov.br/conlegis/ConLegislacao.asp",
+        "text": "CONSULTA ÀS LEGISLAÇÕES"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/servicoscompartilhados",
+        "text": "SERVIÇOS COMPARTILHADOS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/servicoscompartilhados/exibeconteudo?id=2810223",
+        "text": "CONTRACHEQUES"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "EMPRESA"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://ecomprasrio.rio.rj.gov.br/",
+        "text": "E-COMPRAS RIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/licenciamento-e-fiscalizacao",
+        "text": "LICENCIAMENTO E FISCALIZAÇÃO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smf/iptu",
+        "text": "IPTU"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smf/iss",
+        "text": "ISS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smf/itbi",
+        "text": "ITBI"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smf/tis-e-outras-taxas",
+        "text": "TIS E OUTROS"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "http://www.rio.rj.gov.br/ouvidoria",
+        "text": "OUVIDORIA"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "A PREFEITURA"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://prefeitura.rio/orgaos_municipais/",
+        "text": "ÓRGÃOS MUNICIPAIS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/arquivogeral",
+        "text": "ARQUIVO DA CIDADE"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/transparencia",
+        "text": "ACESSO À INFORMAÇÃO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://meudominio.rio",
+        "text": "DOMÍNIO.RIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://data.rio",
+        "text": "DATA.RIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/portfolio-institucional/principal",
+        "text": "PORTFÓLIO DE GESTÃO INSTITUCIONAL"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://www.rio.rj.gov.br/ebooks/livro_fundamentos_de_gestao/",
+        "text": "- Livro Fundamentos de Gestão Institucional"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "TURISMO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/riotur",
+        "text": "RIOTUR"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://riotur.rio/",
+        "text": "RIOTUR.RIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/cidadedasartes",
+        "text": "CIDADE DAS ARTES"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://portomaravilha.com.br/",
+        "text": "PORTO MARAVILHA"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/riozoo",
+        "text": "ZOOLÓGICO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/planetario",
+        "text": "PLANETÁRIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/bibliotecas",
+        "text": "BIBLIOTECAS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/centros-culturais",
+        "text": "CENTROS CULTURAIS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc//lonas-culturais",
+        "text": "LONAS CULTURAIS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/arenas",
+        "text": "ARENAS CARIOCAS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/museus",
+        "text": "MUSEUS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/teatros",
+        "text": "TEATROS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smc/teatros-de-guignol",
+        "text": "TEATROS DE GUIGNOL"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "CIDADÃO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/guest/servicos",
+        "text": "GUIA DE SERVIÇOS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://www.1746.rio",
+        "text": "CENTRAL DE ATENDIMENTO 1746"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/proconcarioca",
+        "text": "PROCON CARIOCA"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://carioca.rio/",
+        "text": "CARIOCA DIGITAL"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "https://carioca.rio/",
+        "text": "RIO MAIS FÁCIL"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "SERVIDOR"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/portaldoservidor",
+        "text": "PORTAL DO SERVIDOR"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/previrio",
+        "text": "PREVIRIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www2.rio.rj.gov.br/sicop/",
+        "text": "CONSULTA A PROCESSOS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://smaonline.rio.rj.gov.br/conlegis/ConLegislacao.asp",
+        "text": "CONSULTA ÀS LEGISLAÇÕES"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/servicoscompartilhados",
+        "text": "SERVIÇOS COMPARTILHADOS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/servicoscompartilhados/exibeconteudo?id=2810223",
+        "text": "CONTRACHEQUES"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "",
+        "text": "EMPRESA"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://ecomprasrio.rio.rj.gov.br/",
+        "text": "E-COMPRAS RIO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/licenciamento-e-fiscalizacao",
+        "text": "LICENCIAMENTO E FISCALIZAÇÃO"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smf/iptu",
+        "text": "IPTU"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smf/iss",
+        "text": "ISS"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smf/itbi",
+        "text": "ITBI"
+      },
+      {
+        "class": "texto-subitem",
+        "href": "http://www.rio.rj.gov.br/web/smf/tis-e-outras-taxas",
+        "text": "TIS E OUTROS"
+      },
+      {
+        "class": "texto-botoes",
+        "href": "http://www.rio.rj.gov.br/ouvidoria",
+        "text": "OUVIDORIA"
+      },
+      {
+        "class": "1",
+        "href": "#!Despesas/Despesa%20por%20fundamento%20da%20despesa%20(Covid)",
+        "text": "COVID-19"
+      },
+      {
+        "class": "8 principal principal-6",
+        "href": "",
+        "text": "Acordos e Transferências"
+      },
+      {
+        "class": "2 principal principal-1",
+        "href": "https://app.powerbi.com/view?r=eyJrIjoiNmRiYjBkYTMtOTE2YS00Mjg3LTkzZDUtZmFjNWQ4ZDFhM2E2IiwidCI6IjFlYzIzODdjLThmNzctNGQ5Yi1hYjYwLTNkM2QxOGFlZTc4ZCJ9",
+        "text": "PAINÉIS GERENCIAIS"
+      },
+      {
+        "class": "3 principal principal-1",
+        "href": "#!Receitas/Gráficos",
+        "text": "RECEITAS"
+      },
+      {
+        "class": "3",
+        "href": "#!Receitas/Gráficos",
+        "text": "Gráficos"
+      },
+      {
+        "class": "3",
+        "href": "#!Receitas/Receitas%20por%20orgão",
+        "text": "Por Órgão"
+      },
+      {
+        "class": "3",
+        "href": "#!Receitas/Receitas%20por%20Fonte",
+        "text": "Por Fonte"
+      },
+      {
+        "class": "3",
+        "href": "#!Receitas/Receita%20por%20Origem",
+        "text": "Por Origem"
+      },
+      {
+        "class": "3",
+        "href": "#!Receitas/Receita%20por%20Natureza",
+        "text": "Por Natureza"
+      },
+      {
+        "class": "4 principal principal-2",
+        "href": "#!Despesas/Gráficos",
+        "text": "DESPESAS"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/Gráficos",
+        "text": "Gráficos"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/Despesa%20por%20Orgão",
+        "text": "Por Órgão"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/Despesa%20por%20Ação",
+        "text": "Por Ação"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/Despesa%20por%20Programa",
+        "text": "Por Programa"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/Empenhos",
+        "text": "Empenhos"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/OCA",
+        "text": "Orçamento criança e adolescente - OCA"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/Despesa%20por%20Fundamentação%20Legal",
+        "text": "Por Fundamentação Legal"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/Consulta%20Remuneração%20do%20Servidor",
+        "text": "Consulta Remuneração do Servidor"
+      },
+      {
+        "class": "4",
+        "href": "#!Despesas/Diárias",
+        "text": "Diárias"
+      },
+      {
+        "class": "3",
+        "href": "#!Despesas/Despesa%20Detalhada",
+        "text": "Despesa Detalhada"
+      },
+      {
+        "class": "3",
+        "href": "#!Despesas/Ordem%20Cronológica%20dos%20Pagamentos",
+        "text": "Ordem Cronológica dos Pagamentos"
+      },
+      {
+        "class": "3",
+        "href": "#!Despesas/Dispensas%20e%20Inexigibilidade",
+        "text": "Dispensas e Inexigibilidades"
+      },
+      {
+        "class": "3",
+        "href": "#!Despesas/Pagamentos%20Extraorçamentários",
+        "text": "Pagamentos Extraorçamentários"
+      },
+      {
+        "class": "5 principal principal-3",
+        "href": "#!Favorecidos/Gráficos",
+        "text": "FAVORECIDOS"
+      },
+      {
+        "class": "5",
+        "href": "#!Favorecidos/Gráficos",
+        "text": "Gráficos"
+      },
+      {
+        "class": "5",
+        "href": "#!Favorecidos/Liquidação Orçamentária",
+        "text": "Liquidação Orçamentária"
+      },
+      {
+        "class": "5",
+        "href": "#!Favorecidos/Liquidação%20de%20Restos%20a%20Pagar",
+        "text": "Liquidação de Restos a Pagar"
+      },
+      {
+        "class": "5",
+        "href": "#!Favorecidos/Pagamento%20Orçamentário",
+        "text": "Pagamento Orçamentário"
+      },
+      {
+        "class": "5",
+        "href": "#!Favorecidos/Pagamento%20de%20Restos%20a%20Pagar",
+        "text": "Pagamento de Restos a Pagar"
+      },
+      {
+        "class": "6 principal principal-4",
+        "href": "#!Contratos/Gráficos",
+        "text": "CONTRATOS"
+      },
+      {
+        "class": "6",
+        "href": "#!Contratos/Gráficos",
+        "text": "Gráficos"
+      },
+      {
+        "class": "6",
+        "href": "#!Contratos/Contrato%20por%20Orgão",
+        "text": "Por Órgão"
+      },
+      {
+        "class": "6",
+        "href": "#!Contratos/Contrato%20por%20Favorecido",
+        "text": "Por Favorecido"
+      },
+      {
+        "class": "6",
+        "href": "#!Contratos/Contrato%20Por%20Objeto",
+        "text": "Por Objeto"
+      },
+      {
+        "class": "6",
+        "href": "#!Contratos/Contrato%20Por%20Fundamentação%20Legal",
+        "text": "Por Fundamentação Legal"
+      },
+      {
+        "class": "6",
+        "href": "#!Contratos/Fiscais%20de%20Contratos",
+        "text": "Fiscais de Contratos"
+      },
+      {
+        "class": "6",
+        "href": "#!Contratos/Contratos%20Emergenciais",
+        "text": "Contratos Emergenciais"
+      },
+      {
+        "class": "9 principal principal-7",
+        "href": "",
+        "text": "PRESTAÇÃO CONTAS"
+      },
+      {
+        "class": "9",
+        "href": "https://controladoria.prefeitura.rio/prestacao-de-contas-de-governo/",
+        "text": "Prestação de Contas de Governo"
+      },
+      {
+        "class": "9",
+        "href": "https://controladoria.prefeitura.rio/demonstracoes-contabeis/",
+        "text": "Demonstrações Contábeis"
+      },
+      {
+        "class": "9",
+        "href": "#!Prestação de Contas/Responsabilidade%20Fiscal",
+        "text": "Demonstrativos da Lei de Responsabilidade Fiscal"
+      },
+      {
+        "class": "",
+        "href": "",
+        "text": "OUTROS"
+      },
+      {
+        "class": "8",
+        "href": "#!Transferências%20Recebidas",
+        "text": "Transferências Recebidas"
+      },
+      {
+        "class": "8",
+        "href": "#!Transferências%20Realizadas",
+        "text": "Transferências Realizadas"
+      },
+      {
+        "class": "8",
+        "href": "#!Instrumento%20sem%20Transferência%20de%20Recursos",
+        "text": "Instrumento sem Transferência de Recursos"
+      },
+      {
+        "class": "10 principal principal-14",
+        "href": "#!Dados Abertos",
+        "text": "Dados Abertos"
+      },
+      {
+        "class": "11 principal principal-8",
+        "href": "#!Orçamento Municipal",
+        "text": "Orçamento Municipal"
+      },
+      {
+        "class": "12 principal principal-9",
+        "href": "#!O que é o Portal",
+        "text": "O que é o Portal"
+      },
+      {
+        "class": "13 principal principal-10",
+        "href": "#!Glossário",
+        "text": "Glossário"
+      },
+      {
+        "class": "15 principal principal-8",
+        "href": "https://www.1746.rio/hc/pt-br",
+        "text": "Fale Conosco"
+      },
+      {
+        "class": "16 principal principal-12",
+        "href": "#!Mapa",
+        "text": "Mapa do Portal"
+      },
+      {
+        "class": "",
+        "href": "#!Manual",
+        "text": "Manual"
+      },
+      {
+        "class": "14 principal principal-11",
+        "href": "#!Perguntas Frequentes",
+        "text": "Perguntas Frequentes"
+      },
+      {
+        "class": "18 principal principal-13",
+        "href": "#!Delegações de Competencia",
+        "text": "Delegações de Competência"
+      },
+      {
+        "class": "19 principal principal-14",
+        "href": "https://prefeitura.rio/orgaos_municipais/",
+        "text": "Índice de Secretarias e Órgãos"
+      },
+      {
+        "class": "bread_2",
+        "href": "#!Home",
+        "text": "Home"
+      },
+      {
+        "class": "bread_1",
+        "href": "#!Contratos/Gráficos",
+        "text": "Contratos"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Home",
+        "text": "Home"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Gráficos",
+        "text": "Gráficos"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Despesa por Ação",
+        "text": "Despesa por Ação"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Despesa por Orgão",
+        "text": "Despesa por Orgão"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Despesa por Programa",
+        "text": "Despesa por Programa"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Despesa por fundamento da despesa (Covid)",
+        "text": "Despesa por fundamento da despesa (Covid)"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Empenhos",
+        "text": "Empenhos"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/OCA",
+        "text": "OCA"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Despesa por Fundamentação Legal",
+        "text": "Despesa por Fundamentação Legal"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Consulta Remuneração do Servidor",
+        "text": "Consulta Remuneração do Servidor"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Diárias",
+        "text": "Diárias"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Despesa Detalhada",
+        "text": "Despesa Detalhada"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Ordem Cronológica dos Pagamentos",
+        "text": "Ordem Cronológica dos Pagamentos"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Dispensas e Inexigibilidade",
+        "text": "Dispensas e Inexigibilidade"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Despesas/Pagamentos Extraorçamentários",
+        "text": "Pagamentos Extraorçamentários"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Receitas/Gráficos",
+        "text": "Gráficos"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Receitas/Receitas por orgão",
+        "text": "Receitas por orgão"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Receitas/Receitas por Fonte",
+        "text": "Receitas por Fonte"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Receitas/Receita por Natureza",
+        "text": "Receita por Natureza"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Receitas/Receita por Origem",
+        "text": "Receita por Origem"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Favorecidos/Gráficos",
+        "text": "Gráficos"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Favorecidos/Liquidação Orçamentária",
+        "text": "Liquidação Orçamentária"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Favorecidos/Liquidação de Restos a Pagar",
+        "text": "Liquidação de Restos a Pagar"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Favorecidos/Pagamento Orçamentário",
+        "text": "Pagamento Orçamentário"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Favorecidos/Pagamento de Restos a Pagar",
+        "text": "Pagamento de Restos a Pagar"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Favorecidos/Programações de Pagamento por Credor",
+        "text": "Programações de Pagamento por Credor"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Contratos/Gráficos",
+        "text": "Gráficos"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Contratos/Contrato por Orgão",
+        "text": "Contrato por Orgão"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Contratos/Contrato por Favorecido",
+        "text": "Contrato por Favorecido"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Contratos/Contrato Por Fundamento da Despesa (+Covid19)",
+        "text": "Contrato Por Fundamento da Despesa (+Covid19)"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Contratos/Contrato Por Objeto",
+        "text": "Contrato Por Objeto"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Contratos/Contrato Por Fundamentação Legal",
+        "text": "Contrato Por Fundamentação Legal"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Contratos/Fiscais de Contratos",
+        "text": "Fiscais de Contratos"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Contratos/Contratos Emergenciais",
+        "text": "Contratos Emergenciais"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Glossário",
+        "text": "Glossário"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Mapa",
+        "text": "Mapa"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Dados Abertos",
+        "text": "Dados Abertos"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Orçamento Municipal",
+        "text": "Orçamento Municipal"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Perguntas Frequentes",
+        "text": "Perguntas Frequentes"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Fale Conosco",
+        "text": "Fale Conosco"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Índice de Secretárias e Orgãos",
+        "text": "Índice de Secretárias e Orgãos"
+      },
+      {
+        "class": "sub-menu--link",
+        "href": "#!Prestação de Contas/Responsabilidade Fiscal",
+        "text": "Responsabilidade Fiscal"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!O que é o Portal",
+        "text": "O que é o Portal"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Orçamento Municipal",
+        "text": "Orçamento Municipal"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Consulta Processo",
+        "text": "Consulta Processo"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Delegações de Competencia",
+        "text": "Delegações de Competencia"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Transferências Recebidas",
+        "text": "Transferências Recebidas"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Transferências Realizadas",
+        "text": "Transferências Realizadas"
+      },
+      {
+        "class": "menu--link",
+        "href": "#!Instrumento sem Transferência de Recursos",
+        "text": "Instrumento sem Transferência de Recursos"
+      },
+      {
+        "class": "",
+        "href": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+        "text": "TUR-PRO-2025/01221"
+      },
+      {
+        "class": "link",
+        "href": "https://transparencia.prefeitura.rio/",
+        "text": "ACESSO À INFORMAÇÃO"
+      },
+      {
+        "class": "link",
+        "href": "https://www.rio.rj.gov.br/web/guest/area-de-imprensa1",
+        "text": "ÁREA DE IMPRENSA"
+      },
+      {
+        "class": "link",
+        "href": "https://www.rio.rj.gov.br/web/guest/identidade-visual-da-marca",
+        "text": "IDENTIDADE VISUAL DA MARCA"
+      },
+      {
+        "class": "",
+        "href": "http://prefeitura.rio",
+        "text": ""
+      },
+      {
+        "class": "",
+        "href": "https://creativecommons.org/licenses/by-nd/3.0/deed.en",
+        "text": "Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada"
+      }
+    ],
+    "any_text_with_numbers": [],
+    "page_text_summary": "ACESSIBILIDADE\nA\n-A\n+A\n  \n   \nA PREFEITURA\nTURISMO\nCIDADÃO\nSERVIDOR\nEMPRESA\nOUVIDORIA\n\n PAINÉIS GERENCIAIS\n RECEITAS\n DESPESAS\n FAVORECIDOS\n CONTRATOS\n PRESTAÇÃO CONTAS\n OUTROS\nHomeContratosContrato por Favorecido\nHome\nDespesas\nReceitas\nFavorecidos\nContratos\nGlossário\nMapa\nDados Abertos\nOrçamento Municipal\nPerguntas Frequentes\nFale Conosco\nÍndice de Secretárias e Orgãos\nPrestação de Contas\nO que é o Portal\nOrçamento Municipal\nConsulta Processo\nDelegações de Competencia\nTransferências Recebidas\nTransferências Realizadas\nInstrumento sem Transferência de Recursos\n\nLogin\nCONTRATOS POR FAVORECIDO\n\nÓRGÃO\nUNIDADE GESTORA\nANO DE CELEBRAÇÃO\nFavorecido:\n01282704000167 - GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL\nÓrgão:\n3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A\nUnidade Gestora:\n330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR\n\n\n\nContrato\nObjeto\nDescrição\nSituação\nProcesso\nData Início de Vigência\nData Fim de Vigência\nTotal Contratado\nEmpenhado\nSaldo a Executar\nLiquidado\nPago\nTOTAL\n2.150.000,00\n2.150.000,00\n0,00\n1.935.000,00\n1.935.000,00\n2517996\nREFERENTE A INCENTIVO CULTURAL PARA APOIO E APRIMORAMENTO DE ATIVIDADES QUE ENSEJAM O PREPARO E A REALIZAÇÃO DO DESFILE OFICIAL DO GRUPO ESPECIAL - CARNAVAL 2026.\nGRES UNIDOS DE VILA ISABEL - CARNAVAL 2026\nAssinado\nTUR-PRO-2025/01221\n06/01/2026\n31/12/2026\n2.150.000,00\n2.150.000,00\n0,00\n1.935.000,00\n1.935.000,00\n\n\n\n\n\nData de atualização dos dados: 17/02/2026\nACESSO À INFORMAÇÃO \nÁREA DE IMPRENSA \nIDENTIDADE VISUAL DA MARCA \nPrefeitura da Cidade do Rio de Janeiro - Sede: Rua Afonso Cavalcanti, 455 - Cidade Nova - 20211-110\nTodo o conteúdo deste site está publicado sob a licença Creative Commons Atribuição-SemDerivações 3.0 Não Adaptada\n ",
+    "vaadin_elements": [
+      {
+        "class": "v-button v-widget link v-button-link",
+        "selector": ".v-button",
+        "text": "01282704000167 - GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL"
+      },
+      {
+        "class": "v-button v-widget link v-button-link",
+        "selector": ".v-button",
+        "text": "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A"
+      },
+      {
+        "class": "v-button v-widget link v-button-link",
+        "selector": ".v-button",
+        "text": "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      },
+      {
+        "class": "v-label v-widget v-has-width v-has-height",
+        "selector": ".v-label",
+        "text": "ACESSIBILIDADE\nA\n-A\n+A\n  \n   \nA PREFEITURA\nTURISMO\nCIDADÃO\nSERVIDOR\nEMPRESA\nOUVIDORIA\n\n PAINÉIS GERENCIAIS\n RECEITAS\n DESPESAS\n FAVORECIDOS\n CONTRATO"
+      },
+      {
+        "class": "v-label v-widget h4 v-label-h4 colored v-label-colored v-label-undef-w",
+        "selector": ".v-label",
+        "text": "ÓRGÃO"
+      },
+      {
+        "class": "v-label v-widget h4 v-label-h4 colored v-label-colored no-margin v-label-no-margin v-label-undef-w",
+        "selector": ".v-label",
+        "text": "Órgão Portal"
+      },
+      {
+        "class": "v-label v-widget h4 v-label-h4 colored v-label-colored v-label-undef-w",
+        "selector": ".v-label",
+        "text": "UNIDADE GESTORA"
+      },
+      {
+        "class": "v-label v-widget h4 v-label-h4 colored v-label-colored no-margin v-label-no-margin v-label-undef-w",
+        "selector": ".v-label",
+        "text": "UG Portal"
+      },
+      {
+        "class": "v-label v-widget h4 v-label-h4 colored v-label-colored v-label-undef-w",
+        "selector": ".v-label",
+        "text": "ANO DE CELEBRAÇÃO"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w query-title v-label-query-title",
+        "selector": ".v-label",
+        "text": "Contratos"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "Favorecido:"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "Órgão:"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "Unidade Gestora:"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "TOTAL"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "2517996"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "REFERENTE A INCENTIVO CULTURAL PARA APOIO E APRIMORAMENTO DE ATIVIDADES QUE ENSEJAM O PREPARO E A REALIZAÇÃO DO DESFILE OFICIAL DO GRUPO ESPECIAL - CA"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "GRES UNIDOS DE VILA ISABEL - CARNAVAL 2026"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "Assinado"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "TUR-PRO-2025/01221"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "06/01/2026"
+      },
+      {
+        "class": "v-label v-widget v-label-undef-w",
+        "selector": ".v-label",
+        "text": "31/12/2026"
+      },
+      {
+        "class": "v-panel v-widget dashboard-boardlet-panel v-panel-dashboard-boardlet-panel borderless v-panel-border",
+        "selector": ".v-panel",
+        "text": "CONTRATOS POR FAVORECIDO"
+      },
+      {
+        "class": "v-panel v-widget dashboard-boardlet-panel v-panel-dashboard-boardlet-panel borderless v-panel-border",
+        "selector": ".v-panel",
+        "text": "ÓRGÃO"
+      },
+      {
+        "class": "v-panel v-widget dashboard-boardlet-panel v-panel-dashboard-boardlet-panel borderless v-panel-border",
+        "selector": ".v-panel",
+        "text": "UNIDADE GESTORA"
+      },
+      {
+        "class": "v-panel v-widget dashboard-boardlet-panel v-panel-dashboard-boardlet-panel borderless v-panel-border",
+        "selector": ".v-panel",
+        "text": "ANO DE CELEBRAÇÃO"
+      },
+      {
+        "class": "v-panel v-widget dashboard-boardlet-panel v-panel-dashboard-boardlet-panel borderless v-panel-border",
+        "selector": ".v-panel",
+        "text": "Data de atualização dos dados: 17/02/2026"
+      }
+    ]
+  }
+}

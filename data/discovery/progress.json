@@ -1,0 +1,759 @@
+{
+  "last_updated": "2026-02-20T01:43:06.715344",
+  "completed_company_ids": [
+    "01282704000167",
+    "01695781000149",
+    "01894553000106",
+    "03148098000117",
+    "03352454000110",
+    "03459043000802",
+    "04448903000190",
+    "05279933000183",
+    "05417916000165",
+    "05423341000193",
+    "05448558000158",
+    "05662620000100",
+    "06004776000166",
+    "06028343000140",
+    "06347750000110",
+    "07025989000137",
+    "07070205000192",
+    "07877924000110",
+    "08376871000116",
+    "08640467000108",
+    "08827674000176",
+    "09300611000120",
+    "09457773000176",
+    "11098056000147",
+    "11143709000162",
+    "11289077000140",
+    "11517915000195",
+    "11985110000176",
+    "12251808000120",
+    "15634608000145",
+    "16832830000204",
+    "18236056000105",
+    "18901675000177",
+    "19172035000136",
+    "19339797000184",
+    "19353932000146",
+    "21294150000125",
+    "21491227000157",
+    "22618220000116",
+    "23906970000156",
+    "26550082000131",
+    "26599553000104",
+    "27148592000140",
+    "27281047000127",
+    "28007649000153",
+    "28046484000129",
+    "28326598000122",
+    "28635167000148",
+    "28666154000136",
+    "28832983000141",
+    "28929408000161",
+    "28935450000195",
+    "29066371000158",
+    "29794689000155",
+    "30029219000184",
+    "30030563000193",
+    "30036773000199",
+    "30644069000119",
+    "30781805000180",
+    "31659733000166",
+    "31750452000114",
+    "31837156000155",
+    "32001117000186",
+    "32436546000186",
+    "32453793000190",
+    "32483553000139",
+    "33285255000105",
+    "33593575000114",
+    "34031973000100",
+    "34031991000191",
+    "34292854000100",
+    "36563373000118",
+    "40043296000142",
+    "40284549000170",
+    "40672872000110",
+    "42255075000163",
+    "42288589000115",
+    "42535807000179",
+    "42602467000151",
+    "45113389000110",
+    "47842915000108",
+    "48909423000155",
+    "49001473000100",
+    "49208448000194",
+    "52364507000128",
+    "53008346000100",
+    "54023131000113",
+    "55303013000121",
+    "55908942000164",
+    "55971579000121",
+    "56969996000100",
+    "57740908000159",
+    "58564198000116",
+    "60736613000113",
+    "60740690000147",
+    "61199671000118",
+    "62299826000150",
+    "62976606000114",
+    "63737222000101",
+    "64037874000104",
+    "64281886000171"
+  ],
+  "processos": [
+    {
+      "processo_id": "006800.000122/2026-12",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000122/2026-12",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL",
+      "company_cnpj": "01282704000167",
+      "contract_value": "77.064,60",
+      "discovery_path": [
+        "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T00:57:02.701030"
+    },
+    {
+      "processo_id": "006800.000202/2026-60",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000202/2026-60",
+      "company_name": "ASSOCIACAO DAS BANDAS CARNAVALESCAS DO ESTADO DO RIO DE JANEIRO",
+      "company_cnpj": "01695781000149",
+      "contract_value": "35.000,00",
+      "discovery_path": [
+        "ASSOCIACAO DAS BANDAS CARNAVALESCAS DO ESTADO DO RIO DE JANEIRO",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T00:57:43.012551"
+    },
+    {
+      "processo_id": "001200000021/2025-06",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=001200000021/2025-06",
+      "company_name": "FJ PRODUCOES LTDA",
+      "company_cnpj": "01894553000106",
+      "contract_value": "5.000.000,00",
+      "discovery_path": [
+        "FJ PRODUCOES LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T00:58:28.120981"
+    },
+    {
+      "processo_id": "006800.000136/2026-28",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000136/2026-28",
+      "company_name": "GREMIO RECREATIVO PROJETO CULTURAL ESCOLA DE SAMBA MIRIM AINDA EXISTEM CRIANCAS DE VILA KENNEDY",
+      "company_cnpj": "03148098000117",
+      "contract_value": "77.064,60",
+      "discovery_path": [
+        "GREMIO RECREATIVO PROJETO CULTURAL ESCOLA DE SAMBA MIRIM AINDA EXISTEM CRIANCAS DE VILA KENNEDY",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T00:59:14.126929"
+    },
+    {
+      "processo_id": "006800.000105/2026-77",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000105/2026-77",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM MIUDA DACABUCU",
+      "company_cnpj": "03352454000110",
+      "contract_value": "77.064,60",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM MIUDA DACABUCU",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T00:59:54.339280"
+    },
+    {
+      "processo_id": "FIL-PRO-2023/00482",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=FIL-PRO-2023/00482",
+      "company_name": "ARTE VITAL EXIBICOES CINEMATOGRAFICAS LTDA",
+      "company_cnpj": "03459043000802",
+      "contract_value": "581.000,00",
+      "discovery_path": [
+        "ARTE VITAL EXIBICOES CINEMATOGRAFICAS LTDA",
+        "3051 - DISTRIBUIDORA DE FILMES S/A",
+        "300051 - DISTRIBUIDORA DE FILMES S/A"
+      ],
+      "discovered_at": "2026-02-20T01:00:34.641523"
+    },
+    {
+      "processo_id": "006800.000053/2026-39",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000053/2026-39",
+      "company_name": "LS NEGOCIOS E CONSULTORIA LTDA",
+      "company_cnpj": "04448903000190",
+      "contract_value": "58.200,00",
+      "discovery_path": [
+        "LS NEGOCIOS E CONSULTORIA LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:01:14.794878"
+    },
+    {
+      "processo_id": "CET-PRO-2025/01028",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=CET-PRO-2025/01028",
+      "company_name": "BASITEL TELECOMUNICACOES LTDA",
+      "company_cnpj": "05279933000183",
+      "contract_value": "131.000,00",
+      "discovery_path": [
+        "BASITEL TELECOMUNICACOES LTDA",
+        "2951 - COMPANHIA DE ENGENHARIA DE TRÁFEGO DO RIO DE JANEIRO",
+        "290051 - COMPANHIA DE ENGENHARIA DE TRÁFEGO DO RIO DE JANEIRO"
+      ],
+      "discovered_at": "2026-02-20T01:01:55.029489"
+    },
+    {
+      "processo_id": "006800.000128/2026-81",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000128/2026-81",
+      "company_name": "GREMIO RECREATIVO CULTURAL NOVA GERACAO DO ESTACIO DE SA",
+      "company_cnpj": "05417916000165",
+      "contract_value": "77.064,60",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL NOVA GERACAO DO ESTACIO DE SA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:02:35.312641"
+    },
+    {
+      "processo_id": "006800.000327/2026-90",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000327/2026-90",
+      "company_name": "K2D PRODUCOES LTDA",
+      "company_cnpj": "05423341000193",
+      "contract_value": "25.000,00",
+      "discovery_path": [
+        "K2D PRODUCOES LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:03:16.661109"
+    },
+    {
+      "processo_id": "006800.000096/2026-14",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000096/2026-14",
+      "company_name": "ORGANIZACAO NAO GOVERNAMENTAL INSTITUTO CULTURAL CANDONGA",
+      "company_cnpj": "05448558000158",
+      "contract_value": "70.000,00",
+      "discovery_path": [
+        "ORGANIZACAO NAO GOVERNAMENTAL INSTITUTO CULTURAL CANDONGA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:03:57.889003"
+    },
+    {
+      "processo_id": "006800.000197/2026-95",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000197/2026-95",
+      "company_name": "SEBASTIANA ASSOCIACAO DE BLOCOS DE RUA DO RIO",
+      "company_cnpj": "05662620000100",
+      "contract_value": "370.000,00",
+      "discovery_path": [
+        "SEBASTIANA ASSOCIACAO DE BLOCOS DE RUA DO RIO",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:04:39.163828"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01233",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01233",
+      "company_name": "LIGA INDEPENDENTE DOS BLOCOS DE EMBALO DO ESTADO DO RIO DE JANEIRO-LIBERJ",
+      "company_cnpj": "06004776000166",
+      "contract_value": "450.000,00",
+      "discovery_path": [
+        "LIGA INDEPENDENTE DOS BLOCOS DE EMBALO DO ESTADO DO RIO DE JANEIRO-LIBERJ",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:05:20.378148"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTUAL ESCOLA DE SAMBA MIRIM TIJUQUINHA DO BOREL",
+      "company_cnpj": "06028343000140",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTUAL ESCOLA DE SAMBA MIRIM TIJUQUINHA DO BOREL",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:06:00.566459"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM PIMPOLHOS DA GRANDE RIO",
+      "company_cnpj": "06347750000110",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM PIMPOLHOS DA GRANDE RIO",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:06:40.810641"
+    },
+    {
+      "processo_id": "006800.000295/2026-22",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000295/2026-22",
+      "company_name": "GOLD 120 PRODUCOES E EVENTOS LTDA",
+      "company_cnpj": "07025989000137",
+      "contract_value": "420.000,00",
+      "discovery_path": [
+        "GOLD 120 PRODUCOES E EVENTOS LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:07:23.129932"
+    },
+    {
+      "processo_id": "006800.000124/2026-01",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000124/2026-01",
+      "company_name": "GRCESM ESTRELINHA DA MOCIDADE INDEPENDENTE DE PADRE MIGUEL",
+      "company_cnpj": "07070205000192",
+      "contract_value": "77.064,60",
+      "discovery_path": [
+        "GRCESM ESTRELINHA DA MOCIDADE INDEPENDENTE DE PADRE MIGUEL",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:08:05.467358"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM PETIZES DAPENHA",
+      "company_cnpj": "07877924000110",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM PETIZES DAPENHA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:08:45.784260"
+    },
+    {
+      "processo_id": "006800.000343/2026-82",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000343/2026-82",
+      "company_name": "MERCOMIDIA SERVICOS EDITORIAIS LTDA.",
+      "company_cnpj": "08376871000116",
+      "contract_value": "5.000,00",
+      "discovery_path": [
+        "MERCOMIDIA SERVICOS EDITORIAIS LTDA.",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:09:29.146993"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM INFANTES DOLINS",
+      "company_cnpj": "08640467000108",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM INFANTES DOLINS",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:10:09.434720"
+    },
+    {
+      "processo_id": "006800.000294/2026-88",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000294/2026-88",
+      "company_name": "M.F.A.G - PRODUCAO ARTISTICA LTDA",
+      "company_cnpj": "08827674000176",
+      "contract_value": "60.000,00",
+      "discovery_path": [
+        "M.F.A.G - PRODUCAO ARTISTICA LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:10:52.825455"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01234",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01234",
+      "company_name": "ASSOCIACAO ESCOLA DE SAMBA EMBAIXADORES DA ALEGRIA",
+      "company_cnpj": "09300611000120",
+      "contract_value": "50.000,00",
+      "discovery_path": [
+        "ASSOCIACAO ESCOLA DE SAMBA EMBAIXADORES DA ALEGRIA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:11:36.224265"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO BLOCO CARNAVALESCO EMPURRA QUE PEGA DO LEB",
+      "company_cnpj": "09457773000176",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO BLOCO CARNAVALESCO EMPURRA QUE PEGA DO LEB",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:12:16.459777"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01229",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01229",
+      "company_name": "SUPERLIGA CARNAVALESCA DO BRASIL",
+      "company_cnpj": "11098056000147",
+      "contract_value": "8.514.552,64",
+      "discovery_path": [
+        "SUPERLIGA CARNAVALESCA DO BRASIL",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:13:00.853965"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01230",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01230",
+      "company_name": "SUPERLIGA CARNAVALESCA DO BRASIL",
+      "company_cnpj": "11098056000147",
+      "contract_value": "2.481.554,83",
+      "discovery_path": [
+        "SUPERLIGA CARNAVALESCA DO BRASIL",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:13:00.853965"
+    },
+    {
+      "processo_id": "006800.000045/2026-92",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000045/2026-92",
+      "company_name": "TESS PRODUCAO E COMUNICACAO LTDA.",
+      "company_cnpj": "11143709000162",
+      "contract_value": "400.000,00",
+      "discovery_path": [
+        "TESS PRODUCAO E COMUNICACAO LTDA.",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:13:45.620723"
+    },
+    {
+      "processo_id": "006800.000209/2026-81",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000209/2026-81",
+      "company_name": "GRUPO CULTURAL CORDAO DO BOITATA LTDA",
+      "company_cnpj": "11289077000140",
+      "contract_value": "50.000,00",
+      "discovery_path": [
+        "GRUPO CULTURAL CORDAO DO BOITATA LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:14:30.318404"
+    },
+    {
+      "processo_id": "006800.000338/2026-70",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000338/2026-70",
+      "company_name": "LAVOURA PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "11517915000195",
+      "contract_value": "120.000,00",
+      "discovery_path": [
+        "LAVOURA PRODUCOES ARTISTICAS LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:15:14.755055"
+    },
+    {
+      "processo_id": "006800.000161/2026-10",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000161/2026-10",
+      "company_name": "INSTITUTO PLUMAS E PAETES CULTURAL",
+      "company_cnpj": "11985110000176",
+      "contract_value": "175.000,00",
+      "discovery_path": [
+        "INSTITUTO PLUMAS E PAETES CULTURAL",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:15:59.193704"
+    },
+    {
+      "processo_id": "006800.000187/2026-50",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000187/2026-50",
+      "company_name": "ASSOCIACAO CARIOCA DE BLOCOS E BANDAS",
+      "company_cnpj": "12251808000120",
+      "contract_value": "50.000,00",
+      "discovery_path": [
+        "ASSOCIACAO CARIOCA DE BLOCOS E BANDAS",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:16:44.765623"
+    },
+    {
+      "processo_id": "006800.000311/2026-87",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000311/2026-87",
+      "company_name": "SPK PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "15634608000145",
+      "contract_value": "70.000,00",
+      "discovery_path": [
+        "SPK PRODUCOES ARTISTICAS LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:17:30.321766"
+    },
+    {
+      "processo_id": "006800.000180/2026-38",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000180/2026-38",
+      "company_name": "GMR INTELIGENCIA DE MERCADO LTDA",
+      "company_cnpj": "16832830000204",
+      "contract_value": "36.000,00",
+      "discovery_path": [
+        "GMR INTELIGENCIA DE MERCADO LTDA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:18:15.833643"
+    },
+    {
+      "processo_id": "006800.000199/2026-84",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000199/2026-84",
+      "company_name": "ASSOCIACAO RECREATIVA E CULTURAL LIGA DE BLOCOS E BANDAS DAZONA PORTUARIA DA CIDADE DO RIO DE JANEIRO",
+      "company_cnpj": "18236056000105",
+      "contract_value": "10.000,00",
+      "discovery_path": [
+        "ASSOCIACAO RECREATIVA E CULTURAL LIGA DE BLOCOS E BANDAS DAZONA PORTUARIA DA CIDADE DO RIO DE JANEIRO",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:19:02.501594"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM MANGUEIRA DO AMANHA",
+      "company_cnpj": "21491227000157",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM MANGUEIRA DO AMANHA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:20:38.903023"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DA TIJUCA",
+      "company_cnpj": "27148592000140",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DA TIJUCA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:22:09.186426"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO ESC DE SAMBA IMPERATRIZ LEOPOLDINENSE",
+      "company_cnpj": "27281047000127",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO ESC DE SAMBA IMPERATRIZ LEOPOLDINENSE",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:22:54.685932"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM IMPERIO DOFUTURO",
+      "company_cnpj": "28635167000148",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM IMPERIO DOFUTURO",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:24:18.645765"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA ACADEMICOS DE NITEROI",
+      "company_cnpj": "30036773000199",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO ESCOLA DE SAMBA ACADEMICOS DE NITEROI",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:26:13.875249"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM CORACOES UNIDOS DO CIEP",
+      "company_cnpj": "31659733000166",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM CORACOES UNIDOS DO CIEP",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:27:31.624446"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM FILHOS DA AGUIA DA PORTELA",
+      "company_cnpj": "31750452000114",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM FILHOS DA AGUIA DA PORTELA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:28:17.067038"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DO VIRADOURO",
+      "company_cnpj": "31837156000155",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DO VIRADOURO",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:29:02.643142"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM GOLFINHOS DO RIO DE JANEIRO",
+      "company_cnpj": "34031973000100",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM GOLFINHOS DO RIO DE JANEIRO",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:30:45.621314"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA BEIJA FLOR",
+      "company_cnpj": "34292854000100",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO ESCOLA DE SAMBA BEIJA FLOR",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:31:57.569620"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESC DE SAMBA MIRIM HERDEIROS DAVILA",
+      "company_cnpj": "40284549000170",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESC DE SAMBA MIRIM HERDEIROS DAVILA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:33:32.084330"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA PORTELA",
+      "company_cnpj": "42255075000163",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO ESCOLA DE SAMBA PORTELA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:35:10.085803"
+    },
+    {
+      "processo_id": "006800.000202/2026-60",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=006800.000202/2026-60",
+      "company_name": "ASSOCIACAO DAS BANDAS E BLOCOS DA GRANDE TIJUCA",
+      "company_cnpj": "42602467000151",
+      "contract_value": "35.000,00",
+      "discovery_path": [
+        "ASSOCIACAO DAS BANDAS E BLOCOS DA GRANDE TIJUCA",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:36:32.505183"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO E CULTURAL ESCOLA DE SAMBA MIRIM VIRANDO ESPERANCA - GRCESM.",
+      "company_cnpj": "56969996000100",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO E CULTURAL ESCOLA DE SAMBA MIRIM VIRANDO ESPERANCA - GRCESM.",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:38:47.642538"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA MIRIM OS NETINHOS DO TUIUTI",
+      "company_cnpj": "58564198000116",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO ESCOLA DE SAMBA MIRIM OS NETINHOS DO TUIUTI",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:39:59.008595"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM CRIAS DA IMPERATRIZ",
+      "company_cnpj": "60736613000113",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM CRIAS DA IMPERATRIZ",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:40:45.197879"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=TUR-PRO-2025/01221",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM SONHO DO BEIJA FLOR",
+      "company_cnpj": "64037874000104",
+      "contract_value": "2.150.000,00",
+      "discovery_path": [
+        "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM SONHO DO BEIJA FLOR",
+        "3351 - RIOTUR EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO S/A",
+        "330051 - EMPRESA DE TURISMO DO MUNICÍPIO DO RIO DE JANEIRO - RIOTUR"
+      ],
+      "discovered_at": "2026-02-20T01:42:25.029661"
+    }
+  ],
+  "errors": []
+}

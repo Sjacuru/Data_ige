@@ -60,10 +60,6 @@ def wait_for_element(
             else False
         )
 
-
-    
-
-
     except TimeoutException:
         logger.debug(f"⚠ Element not found within {timeout}s: {value}")
         return None
