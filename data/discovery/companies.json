@@ -1,5 +1,15 @@
 {
-  "total": 0,
-  "discovery_date": "2026-02-18T20:41:59.335706",
-  "companies": []
+  "total": 1,
+  "discovery_date": "2026-02-20T20:37:16.323068",
+  "companies": [
+    {
+      "company_id": "fa",
+      "company_name": "FADA",
+      "company_cnpj": "12349",
+      "total_contracts": 3,
+      "total_value": null,
+      "discovered_at": "2026-02-20T20:37:16.323068",
+      "raw_cells": null
+    }
+  ]
 }

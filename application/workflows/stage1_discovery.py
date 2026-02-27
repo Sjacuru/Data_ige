@@ -90,6 +90,13 @@ class Stage1DiscoveryWorkflow:
             
             logger.info(f"✓ Extracted {len(companies)} unique companies")
             
+
+            MIN_EXPECTED_PROCESSOS = 40
+
+            if result.total_processos == MIN_EXPECTED_PROCESSOS:
+                logger.warning("⚠ No processos found — skipping save to avoid overwriting valid data.")
+                return result
+
             # Step 5: Save results
             logger.info("\n📋 Step 5: Saving discovery results...")
             self._save_results(result)

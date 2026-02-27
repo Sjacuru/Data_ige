@@ -1,0 +1,51 @@
+{
+  "started_at": "2026-02-20T23:13:55.869730",
+  "updated_at": "2026-02-21T00:13:26.720368",
+  "completed": [
+    "T"
+  ],
+  "failed": [
+    {
+      "processo_id": "T",
+      "error": "Message: invalid argument\n  (Session info: chrome=145.0.7632.75)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x101f3e3\n\t0x101f424\n\t0xe11ece\n\t0xe01c2a\n\t0xe00426\n\t0xe0096a\n\t0xe15b1e\n\t0xe9c554\n\t0xe7ee1c\n\t0xe9bb23\n\t0xe7ebb6\n\t0xe50319\n\t0xe510d4\n\t0x12746a4\n\t0x126f9a9\n\t0x128c940\n\t0x10380f8\n\t0x103fe4d\n\t0x1027c18\n\t0x1027de2\n\t0x10118ea\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
+      "at": "2026-02-20T23:13:55.942732"
+    },
+    {
+      "processo_id": "T",
+      "error": "Message: invalid argument\n  (Session info: chrome=145.0.7632.75)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x101f3e3\n\t0x101f424\n\t0xe11ece\n\t0xe01c2a\n\t0xe00426\n\t0xe0096a\n\t0xe15b1e\n\t0xe9c554\n\t0xe7ee1c\n\t0xe9bb23\n\t0xe7ebb6\n\t0xe50319\n\t0xe510d4\n\t0x12746a4\n\t0x126f9a9\n\t0x128c940\n\t0x10380f8\n\t0x103fe4d\n\t0x1027c18\n\t0x1027de2\n\t0x10118ea\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
+      "at": "2026-02-20T23:14:57.040893"
+    },
+    {
+      "processo_id": "T",
+      "error": "Message: invalid argument\n  (Session info: chrome=145.0.7632.75)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x101f3e3\n\t0x101f424\n\t0xe11ece\n\t0xe01c2a\n\t0xe00426\n\t0xe0096a\n\t0xe15b1e\n\t0xe9c554\n\t0xe7ee1c\n\t0xe9bb23\n\t0xe7ebb6\n\t0xe50319\n\t0xe510d4\n\t0x12746a4\n\t0x126f9a9\n\t0x128c940\n\t0x10380f8\n\t0x103fe4d\n\t0x1027c18\n\t0x1027de2\n\t0x10118ea\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
+      "at": "2026-02-20T23:15:43.772343"
+    },
+    {
+      "processo_id": "T",
+      "error": "Message: invalid argument\n  (Session info: chrome=145.0.7632.75)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x101f3e3\n\t0x101f424\n\t0xe11ece\n\t0xe01c2a\n\t0xe00426\n\t0xe0096a\n\t0xe15b1e\n\t0xe9c554\n\t0xe7ee1c\n\t0xe9bb23\n\t0xe7ebb6\n\t0xe50319\n\t0xe510d4\n\t0x12746a4\n\t0x126f9a9\n\t0x128c940\n\t0x10380f8\n\t0x103fe4d\n\t0x1027c18\n\t0x1027de2\n\t0x10118ea\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
+      "at": "2026-02-20T23:16:29.962818"
+    },
+    {
+      "processo_id": "T",
+      "error": "Message: invalid argument\n  (Session info: chrome=145.0.7632.75)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x101f3e3\n\t0x101f424\n\t0xe11ece\n\t0xe01c2a\n\t0xe00426\n\t0xe0096a\n\t0xe15b1e\n\t0xe9c554\n\t0xe7ee1c\n\t0xe9bb23\n\t0xe7ebb6\n\t0xe50319\n\t0xe510d4\n\t0x12746a4\n\t0x126f9a9\n\t0x128c940\n\t0x10380f8\n\t0x103fe4d\n\t0x1027c18\n\t0x1027de2\n\t0x10118ea\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
+      "at": "2026-02-20T23:37:03.609273"
+    },
+    {
+      "processo_id": "T",
+      "error": "Message: invalid argument\n  (Session info: chrome=145.0.7632.75)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x101f3e3\n\t0x101f424\n\t0xe11ece\n\t0xe01c2a\n\t0xe00426\n\t0xe0096a\n\t0xe15b1e\n\t0xe9c554\n\t0xe7ee1c\n\t0xe9bb23\n\t0xe7ebb6\n\t0xe50319\n\t0xe510d4\n\t0x12746a4\n\t0x126f9a9\n\t0x128c940\n\t0x10380f8\n\t0x103fe4d\n\t0x1027c18\n\t0x1027de2\n\t0x10118ea\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
+      "at": "2026-02-20T23:43:52.620356"
+    },
+    {
+      "processo_id": "T",
+      "error": "Message: invalid argument\n  (Session info: chrome=145.0.7632.75)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x101f3e3\n\t0x101f424\n\t0xe11ece\n\t0xe01c2a\n\t0xe00426\n\t0xe0096a\n\t0xe15b1e\n\t0xe9c554\n\t0xe7ee1c\n\t0xe9bb23\n\t0xe7ebb6\n\t0xe50319\n\t0xe510d4\n\t0x12746a4\n\t0x126f9a9\n\t0x128c940\n\t0x10380f8\n\t0x103fe4d\n\t0x1027c18\n\t0x1027de2\n\t0x10118ea\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
+      "at": "2026-02-20T23:44:23.550535"
+    }
+  ],
+  "pending": [],
+  "stats": {
+    "total": 1,
+    "success": 1,
+    "failed": 7,
+    "skipped": 0
+  }
+}

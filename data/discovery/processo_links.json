@@ -1,8 +1,33 @@
 {
-  "discovery_date": "2026-02-18T20:41:59.335706",
-  "total_companies": 0,
-  "total_processos": 0,
-  "companies": [],
-  "processos": [],
-  "errors": []
+  "discovery_date": "2026-02-20T20:37:16.323068",
+  "total_companies": 1,
+  "total_processos": 1,
+  "companies": [
+    {
+      "company_id": "f",
+      "company_name": "F",
+      "company_cnpj": "1",
+      "total_contracts": 3,
+      "total_value": null,
+      "discovered_at": "2026-02-20T20:37:16.323068",
+      "raw_cells": null
+    }
+  ],
+  "processos": [
+    {
+      "processo_id": "T",
+      "url": "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=CVL-PRO-2025/01556",
+      "company_name": "FA",
+      "company_cnpj": "123199",
+      "contract_value": "10",
+      "discovery_path": [
+        "orgao",
+        "ug"
+      ],
+      "discovered_at": "2026-02-20T20:37:16.323068"
+    }
+  ],
+  "errors": [
+    "Fake error for test"
+  ]
 }

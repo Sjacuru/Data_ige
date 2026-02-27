@@ -1,8 +1,16 @@
 {
-  "discovery_date": "2026-02-18T20:41:59.335706",
-  "total_companies": 0,
-  "total_processos": 0,
-  "errors_count": 0,
-  "errors": [],
-  "top_companies": []
+  "discovery_date": "2026-02-20T20:37:16.323068",
+  "total_companies": 1,
+  "total_processos": 1,
+  "errors_count": 1,
+  "errors": [
+    "Fake error for test"
+  ],
+  "top_companies": [
+    {
+      "name": "FADA",
+      "contracts": 3,
+      "cnpj": "12349"
+    }
+  ]
 }

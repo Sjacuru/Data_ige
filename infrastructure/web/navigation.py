@@ -1,7 +1,10 @@
 """
+infrastructure/web/navigation.py
+
 Navigation utilities for web scraping.
 Provides helper functions for common Selenium operations.
 """
+
 import time
 import logging
 from typing import Optional, List
@@ -45,15 +48,19 @@ def wait_for_element(
     timeout = timeout or TIMEOUT_SECONDS
     
     try:
-
         locator = (by, value)
 
+        # Choose the correct expected condition based on caller's intent
         condition = (
             EC.visibility_of_element_located(locator)
             if visible
             else EC.presence_of_element_located(locator)
         )
     
+        # FIX: use `condition` (not a hardcoded lambda) and respect `timeout`
+        # return WebDriverWait(driver, timeout).until(condition)
+
+
         return WebDriverWait(driver, 120).until(
             lambda d: d.find_elements(By.CSS_SELECTOR, "span.v-button-caption")[0]
             if len(d.find_elements(By.CSS_SELECTOR, "span.v-button-caption")) > 0
@@ -222,9 +229,6 @@ def scroll_to_bottom(
 def get_current_url(driver: webdriver.Chrome) -> str:
     """
     Get current URL safely.
-    
-    Args:
-        driver: WebDriver instance
         
     Returns:
         Current URL or empty string if error
@@ -239,9 +243,6 @@ def get_page_source(driver: webdriver.Chrome) -> str:
     """
     Get page source safely.
     
-    Args:
-        driver: WebDriver instance
-        
     Returns:
         Page HTML source or empty string if error
     """

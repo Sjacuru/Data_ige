@@ -240,7 +240,7 @@ class ContasRioScraper:
             # time.sleep(2)
             self.driver.get(CONTASRIO_CONTRACTS_URL)
             time.sleep(2)
-            # self.driver.refresh()
+            self.driver.refresh()
 
             if "#!Contratos/Contrato" not in self.driver.current_url:
                 logger.error("✗ Unexpected URL after navigation")
@@ -320,6 +320,11 @@ class ContasRioScraper:
     def _apply_filter_via_dropdown(self, filter_input, year: str) -> bool:
         """Fallback: select year by clicking the Vaadin filterselect dropdown."""
         try:
+            # Clear any typed text first so it doesn't interfere
+            self.driver.execute_script("arguments[0].value = '';", filter_input)
+            time.sleep(0.2)
+
+            # Open the full option list via the arrow button
             dropdown_btn = self.driver.execute_script("""
                 var input = arguments[0];
                 var parent = input.closest('.v-filterselect');
@@ -330,17 +335,44 @@ class ContasRioScraper:
                 return False
 
             self.driver.execute_script("arguments[0].click();", dropdown_btn)
-            time.sleep(1.0)
+
+            # Wait for the suggestmenu to be visible before touching anything
+            WebDriverWait(self.driver, 5).until(
+               EC.visibility_of_element_located((By.CSS_SELECTOR, "div.v-filterselect-suggestmenu"))
+            )
 
             option = WebDriverWait(self.driver, 10).until(
                 EC.element_to_be_clickable((
                     By.XPATH,
                     f"//div[contains(@class,'v-filterselect-suggestmenu')]"
-                    f"//span[text()='{year}']"
+                    # f"//span[text()='{year}']"  
+                    f"//span[normalize-space(text())='{year}']"
                 ))
             )
-            option.click()
-            time.sleep(1.0)
+            self.driver.execute_script("arguments[0].click();", option)
+
+            # Wait for Vaadin server round-trip
+            try:
+                WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((
+                        By.CSS_SELECTOR,
+                        "div.v-loading-indicator[style*='display: block']"
+                    ))
+                )
+            except Exception:
+                pass  # may clear too fast
+
+            WebDriverWait(self.driver, 30).until(
+                EC.invisibility_of_element_located((
+                    By.CSS_SELECTOR, "div.v-loading-indicator"
+                ))
+            )
+
+            # Verify commitment
+            actual = filter_input.get_attribute("value") or ""
+            if year not in actual:
+                logger.warning(f"   ⚠ Filter shows '{actual}' — expected '{year}'")
+                return False
 
             WebDriverWait(self.driver, 120).until(
                 lambda d: len(
@@ -520,28 +552,38 @@ class ContasRioScraper:
             return companies   # Return whatever was collected before the failure
 
     def _harvest_visible_rows(self, grid_css: str) -> List[List[str]]:
-        """Read cell text from all currently rendered grid rows via JS."""
-        return self.driver.execute_script("""
-            var grid = document.querySelector(arguments[0]);
-            if (!grid) return [];
-            var tbody = grid.querySelector('table tbody')
-                       || grid.querySelector('.v-grid-body');
-            if (!tbody) return [];
-            var rows = tbody.querySelectorAll('tr');
-            var result = [];
-            for (var i = 0; i < rows.length; i++) {
-                var cells = rows[i].querySelectorAll(
-                    'td.v-grid-cell[role="gridcell"]'
+            """
+            Read cell text from all currently rendered grid rows via JS.
+
+            Uses .v-grid-row.v-grid-row-has-data — the only selector confirmed
+            to work with this Vaadin 8 grid. The previous implementation used
+            'table tbody' and '.v-grid-body' which don't exist in this build,
+            causing a silent empty return on every scroll step and therefore
+            0 companies collected during the entire Stage 1 run.
+
+            NOTE: grid_css argument kept for API compatibility but no longer
+            used — the selector is document-scoped, which is correct because
+            Vaadin renders rows directly on the document root, not nested
+            inside a named container.
+            """
+            return self.driver.execute_script("""
+                var rows = document.querySelectorAll(
+                    '.v-grid-row.v-grid-row-has-data'
                 );
-                if (cells.length === 0) continue;
-                var rowData = [];
-                for (var j = 0; j < cells.length; j++) {
-                    rowData.push(cells[j].innerText.trim());
+                var result = [];
+                for (var i = 0; i < rows.length; i++) {
+                    var cells = rows[i].querySelectorAll(
+                        'td.v-grid-cell[role="gridcell"]'
+                    );
+                    if (cells.length === 0) continue;
+                    var rowData = [];
+                    for (var j = 0; j < cells.length; j++) {
+                        rowData.push(cells[j].innerText.trim());
+                    }
+                    result.push(rowData);
                 }
-                result.push(rowData);
-            }
-            return result;
-        """, grid_css) or []
+                return result;
+            """) or []
 
     @staticmethod
     def _parse_favorecido(text: str) -> Optional[Tuple[str, str]]:
