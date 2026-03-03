@@ -1,14 +1,1013 @@
 {
-  "total": 1,
-  "discovery_date": "2026-02-20T20:37:16.323068",
+  "total": 112,
+  "discovery_date": "2026-03-01T19:58:16.542082",
   "companies": [
     {
-      "company_id": "fa",
-      "company_name": "FADA",
-      "company_cnpj": "12349",
+      "company_id": "64281886000171",
+      "company_name": "CACA ESTRELAS PRODUCOES E EVENTOS ARTISTICOS LTDA",
+      "company_cnpj": "64281886000171",
       "total_contracts": 3,
-      "total_value": null,
-      "discovered_at": "2026-02-20T20:37:16.323068",
+      "total_value": "518.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "11098056000147",
+      "company_name": "SUPERLIGA CARNAVALESCA DO BRASIL",
+      "company_cnpj": "11098056000147",
+      "total_contracts": 2,
+      "total_value": "8.514.552,64",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "19353932000146",
+      "company_name": "GH MUSIC PRODUCAO MUSICAL EDITORA E GRAVADORA LTDA",
+      "company_cnpj": "19353932000146",
+      "total_contracts": 2,
+      "total_value": "210.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "68697333000155",
+      "company_name": "EMPRESA MUNICIPAL DE ARTES GRAFICAS S/A IMPRENSA CIDADE",
+      "company_cnpj": "68697333000155",
+      "total_contracts": 2,
+      "total_value": "200.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "01282704000167",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL",
+      "company_cnpj": "01282704000167",
+      "total_contracts": 1,
+      "total_value": "77.064,60",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "01695781000149",
+      "company_name": "ASSOCIACAO DAS BANDAS CARNAVALESCAS DO ESTADO DO RIO DE JANEIRO",
+      "company_cnpj": "01695781000149",
+      "total_contracts": 1,
+      "total_value": "35.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "01894553000106",
+      "company_name": "FJ PRODUCOES LTDA",
+      "company_cnpj": "01894553000106",
+      "total_contracts": 1,
+      "total_value": "5.000.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "03148098000117",
+      "company_name": "GREMIO RECREATIVO PROJETO CULTURAL ESCOLA DE SAMBA MIRIM AINDA EXISTEM CRIANCAS DE VILA KENNEDY",
+      "company_cnpj": "03148098000117",
+      "total_contracts": 1,
+      "total_value": "77.064,60",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "03352454000110",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM MIUDA DACABUCU",
+      "company_cnpj": "03352454000110",
+      "total_contracts": 1,
+      "total_value": "77.064,60",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "03459043000802",
+      "company_name": "ARTE VITAL EXIBICOES CINEMATOGRAFICAS LTDA",
+      "company_cnpj": "03459043000802",
+      "total_contracts": 1,
+      "total_value": "581.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "03951766000140",
+      "company_name": "W P SISTEMAS REPROGRAFICOS E IMPRESSAO LTDA",
+      "company_cnpj": "03951766000140",
+      "total_contracts": 1,
+      "total_value": "24.840,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "04067191000160",
+      "company_name": "EDITORA GLOBO S/A",
+      "company_cnpj": "04067191000160",
+      "total_contracts": 1,
+      "total_value": "1.223.200,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "04448903000190",
+      "company_name": "LS NEGOCIOS E CONSULTORIA LTDA",
+      "company_cnpj": "04448903000190",
+      "total_contracts": 1,
+      "total_value": "58.200,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "05279933000183",
+      "company_name": "BASITEL TELECOMUNICACOES LTDA",
+      "company_cnpj": "05279933000183",
+      "total_contracts": 1,
+      "total_value": "131.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "05417916000165",
+      "company_name": "GREMIO RECREATIVO CULTURAL NOVA GERACAO DO ESTACIO DE SA",
+      "company_cnpj": "05417916000165",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "05423341000193",
+      "company_name": "K2D PRODUCOES LTDA",
+      "company_cnpj": "05423341000193",
+      "total_contracts": 1,
+      "total_value": "25.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "05448558000158",
+      "company_name": "ORGANIZACAO NAO GOVERNAMENTAL INSTITUTO CULTURAL CANDONGA",
+      "company_cnpj": "05448558000158",
+      "total_contracts": 1,
+      "total_value": "70.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "05662620000100",
+      "company_name": "SEBASTIANA ASSOCIACAO DE BLOCOS DE RUA DO RIO",
+      "company_cnpj": "05662620000100",
+      "total_contracts": 1,
+      "total_value": "370.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "06004776000166",
+      "company_name": "LIGA INDEPENDENTE DOS BLOCOS DE EMBALO DO ESTADO DO RIO DE JANEIRO-LIBERJ",
+      "company_cnpj": "06004776000166",
+      "total_contracts": 1,
+      "total_value": "450.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "06028343000140",
+      "company_name": "GREMIO RECREATIVO CULTUAL ESCOLA DE SAMBA MIRIM TIJUQUINHA DO BOREL",
+      "company_cnpj": "06028343000140",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "06347750000110",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM PIMPOLHOS DA GRANDE RIO",
+      "company_cnpj": "06347750000110",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "07025989000137",
+      "company_name": "GOLD 120 PRODUCOES E EVENTOS LTDA",
+      "company_cnpj": "07025989000137",
+      "total_contracts": 1,
+      "total_value": "420.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "07070205000192",
+      "company_name": "GRCESM ESTRELINHA DA MOCIDADE INDEPENDENTE DE PADRE MIGUEL",
+      "company_cnpj": "07070205000192",
+      "total_contracts": 1,
+      "total_value": "77.064,60",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "07432517000107",
+      "company_name": "SIMPRESS COMERCIO LOCACAO E SERVICOS LTDA",
+      "company_cnpj": "07432517000107",
+      "total_contracts": 1,
+      "total_value": "425.124,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "07877924000110",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM PETIZES DAPENHA",
+      "company_cnpj": "07877924000110",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "08376871000116",
+      "company_name": "MERCOMIDIA SERVICOS EDITORIAIS LTDA.",
+      "company_cnpj": "08376871000116",
+      "total_contracts": 1,
+      "total_value": "5.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "08640467000108",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM INFANTES DOLINS",
+      "company_cnpj": "08640467000108",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "08827674000176",
+      "company_name": "M.F.A.G - PRODUCAO ARTISTICA LTDA",
+      "company_cnpj": "08827674000176",
+      "total_contracts": 1,
+      "total_value": "60.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "09300611000120",
+      "company_name": "ASSOCIACAO ESCOLA DE SAMBA EMBAIXADORES DA ALEGRIA",
+      "company_cnpj": "09300611000120",
+      "total_contracts": 1,
+      "total_value": "50.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "09457773000176",
+      "company_name": "GREMIO RECREATIVO BLOCO CARNAVALESCO EMPURRA QUE PEGA DO LEB",
+      "company_cnpj": "09457773000176",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "10639829000192",
+      "company_name": "COMUNIDADE EVANGELICA SARA NOSSA TERRA DA ILHA DO GOVERNADOR",
+      "company_cnpj": "10639829000192",
+      "total_contracts": 1,
+      "total_value": "1.368.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "11143709000162",
+      "company_name": "TESS PRODUCAO E COMUNICACAO LTDA.",
+      "company_cnpj": "11143709000162",
+      "total_contracts": 1,
+      "total_value": "400.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "11289077000140",
+      "company_name": "GRUPO CULTURAL CORDAO DO BOITATA LTDA",
+      "company_cnpj": "11289077000140",
+      "total_contracts": 1,
+      "total_value": "50.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "11517915000195",
+      "company_name": "LAVOURA PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "11517915000195",
+      "total_contracts": 1,
+      "total_value": "120.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "11985110000176",
+      "company_name": "INSTITUTO PLUMAS E PAETES CULTURAL",
+      "company_cnpj": "11985110000176",
+      "total_contracts": 1,
+      "total_value": "175.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "12251808000120",
+      "company_name": "ASSOCIACAO CARIOCA DE BLOCOS E BANDAS",
+      "company_cnpj": "12251808000120",
+      "total_contracts": 1,
+      "total_value": "50.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "14000902000132",
+      "company_name": "S R SANTOS EVENTOS E PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "14000902000132",
+      "total_contracts": 1,
+      "total_value": "300.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "15634608000145",
+      "company_name": "SPK PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "15634608000145",
+      "total_contracts": 1,
+      "total_value": "70.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "16832830000204",
+      "company_name": "GMR INTELIGENCIA DE MERCADO LTDA",
+      "company_cnpj": "16832830000204",
+      "total_contracts": 1,
+      "total_value": "36.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "18236056000105",
+      "company_name": "ASSOCIACAO RECREATIVA E CULTURAL LIGA DE BLOCOS E BANDAS DAZONA PORTUARIA DA CIDADE DO RIO DE JANEIRO",
+      "company_cnpj": "18236056000105",
+      "total_contracts": 1,
+      "total_value": "10.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "18901675000177",
+      "company_name": "GRUPO CLAREOU PRODUCOES ARTISTICAS E EVENTOS LTDA",
+      "company_cnpj": "18901675000177",
+      "total_contracts": 1,
+      "total_value": "60.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "19172035000136",
+      "company_name": "ASSOCIACAO AMIGOS DO ZE PEREIRA",
+      "company_cnpj": "19172035000136",
+      "total_contracts": 1,
+      "total_value": "385.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "19339797000184",
+      "company_name": "DL SHOW PRODUCOES E EVENTOS LTDA",
+      "company_cnpj": "19339797000184",
+      "total_contracts": 1,
+      "total_value": "50.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "21294150000125",
+      "company_name": "INSANO PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "21294150000125",
+      "total_contracts": 1,
+      "total_value": "15.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "21491227000157",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM MANGUEIRA DO AMANHA",
+      "company_cnpj": "21491227000157",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "22618220000116",
+      "company_name": "MTO + ENTRETENIMENTO LTDA",
+      "company_cnpj": "22618220000116",
+      "total_contracts": 1,
+      "total_value": "330.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "23906970000156",
+      "company_name": "RIART ASSOCIACAO DE PRESTADORES DE SERVICOS ESPORTIVOS ARTISTICOS E CULTURAIS",
+      "company_cnpj": "23906970000156",
+      "total_contracts": 1,
+      "total_value": "18.500,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "25898180000100",
+      "company_name": "SIGMA ENGENHARIA INDUSTRIA E COMERCIO LTDA",
+      "company_cnpj": "25898180000100",
+      "total_contracts": 1,
+      "total_value": "69.499.999,62",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "26550082000131",
+      "company_name": "DUAS PAIXOES PRODUCOES, PROMOCOES E EVENTOS LTDA",
+      "company_cnpj": "26550082000131",
+      "total_contracts": 1,
+      "total_value": "65.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "26599553000104",
+      "company_name": "G.R.C ESCOLA DE SAMBA MIRIM APRENDIZES DO ACADEMICOS DO SALGUEIRO",
+      "company_cnpj": "26599553000104",
+      "total_contracts": 1,
+      "total_value": "77.064,60",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "27148592000140",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DA TIJUCA",
+      "company_cnpj": "27148592000140",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "27281047000127",
+      "company_name": "GREMIO RECREATIVO ESC DE SAMBA IMPERATRIZ LEOPOLDINENSE",
+      "company_cnpj": "27281047000127",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "28007649000153",
+      "company_name": "GREMIO RECREAT ESCOLA DE SAMBA CAPRICHOSOS DE PILARES",
+      "company_cnpj": "28007649000153",
+      "total_contracts": 1,
+      "total_value": "77.064,60",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "28046484000129",
+      "company_name": "GAFANHOTO PRODUCOES ARTISTICAS LTDA.",
+      "company_cnpj": "28046484000129",
+      "total_contracts": 1,
+      "total_value": "50.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "28326598000122",
+      "company_name": "LIGA INDEPENDENTE DO GRUPO A - RIO DE JANEIRO",
+      "company_cnpj": "28326598000122",
+      "total_contracts": 1,
+      "total_value": "450.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "28635167000148",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM IMPERIO DOFUTURO",
+      "company_cnpj": "28635167000148",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "28666154000136",
+      "company_name": "ASSOCIACAO DA VELHA GUARDA DAS ESCOLAS DE SAMBA DO RJ",
+      "company_cnpj": "28666154000136",
+      "total_contracts": 1,
+      "total_value": "20.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "28832983000141",
+      "company_name": "VZ PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "28832983000141",
+      "total_contracts": 1,
+      "total_value": "35.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "28929408000161",
+      "company_name": "LIGA DE BANDAS E BLOCOS CARNAVALESCOS DA BARRA DA TIJUCA, RECREIO DOS BANDEIRANTES E VARGENS - LIGA SAMBARE",
+      "company_cnpj": "28929408000161",
+      "total_contracts": 1,
+      "total_value": "115.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "28935450000195",
+      "company_name": "G.R.E.S MOCIDADE INDEPENDENTE DE PADRE MIGUEL",
+      "company_cnpj": "28935450000195",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "29066371000158",
+      "company_name": "BRAGA SERVICOS ESPECIALIZADOS LTDA",
+      "company_cnpj": "29066371000158",
+      "total_contracts": 1,
+      "total_value": "25.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "29794689000155",
+      "company_name": "VITINHO PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "29794689000155",
+      "total_contracts": 1,
+      "total_value": "120.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "29982519000102",
+      "company_name": "SARCA SOCIEDADE AMIGOS DA RUA DA CARIOCA E ADJACENCIAS",
+      "company_cnpj": "29982519000102",
+      "total_contracts": 1,
+      "total_value": "15.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "30029219000184",
+      "company_name": "GREMIO REC ESC DE SAMBA ESTACAO PRIMEIRA DE MANGUEIRA",
+      "company_cnpj": "30029219000184",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "30030563000193",
+      "company_name": "G R ESCOLA DE SAMBA PARAISO DO TUIUTI",
+      "company_cnpj": "30030563000193",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "30036773000199",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA ACADEMICOS DE NITEROI",
+      "company_cnpj": "30036773000199",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "30644069000119",
+      "company_name": "FF ENTRETENIMENTO E PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "30644069000119",
+      "total_contracts": 1,
+      "total_value": "10.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "30781805000180",
+      "company_name": "TA NA MENTE PRODUCAO GRAVACAO E EDICAO MUSICAL LTDA",
+      "company_cnpj": "30781805000180",
+      "total_contracts": 1,
+      "total_value": "70.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "31659733000166",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM CORACOES UNIDOS DO CIEP",
+      "company_cnpj": "31659733000166",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "31750452000114",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM FILHOS DA AGUIA DA PORTELA",
+      "company_cnpj": "31750452000114",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.107436",
+      "raw_cells": null
+    },
+    {
+      "company_id": "31837156000155",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DO VIRADOURO",
+      "company_cnpj": "31837156000155",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "32001117000186",
+      "company_name": "G R E S ACADEMICOS DO GRANDE RIO",
+      "company_cnpj": "32001117000186",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "32436546000186",
+      "company_name": "CORETO - COLETIVO DE BLOCOS ORGANIZADOS DO RIO DE JANEIRO",
+      "company_cnpj": "32436546000186",
+      "total_contracts": 1,
+      "total_value": "565.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "32453793000190",
+      "company_name": "MLOPES PRODUCOES LTDA",
+      "company_cnpj": "32453793000190",
+      "total_contracts": 1,
+      "total_value": "18.500,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "32483553000139",
+      "company_name": "LEQUINHO TORRES PRODUCOES LTDA",
+      "company_cnpj": "32483553000139",
+      "total_contracts": 1,
+      "total_value": "25.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "33285255000105",
+      "company_name": "CNS NACIONAL DE SERVICOS LIMITADA",
+      "company_cnpj": "33285255000105",
+      "total_contracts": 1,
+      "total_value": "679.560,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "33593575000114",
+      "company_name": "MITRA ARQUIEPISCOPAL DO RIO DE JANEIRO",
+      "company_cnpj": "33593575000114",
+      "total_contracts": 1,
+      "total_value": "300.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "34031973000100",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM GOLFINHOS DO RIO DE JANEIRO",
+      "company_cnpj": "34031973000100",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "34031991000191",
+      "company_name": "LIGA INDEPENDENTE DE BLOCOS E BANDAS DO MEIER E GRANDE MEIER- LIGA JOAO NOGUEIRA",
+      "company_cnpj": "34031991000191",
+      "total_contracts": 1,
+      "total_value": "450.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "34292854000100",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA BEIJA FLOR",
+      "company_cnpj": "34292854000100",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "35316905000150",
+      "company_name": "PAPO EDITORA LTDA",
+      "company_cnpj": "35316905000150",
+      "total_contracts": 1,
+      "total_value": "349.944,32",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "36563373000118",
+      "company_name": "WELLINGTON CARDOSO DA LUZ CINEMAS LTDA",
+      "company_cnpj": "36563373000118",
+      "total_contracts": 1,
+      "total_value": "453.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "40043296000142",
+      "company_name": "JOSE MAURO DINIZ PRODUCOES",
+      "company_cnpj": "40043296000142",
+      "total_contracts": 1,
+      "total_value": "32.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "40192143000167",
+      "company_name": "M4 PRODUCOES E SERVICOS LTDA",
+      "company_cnpj": "40192143000167",
+      "total_contracts": 1,
+      "total_value": "5.700.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "40284549000170",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESC DE SAMBA MIRIM HERDEIROS DAVILA",
+      "company_cnpj": "40284549000170",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "40672872000110",
+      "company_name": "ASSOCIACAO DOS PASSISTAS DE SAMBA DO BRASIL CIRO DO AGOGO",
+      "company_cnpj": "40672872000110",
+      "total_contracts": 1,
+      "total_value": "210.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "42255075000163",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA PORTELA",
+      "company_cnpj": "42255075000163",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "42288589000115",
+      "company_name": "FEDERACAO DOS BLOCOS CARNAVALESCOS DO ESTADO DO RIO DE JANEIRO",
+      "company_cnpj": "42288589000115",
+      "total_contracts": 1,
+      "total_value": "1.541.292,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "42535807000179",
+      "company_name": "GREMIO RECR ESCOLA DE SAMBA ACADEMICOS DO SALGUEIRO",
+      "company_cnpj": "42535807000179",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "42602467000151",
+      "company_name": "ASSOCIACAO DAS BANDAS E BLOCOS DA GRANDE TIJUCA",
+      "company_cnpj": "42602467000151",
+      "total_contracts": 1,
+      "total_value": "35.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "45113389000110",
+      "company_name": "PRETO DO BECO PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "45113389000110",
+      "total_contracts": 1,
+      "total_value": "125.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "47842915000108",
+      "company_name": "ASSOCIACAO CULTURAL E SOCIAL DE BLOCOS E BANDAS - LIGA DO CENTRO-RJ",
+      "company_cnpj": "47842915000108",
+      "total_contracts": 1,
+      "total_value": "45.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "48722389000105",
+      "company_name": "ASSOCIACAO INSTITUTO FLORESTA",
+      "company_cnpj": "48722389000105",
+      "total_contracts": 1,
+      "total_value": "700.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "48909423000155",
+      "company_name": "RITMIZA PRODUCOES LTDA",
+      "company_cnpj": "48909423000155",
+      "total_contracts": 1,
+      "total_value": "12.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "49001473000100",
+      "company_name": "REFRAO PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "49001473000100",
+      "total_contracts": 1,
+      "total_value": "50.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "49208448000194",
+      "company_name": "49.208.448 FERNANDO FERNANDES FERREIRA FILHO",
+      "company_cnpj": "49208448000194",
+      "total_contracts": 1,
+      "total_value": "8.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "52364507000128",
+      "company_name": "THIAGO TOSTES PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "52364507000128",
+      "total_contracts": 1,
+      "total_value": "4.789.201,45",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "53008346000100",
+      "company_name": "RDMUSIC PRODUCOES LTDA",
+      "company_cnpj": "53008346000100",
+      "total_contracts": 1,
+      "total_value": "40.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "54023131000113",
+      "company_name": "YAN CANTOR LTDA",
+      "company_cnpj": "54023131000113",
+      "total_contracts": 1,
+      "total_value": "70.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "55303013000121",
+      "company_name": "DOCE SENSACAO COMERCIO E PRODUCAO LTDA",
+      "company_cnpj": "55303013000121",
+      "total_contracts": 1,
+      "total_value": "100.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "55908942000164",
+      "company_name": "MAJETE PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "55908942000164",
+      "total_contracts": 1,
+      "total_value": "40.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108435",
+      "raw_cells": null
+    },
+    {
+      "company_id": "55971579000121",
+      "company_name": "PRIMOS MANUTENCAO E INSTALACAO DE ELEVADORES LTDA",
+      "company_cnpj": "55971579000121",
+      "total_contracts": 1,
+      "total_value": "187.780,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "56969996000100",
+      "company_name": "GREMIO RECREATIVO E CULTURAL ESCOLA DE SAMBA MIRIM VIRANDO ESPERANCA - GRCESM.",
+      "company_cnpj": "56969996000100",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "57740908000159",
+      "company_name": "BLACK SERVICE SHOWS LTDA",
+      "company_cnpj": "57740908000159",
+      "total_contracts": 1,
+      "total_value": "125.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "58564198000116",
+      "company_name": "GREMIO RECREATIVO ESCOLA DE SAMBA MIRIM OS NETINHOS DO TUIUTI",
+      "company_cnpj": "58564198000116",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "60736613000113",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM CRIAS DA IMPERATRIZ",
+      "company_cnpj": "60736613000113",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "60740690000147",
+      "company_name": "60.740.690 RODRIGO DA COSTA FERREIRA",
+      "company_cnpj": "60740690000147",
+      "total_contracts": 1,
+      "total_value": "10.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "61199671000118",
+      "company_name": "BORA VIVER PRODUCOES ARTISTICAS LTDA",
+      "company_cnpj": "61199671000118",
+      "total_contracts": 1,
+      "total_value": "75.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "62299826000150",
+      "company_name": "NOVA LIGA DE BLOCOS DE RUA DO RIO DE JANEIRO",
+      "company_cnpj": "62299826000150",
+      "total_contracts": 1,
+      "total_value": "330.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "62976606000114",
+      "company_name": "FS ENTRETENIMENTO LTDA",
+      "company_cnpj": "62976606000114",
+      "total_contracts": 1,
+      "total_value": "50.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "63737222000101",
+      "company_name": "INSTITUTO LUMA",
+      "company_cnpj": "63737222000101",
+      "total_contracts": 1,
+      "total_value": "20.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
+      "raw_cells": null
+    },
+    {
+      "company_id": "64037874000104",
+      "company_name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM SONHO DO BEIJA FLOR",
+      "company_cnpj": "64037874000104",
+      "total_contracts": 1,
+      "total_value": "2.150.000,00",
+      "discovered_at": "2026-03-01T21:41:13.108936",
       "raw_cells": null
     }
   ]

@@ -129,7 +129,10 @@ This project follows **Domain-Driven Design (DDD)** and **Clean Architecture**:
 - **AI Extraction:** Groq API (Llama 3.3 70B)
 - **PDF Processing:** PyMuPDF, Tesseract OCR
 - **Data Storage:** JSON, Excel (openpyxl)
-- **CAPTCHA Handling:** Hybrid manual/automated approach
+- **CAPTCHA Handling:** Hybrid manual/automated approach (make sure browser is *not* headless when solving challenges; images/fonts are blocked in headless mode which leads to blank widgets)
+
+
+**Tip:** launch with a persistent profile (`--user-data-dir` or call `create_driver(..., user_data_dir="/path/to/profile")`) and solve the CAPTCHA once there. The cookies/tokens stored in the profile will carry over to subsequent runs and usually prevent repeated challenges until they expire.
 
 ---
 

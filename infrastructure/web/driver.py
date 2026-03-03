@@ -21,19 +21,68 @@ from config.settings import HEADLESS_MODE, TIMEOUT_SECONDS
 logger = logging.getLogger(__name__)
 
 
+def _build_prefs(
+    use_headless: bool,
+    download_dir: Optional[str],
+    anti_detection: bool
+) -> Dict[str, Any]:
+    """Return Chrome preferences based on flags.
+
+    By default images and fonts are blocked when running headless to save
+    bandwidth.  Anti-detection mode adds several additional settings, and
+    may also configure a download directory when provided.
+    """
+
+    prefs: Dict[str, Any] = {}
+    if use_headless:
+        prefs.update({
+            "profile.managed_default_content_settings.images": 2,
+            "profile.managed_default_content_settings.fonts": 2,
+        })
+
+    if anti_detection:
+        prefs.update({
+            "profile.default_content_setting_values.notifications": 2,
+            "credentials_enable_service": False,
+            "profile.password_manager_enabled": False,
+        })
+
+        if download_dir:
+            prefs.update({
+                "download.default_directory": str(download_dir),
+                "download.prompt_for_download": False,
+                "download.directory_upgrade": True,
+                "safebrowsing.enabled": True,
+                "plugins.always_open_pdf_externally": True,
+            })
+    return prefs
+
+
 def create_driver(
     headless: Optional[bool] = None,
     download_dir: Optional[str] = None,
-    anti_detection: bool = False
+    anti_detection: bool = False,
+    user_data_dir: Optional[str] = None,
 ) -> Optional[webdriver.Chrome]:
     """
     Create and configure Chrome WebDriver.
-    
+
+    The helper applies a set of sensible defaults for performance and
+    anti-detection.  Historically we always blocked images and fonts to
+    reduce bandwidth while running headless, but that behaviour prevents a
+    human from seeing or solving CAPTCHA widgets (they render as a blank
+    grey box).  The implementation now only disables those assets when the
+    browser is actually running headless; interactive sessions leave them
+    enabled so a human can solve challenges.
+
     Args:
         headless: Run in headless mode (overrides config if provided)
         download_dir: Directory for file downloads (if needed)
         anti_detection: Enable anti-detection measures for CAPTCHA portals
-        
+        user_data_dir: Optional Chrome profile directory; if supplied the
+            browser will reuse cookies and state across invocations.  useful
+            for keeping a solved CAPTCHA/cookie session alive between runs.
+
     Returns:
         Configured WebDriver instance or None if initialization failed
     """
@@ -49,6 +98,14 @@ def create_driver(
         
         # Configure Chrome options
         options = Options()
+
+        # reuse an existing profile if requested – this is the easiest way to
+        # preserve cookies/solved CAPTCHAs between runs.  the directory may
+        # contain an entire Chrome profile; the first time you launch with it
+        # Chrome will create the profile, afterwards cookies/plugins/etc will
+        # persist.
+        if user_data_dir:
+            options.add_argument(f"--user-data-dir={user_data_dir}")
 
         import shutil
         chrome_bin = shutil.which("chrome") or shutil.which("google-chrome")
@@ -77,32 +134,9 @@ def create_driver(
         options.add_argument("--enable-logging")
         options.add_argument("--v=1")
 
-        # ✅ Performance prefs (always)
-        prefs: Dict [str, Any] = {
-            "profile.managed_default_content_settings.images": 2,
-            "profile.managed_default_content_settings.fonts": 2,
-        }
-        
-        # Anti-detection measures
-        if anti_detection:
-
-            prefs.update({
-                "profile.default_content_setting_values.notifications": 2,
-                "credentials_enable_service": False,
-                "profile.password_manager_enabled": False
-            })
-        
-        # Download directory configuration
-            if download_dir:
-                prefs.update({
-                    "download.default_directory": str(download_dir),
-                    "download.prompt_for_download": False,
-                    "download.directory_upgrade": True,
-                    "safebrowsing.enabled": True,
-                    "plugins.always_open_pdf_externally": True
-                })
-
-        
+        # Build preference dictionary using helper utility.  splitting
+        # this out makes the behaviour easier to unit-test.
+        prefs = _build_prefs(use_headless, download_dir, anti_detection)
         options.add_experimental_option("prefs", prefs)
         
         # Disable automation flags

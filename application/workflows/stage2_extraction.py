@@ -40,35 +40,6 @@ from infrastructure.scrapers.transparencia.downloader import (
 logger = logging.getLogger(__name__)
 
 DISCOVERY_FILE = "data/discovery/processo_links.json"
-LOGS_DIR       = Path("logs")
-
-
-def _setup_extraction_logging() -> Path:
-    """
-    Configure logging with a timestamped file per Epic 2 requirements.
-
-    Creates: logs/extraction_contracts_YYYYMMDD_HHMMSS.log
-
-    Returns:
-        Path to the log file created.
-    """
-    LOGS_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_file  = LOGS_DIR / f"extraction_contracts_{timestamp}.log"
-
-    # Call the project's standard setup_logging for console handler
-    setup_logging("stage2_extraction")
-
-    # Add a dedicated timestamped file handler for this run
-    root_logger  = logging.getLogger()
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-    ))
-    root_logger.addHandler(file_handler)
-
-    return log_file
 
 
 def run_stage2_extraction(headless: bool = False) -> dict:
@@ -89,7 +60,10 @@ def run_stage2_extraction(headless: bool = False) -> dict:
           "errors":   [{"processo_id": ..., "error": ...}]
         }
     """
-    log_file = _setup_extraction_logging()
+    # CHANGE: single logging call — produces
+    #   logs/extraction_contracts_YYYYMMDD_HHMMSS.log
+    # (removed _setup_extraction_logging() which created a duplicate handler)
+    log_file = setup_logging("extraction_contracts")
 
     logger.info("=" * 70)
     logger.info("🚀 STARTING STAGE 2: EXTRACTION WORKFLOW")
@@ -126,7 +100,7 @@ def run_stage2_extraction(headless: bool = False) -> dict:
         downloader = ProcessoDownloader(driver)
         summary    = downloader.download_all(links)
 
-        # Log final summary to file
+        # Log final summary
         logger.info("\n" + "=" * 70)
         logger.info("📊 FINAL SUMMARY")
         logger.info(f"   Total   : {summary.get('total', 0)}")
@@ -154,9 +128,7 @@ def run_stage2_extraction(headless: bool = False) -> dict:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Stage 2: Download contracts and extract raw text"
-    )
+    parser = argparse.ArgumentParser(description="Stage 2: Contract extraction")
     parser.add_argument(
         "--headless",
         action="store_true",

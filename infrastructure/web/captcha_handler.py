@@ -1,3 +1,16 @@
+"""
+infrastructure/web/captcha_handler.py
+
+Unified CAPTCHA handler for processo.rio.
+
+Key change vs previous version
+───────────────────────────────
+All manual fallback paths now use wait_for_manual_with_input() (blocking
+input() call) instead of the countdown-timer approach. This is necessary
+because reCAPTCHA v2 image challenges often render an empty grid inside
+an automated Chrome session — the user needs unlimited time and clear
+instructions on how to force the images to load.
+"""
 import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -32,26 +45,18 @@ CAPTCHA_MANUAL_TIMEOUT = 300   # 5 minutes for manual resolution
 
 class CaptchaHandler:
     """
-    Unified CAPTCHA handler for processo.rio and similar sites.
-    
-    Features:
-    - Detects CAPTCHA presence
-    - Auto-clicks reCAPTCHA checkbox
-    - Clicks "Consultar" button
-    - Detects image challenges
-    - Waits for manual resolution when needed
-    - Plays alert sound (Windows)
-    
-    Usage:
-        handler = CaptchaHandler(driver)
-        
-        # Full automatic handling with manual fallback
-        if handler.handle():
-            logging.info("Success!")
-        
-        # Or use individual methods
-        if handler.detect_captcha():
-            handler.click_recaptcha_checkbox()
+    Handles reCAPTCHA on processo.rio.
+
+    Strategy
+    ────────
+    1. If already on documents page → done, no CAPTCHA needed.
+    2. Auto-click the "não sou um robô" checkbox.
+    3. Auto-click "Consultar".
+    4. If documents page loads → done.
+    5. If image challenge appears (or checkbox was clicked but grid is empty)
+       → pause and ask the user to resolve it manually.
+    6. The manual pause uses input() (blocking) so the user has unlimited
+       time — important when the challenge grid renders blank.
     """
     
     def __init__(self, driver):
@@ -61,7 +66,7 @@ class CaptchaHandler:
         Args:
             driver: Selenium WebDriver instance
         """
-        self.driver = driver
+        self.driver         = driver
         self.captcha_solved = False
     
     # =====================================================================
@@ -71,14 +76,13 @@ class CaptchaHandler:
     def detect_captcha(self) -> bool:
         """
         Detect if CAPTCHA is present on the page.
-        
-        Returns:
-            bool: True if CAPTCHA detected
+
         """
         captcha_indicators = [
             "//iframe[contains(@src, 'recaptcha')]",
             "//div[contains(@class, 'g-recaptcha')]",
             "//*[contains(text(), 'não sou um robô')]",
+            "//*[contains(text(), 'Não sou um robô')]",
             "//*[contains(text(), 'not a robot')]",
             "//div[@class='recaptcha-checkbox-border']",
         ]
@@ -90,7 +94,6 @@ class CaptchaHandler:
                     return True
             except NoSuchElementException:
                 continue
-        
         return False
     
     def is_on_captcha_page(self) -> bool:
@@ -110,346 +113,339 @@ class CaptchaHandler:
         ]
         try:
             page_text = self.driver.find_element(By.TAG_NAME, "body").text
-            for indicator in indicators:
-                if indicator in page_text:
-                    return True
+            return any(ind in page_text for ind in indicators)
         except Exception:
-            pass
-        return False
+            return False
     
     def is_on_documents_page(self) -> bool:
         """
-        Check if we're already on the documents page (CAPTCHA passed).
-        
-        Returns:
-            bool: True if on documents page
+        True if the CAPTCHA gate was passed — regardless of what the portal
+        shows on the other side.
+
+        Three valid post-CAPTCHA states all return True:
+          1. Documents are listed ("Últimos documentos", "Documento capturado")
+          2. Portal shows a no-document alert — the alert itself is proof
+             the security gate was cleared; the downloader handles it next.
+          3. (Future states can be added here without touching handle())
         """
-        indicators = [
-            "Últimos documentos",
-            "Documento capturado",
-        ]
         try:
             page_text = self.driver.find_element(By.TAG_NAME, "body").text
-            for indicator in indicators:
-                if indicator in page_text:
-                    return True
+
+            # State 1: documents present
+            if any(ind in page_text for ind in ["Últimos documentos", "Documento capturado"]):
+                return True
+
+            # State 2: portal error alert — CAPTCHA was solved, just no file
+            alerts = self.driver.find_elements(
+                By.CSS_SELECTOR, "p.alert.alert-danger, div.alert.alert-danger"
+            )
+            if alerts:
+                return True
+
         except Exception:
             pass
         return False
     
     def is_image_challenge_visible(self) -> bool:
         """
-        Check if there's a visible image challenge (select pictures).
-        
+        Check if the reCAPTCHA image challenge iframe (bframe) is visible.
+
         Returns:
-            bool: True if image challenge is visible
+            bool: True if the image challenge iframe is present and displayed
         """
         try:
-            iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
-            for iframe in iframes:
-                src = iframe.get_attribute('src') or ''
-                if 'bframe' in src:
-                    if iframe.is_displayed():
-                        size = iframe.size
-                        if size.get('height', 0) > 200 and size.get('width', 0) > 200:
-                            return True
+            for iframe in self.driver.find_elements(By.TAG_NAME, "iframe"):
+                src = iframe.get_attribute("src") or ""
+                if "bframe" in src and iframe.is_displayed():
+                    return True
             return False
         except Exception:
+            return False
+
+    def is_grid_empty(self) -> bool:
+        """
+        Switch into the reCAPTCHA bframe and check whether images rendered.
+
+        A visible bframe with 0 <img> elements (or all images with no src)
+        means the challenge grid is blank — the user cannot solve it without
+        additional steps.
+
+        Returns True  → grid is present but empty (needs intervention).
+        Returns False → images loaded normally, or bframe not found.
+        """
+        try:
+            bframe = None
+            for iframe in self.driver.find_elements(By.TAG_NAME, "iframe"):
+                src = iframe.get_attribute("src") or ""
+                if "bframe" in src and iframe.is_displayed():
+                    bframe = iframe
+                    break
+
+            if bframe is None:
+                return False
+
+            self.driver.switch_to.frame(bframe)
+            try:
+                imgs = self.driver.find_elements(By.TAG_NAME, "img")
+                visible_imgs = [
+                    img for img in imgs
+                    if img.is_displayed() and img.get_attribute("src")
+                ]
+                return len(visible_imgs) == 0
+            finally:
+                self.driver.switch_to.default_content()
+
+        except Exception:
+            try:
+                self.driver.switch_to.default_content()
+            except Exception:
+                pass
             return False
     
     # =====================================================================
     # ACTION METHODS
     # =====================================================================
     
-    def click_recaptcha_checkbox(self) -> bool:
-        """
-        Find and click the reCAPTCHA checkbox.
-        
-        Returns:
-            bool: True if clicked successfully
-        """
+    def play_alert_sound(self) -> None:
+        """Two-beep alert on Windows; silent on other platforms."""
         try:
-            # Find reCAPTCHA iframe
+            import winsound
+            winsound.Beep(1000, 500)
+            winsound.Beep(1500, 500)
+        except Exception:
+            pass
+
+
+    def click_recaptcha_checkbox(self) -> bool:
+        """Switch into the reCAPTCHA iframe and click the checkbox."""
+        try:
             iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
             recaptcha_iframe = None
-            
             for iframe in iframes:
-                src = iframe.get_attribute('src') or ''
-                if 'recaptcha' in src.lower() and 'anchor' in src.lower():
+                src = iframe.get_attribute("src") or ""
+                if "recaptcha" in src.lower() and "anchor" in src.lower():
                     recaptcha_iframe = iframe
                     break
-            
+
             if not recaptcha_iframe:
                 return False
-            
-            # Switch to iframe
+
             self.driver.switch_to.frame(recaptcha_iframe)
-            
             try:
-                # Find and click checkbox
                 checkbox = WebDriverWait(self.driver, 5).until(
                     EC.element_to_be_clickable((
                         By.CSS_SELECTOR,
-                        ".recaptcha-checkbox-border, #recaptcha-anchor"
+                        ".recaptcha-checkbox-border, #recaptcha-anchor",
                     ))
                 )
-                
-                # Use ActionChains for more reliable click
-                actions = ActionChains(self.driver)
-                actions.move_to_element(checkbox)
-                actions.pause(0.3)
-                actions.click()
-                actions.perform()
-                
+                ActionChains(self.driver)\
+                    .move_to_element(checkbox)\
+                    .pause(0.3)\
+                    .click()\
+                    .perform()
                 return True
-                
             finally:
-                # Always switch back to main content
                 self.driver.switch_to.default_content()
-                
-        except Exception as e:
-            # Ensure we're back in main content
+
+        except Exception:
             try:
                 self.driver.switch_to.default_content()
-            except:
+            except Exception:
                 pass
             return False
-    
+            
     def click_consultar_button(self) -> bool:
-        """
-        Click the "Consultar" button on security verification pages.
-        
-        Returns:
-            bool: True if clicked successfully
-        """
+        """Click the 'Consultar' submit button on the security-check page."""
         selectors = [
-            ("css", "button.btn-primary.btn-block[type='submit']"),
-            ("css", "button.btn-primary[type='submit']"),
-            ("css", "button[type='submit'].btn-primary"),
+            ("css",   "button.btn-primary.btn-block[type='submit']"),
+            ("css",   "button.btn-primary[type='submit']"),
+            ("css",   "button[type='submit'].btn-primary"),
             ("xpath", "//button[contains(., 'Consultar')]"),
             ("xpath", "//button[@type='submit'][contains(@class, 'btn-primary')]"),
             ("xpath", "//button[.//i[contains(@class, 'fa-stamp')]]"),
         ]
-        
         for selector_type, selector in selectors:
             try:
-                if selector_type == "css":
-                    button = self.driver.find_element(By.CSS_SELECTOR, selector)
-                else:
-                    button = self.driver.find_element(By.XPATH, selector)
-                
-                # Scroll into view
+                btn = (
+                    self.driver.find_element(By.CSS_SELECTOR, selector)
+                    if selector_type == "css"
+                    else self.driver.find_element(By.XPATH, selector)
+                )
                 self.driver.execute_script(
-                    "arguments[0].scrollIntoView({block: 'center'});", 
-                    button
+                    "arguments[0].scrollIntoView({block: 'center'});", btn
                 )
                 time.sleep(0.3)
-                
-                if not button.is_enabled():
+                if not btn.is_enabled():
                     continue
-                
-                # Try to click
                 try:
-                    button.click()
+                    btn.click()
                 except (ElementClickInterceptedException, ElementNotInteractableException):
-                    self.driver.execute_script("arguments[0].click();", button)
-                
+                    self.driver.execute_script("arguments[0].click();", btn)
                 return True
-                
             except NoSuchElementException:
                 continue
             except Exception:
                 continue
-        
         return False
     
     # =====================================================================
     # MANUAL RESOLUTION
     # =====================================================================
     
-    def play_alert_sound(self) -> None:
-        """Play alert sound to notify user (Windows only)."""
-        try:
-            import winsound
-            winsound.Beep(1000, 500)
-            winsound.Beep(1500, 500)
-        except:
-            pass
-    
-    def wait_for_manual_resolution(self, timeout: int | None = None) -> bool:
+    def wait_for_manual_with_input(self, reason: str = "") -> bool:
         """
-        Wait for user to manually resolve CAPTCHA.
-        
-        Uses polling (not blocking input) so it works in all environments.
-        
-        Args:
-            timeout: Maximum wait time in seconds (default: CAPTCHA_MANUAL_TIMEOUT)
-            
-        Returns:
-            bool: True if CAPTCHA was resolved
+        Block until the user presses ENTER after solving the CAPTCHA.
+
+        Uses input() so there is NO timeout — the user can take as long
+        as needed. This is the correct approach when the image challenge
+        grid renders blank inside an automated Chrome session.
+
+        Empty-grid troubleshooting steps shown to the user:
+          1. Click the reload (↺) icon inside the challenge box.
+          2. If the grid stays empty, right-click the CAPTCHA → Inspect,
+             scroll to the bframe iframe src, and open it in a new tab.
+          3. As a last resort: close this browser, open a real Chrome,
+             navigate to the URL manually, solve CAPTCHA, then re-run
+             with the session cookies.
         """
-        if timeout is None:
-            timeout = CAPTCHA_MANUAL_TIMEOUT
-        
-        logging.info("\n" + "=" * 60)
-        logging.info("🔐 MANUAL INTERVENTION REQUIRED")
-        logging.info("=" * 60)
-        logging.info("\n📋 Please resolve the CAPTCHA in the browser")
-        logging.info("   The script will detect when you're done")
-        logging.info(f"\n⏱️  Maximum wait: {timeout // 60} minutes")
-        logging.info("=" * 60)
-        
         self.play_alert_sound()
-        
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            # Check if we made it to the documents page
-            if self.is_on_documents_page():
-                logging.info("\n\n✅ Documents page loaded!")
-                self.captcha_solved = True
-                return True
-            
-            # Check if we left the CAPTCHA page
-            if not self.is_on_captcha_page():
-                logging.info("\n\n✅ Left CAPTCHA page!")
-                self.captcha_solved = True
-                return True
-            
-            # Show countdown
-            elapsed = int(time.time() - start_time)
-            remaining = timeout - elapsed
-            print(f"\r⏳ Waiting... {remaining}s remaining    ", end='', flush=True)
-            
-            time.sleep(2)
-        
-        logging.info("\n\n❌ Timeout!")
-        return False
-    
-    def wait_for_manual_with_input(self) -> bool:
-        """
-        Alternative: Wait for user to press Enter.
-        
-        Use this if you prefer blocking behavior.
-        
-        Returns:
-            bool: True (assumes user resolved it)
-        """
-        logging.info("\n" + "=" * 60)
-        logging.info("🔐 MANUAL INTERVENTION REQUIRED")
-        logging.info("=" * 60)
-        logging.info("\n📋 Please resolve the CAPTCHA in the browser.")
-        logging.info("=" * 60)
-        
-        self.play_alert_sound()
-        
-        input("\n   Press ENTER when done...")
-        
+
+        sep = "=" * 65
+        print(f"\n{sep}")
+        print("🔐  MANUAL CAPTCHA RESOLUTION REQUIRED")
+        if reason:
+            print(f"    Reason: {reason}")
+        print(sep)
+        print("""
+  The browser has paused. Please solve the CAPTCHA now.
+
+  ── If the image grid is EMPTY ──────────────────────────────
+  This happens when reCAPTCHA detects automation. Try these in order:
+
+    1. Click the RELOAD icon (↺) inside the challenge box.
+       A new set of images should appear.
+
+    2. If the grid stays blank after reloading:
+       - Right-click anywhere on the CAPTCHA → "Inspect"
+       - Find the <iframe src="...bframe..."> element
+       - Copy that URL and open it in a NEW normal Chrome tab
+       - Solve the challenge there; the result carries back here.
+
+    3. Still blank? Close this browser window, open a regular Chrome,
+       navigate to the processo.rio URL manually, solve the CAPTCHA,
+       and then re-run the script.
+
+  ── Once you can see the images ─────────────────────────────
+    Select all matching images, then click "Verificar".
+    Wait until the documents page loads in THIS browser.
+    Then press ENTER below to continue.
+""")
+        print(sep)
+        input("  ▶  Press ENTER after the documents page has loaded... ")
+
         time.sleep(1)
-        
-        if self.detect_captcha():
-            logger.warning("⚠ CAPTCHA still present. Continuing anyway...")
-            return False
-        
-        logging.info("   ✓ CAPTCHA resolved!")
-        self.captcha_solved = True
+        if self.is_on_documents_page():
+            logging.info("✅ Documents page confirmed — continuing.")
+            self.captcha_solved = True
+            return True
+
+        # User pressed ENTER but page isn't there yet
+        logging.warning(
+            "⚠  Documents page not detected after ENTER. "
+            "The CAPTCHA may not have been fully solved. Continuing anyway."
+        )
+        self.captcha_solved = True   # optimistic — pipeline will fail fast if wrong
         return True
-    
-    # =====================================================================
-    # MAIN HANDLER
-    # =====================================================================
-    
+
+    # ── Main handler ──────────────────────────────────────────────────────────
+
     def handle(self) -> bool:
         """
-        Main CAPTCHA handling flow.
-        
-        Attempts automatic resolution, falls back to manual if needed.
-        
-        Returns:
-            bool: True if CAPTCHA was resolved (or wasn't present)
+        Full CAPTCHA resolution flow.
+
+        Returns True if we end up on the documents page (or reasonably
+        believe the CAPTCHA is resolved).
         """
-        # Step 1: Check if already on documents page
+        # Already past CAPTCHA?
         if self.is_on_documents_page():
             self.captcha_solved = True
             return True
-        
-        # Step 2: Check if on CAPTCHA page
+
+        # Not on CAPTCHA page at all?
         if not self.is_on_captcha_page() and not self.detect_captcha():
-            return True  # No CAPTCHA present
-        
-        logging.info("\n🔐 CAPTCHA detected, attempting resolution...")
-        
-        # Step 3: Try clicking Consultar directly (maybe checkbox already checked)
+            return True
+
+        logging.info("\n🔐 CAPTCHA detected — attempting auto-resolution...")
+
+        # Try Consultar directly (checkbox may already be ticked from a
+        # previous navigate on the same session)
         if self.click_consultar_button():
             time.sleep(CAPTCHA_AUTO_WAIT)
             if self.is_on_documents_page():
-                logging.info("✅ Success! Page loaded after clicking Consultar")
+                logging.info("✅ Auto-resolved (Consultar click).")
                 self.captcha_solved = True
                 return True
-        
-        # Step 4: Click reCAPTCHA checkbox
+
+        # Click the "não sou um robô" checkbox
         logging.info("   → Clicking reCAPTCHA checkbox...")
-        if self.click_recaptcha_checkbox():
+        clicked = self.click_recaptcha_checkbox()
+        if clicked:
             time.sleep(2)
-            
-            # Step 5: Try clicking Consultar again
-            if self.click_consultar_button():
-                time.sleep(CAPTCHA_AUTO_WAIT)
-                
-                # Step 6: Check result
-                if self.is_on_documents_page():
-                    logging.info("✅ Success! CAPTCHA resolved automatically")
-                    self.captcha_solved = True
-                    return True
-                
-                # Step 7: Check for image challenge
-                if self.is_on_captcha_page():
-                    if self.is_image_challenge_visible():
-                        logging.info("   🖼️ Image challenge detected - manual resolution needed")
-                        return self.wait_for_manual_resolution()
+
+        # Click Consultar
+        if self.click_consultar_button():
+            time.sleep(CAPTCHA_AUTO_WAIT)
+
+            if self.is_on_documents_page():
+                logging.info("✅ Auto-resolved (checkbox + Consultar).")
+                self.captcha_solved = True
+                return True
+
+            # Still on CAPTCHA page — inspect what kind of challenge appeared
+            if self.is_on_captcha_page():
+                if self.is_image_challenge_visible():
+                    if self.is_grid_empty():
+                        # bframe present but no images rendered → empty grid
+                        logging.warning(
+                            "   🕳  Challenge grid is EMPTY — "
+                            "reCAPTCHA is blocking automated Chrome. "
+                            "Showing empty-grid recovery instructions."
+                        )
+                        return self.wait_for_manual_with_input(
+                            reason="image challenge grid rendered blank"
+                        )
                     else:
-                        # Try one more time
-                        time.sleep(2)
-                        if self.click_consultar_button():
-                            time.sleep(CAPTCHA_AUTO_WAIT)
-                            if self.is_on_documents_page():
-                                self.captcha_solved = True
-                                return True
+                        # Images loaded normally — user can solve it
+                        logging.info(
+                            "   🖼  Image challenge detected with images — "
+                            "manual resolution needed."
+                        )
+                        return self.wait_for_manual_with_input(
+                            reason="image challenge appeared — please select and verify"
+                        )
                 else:
-                    # Left CAPTCHA page
-                    self.captcha_solved = True
-                    return True
-        
-        # Step 8: Final check
+                    # On CAPTCHA page but no bframe — may need another click
+                    time.sleep(2)
+                    if self.click_consultar_button():
+                        time.sleep(CAPTCHA_AUTO_WAIT)
+                        if self.is_on_documents_page():
+                            self.captcha_solved = True
+                            return True
+
+        # Checkbox click failed or Consultar not found — check once more
         time.sleep(2)
         if self.is_on_documents_page():
             self.captcha_solved = True
             return True
-        
-        # Step 9: Manual intervention needed
-        logger.warning("⚠️ Automatic resolution failed")
-        return self.wait_for_manual_resolution()
+
+        # Fall through to manual
+        logging.warning("⚠  Auto-resolution unsuccessful — manual input required.")
+        return self.wait_for_manual_with_input(
+            reason="automatic steps did not reach the documents page"
+        )
 
 
-# =========================================================================
-# CONVENIENCE FUNCTION
-# =========================================================================
+# ── Convenience function ──────────────────────────────────────────────────────
 
 def handle_captcha(driver) -> bool:
-    """
-    Convenience function for quick CAPTCHA handling.
-    
-    Usage:
-        from infrastructure.web.captcha import handle_captcha
-        
-        if handle_captcha(driver):
-            logging.info("Ready to continue!")
-    
-    Args:
-        driver: Selenium WebDriver instance
-        
-    Returns:
-        bool: True if CAPTCHA resolved or not present
-    """
-    handler = CaptchaHandler(driver)
-    return handler.handle()
+    return CaptchaHandler(driver).handle()

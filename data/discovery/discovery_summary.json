@@ -1,16 +1,59 @@
 {
-  "discovery_date": "2026-02-20T20:37:16.323068",
-  "total_companies": 1,
-  "total_processos": 1,
-  "errors_count": 1,
-  "errors": [
-    "Fake error for test"
-  ],
+  "discovery_date": "2026-03-01T19:58:16.542082",
+  "total_companies": 112,
+  "total_processos": 117,
+  "errors_count": 0,
+  "errors": [],
   "top_companies": [
     {
-      "name": "FADA",
+      "name": "CACA ESTRELAS PRODUCOES E EVENTOS ARTISTICOS LTDA",
       "contracts": 3,
-      "cnpj": "12349"
+      "cnpj": "64281886000171"
+    },
+    {
+      "name": "SUPERLIGA CARNAVALESCA DO BRASIL",
+      "contracts": 2,
+      "cnpj": "11098056000147"
+    },
+    {
+      "name": "GH MUSIC PRODUCAO MUSICAL EDITORA E GRAVADORA LTDA",
+      "contracts": 2,
+      "cnpj": "19353932000146"
+    },
+    {
+      "name": "EMPRESA MUNICIPAL DE ARTES GRAFICAS S/A IMPRENSA CIDADE",
+      "contracts": 2,
+      "cnpj": "68697333000155"
+    },
+    {
+      "name": "GREMIO RECREATIVO ESCOLA DE SAMBA UNIDOS DE VILA ISABEL",
+      "contracts": 1,
+      "cnpj": "01282704000167"
+    },
+    {
+      "name": "ASSOCIACAO DAS BANDAS CARNAVALESCAS DO ESTADO DO RIO DE JANEIRO",
+      "contracts": 1,
+      "cnpj": "01695781000149"
+    },
+    {
+      "name": "FJ PRODUCOES LTDA",
+      "contracts": 1,
+      "cnpj": "01894553000106"
+    },
+    {
+      "name": "GREMIO RECREATIVO PROJETO CULTURAL ESCOLA DE SAMBA MIRIM AINDA EXISTEM CRIANCAS DE VILA KENNEDY",
+      "contracts": 1,
+      "cnpj": "03148098000117"
+    },
+    {
+      "name": "GREMIO RECREATIVO CULTURAL ESCOLA DE SAMBA MIRIM MIUDA DACABUCU",
+      "contracts": 1,
+      "cnpj": "03352454000110"
+    },
+    {
+      "name": "ARTE VITAL EXIBICOES CINEMATOGRAFICAS LTDA",
+      "contracts": 1,
+      "cnpj": "03459043000802"
     }
   ]
 }

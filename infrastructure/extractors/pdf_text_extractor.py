@@ -1,24 +1,33 @@
 """
 infrastructure/extractors/pdf_text_extractor.py
 
-Raw text extraction from PDF files.
+Raw text extraction from PDF files — OCR only.
 
 Stage 2 responsibility: given a local PDF file, return its COMPLETE text.
 No AI, no LLM, no conformity checks — those belong to later stages.
 
-Extraction strategy (3-method cascade):
-  1. PyMuPDF  — fast, accurate for digital PDFs (primary)
-  2. pdfplumber — alternative parser, better on complex/tabular layouts
-  3. Tesseract OCR — last resort for scanned/image-only PDFs
+Why OCR only?
+─────────────
+Government contract PDFs from this portal are predominantly scanned images.
+PyMuPDF and pdfplumber only read the editable text layer — typically just
+headers and footers, missing the entire contract body. Testing confirmed:
 
-Quality gate:
-  - Minimum 500 characters total (Epic 2 requirement)
-  - Readability check: printable ratio must be > 70%
-  - Low-quality extractions are flagged but still saved
+    PyMuPDF   → 0 chars (below threshold) — missed the contract body
+    OCR       → 40,516 chars              — full contract including typed text
 
-OCR dependencies (optional — gracefully skipped if absent):
-  pip install pymupdf pdfplumber pdf2image pytesseract
-  System: tesseract-ocr, poppler-utils
+Tesseract OCR reads the full rasterised page image, capturing both printed
+text and typed text regardless of whether the PDF was digitally created or
+scanned from paper.
+
+Quality gate (Epic 2):
+    - Minimum 500 total characters
+    - Printable ratio ≥ 70% (catches garbled OCR output)
+    - Low-quality extractions are flagged but still saved for manual review
+
+Dependencies:
+    pip install pdf2image pytesseract
+    Windows: install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
+    Windows: install Poppler  from https://github.com/oschwartz10612/poppler-windows
 """
 import logging
 import os
@@ -28,10 +37,10 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# ── Platform detection ────────────────────────────────────────────────────────
+# ── Platform ──────────────────────────────────────────────────────────────────
 _WINDOWS = platform.system() == "Windows"
 
-# ── OCR configuration ─────────────────────────────────────────────────────────
+# ── OCR configuration (override via environment variables) ───────────────────
 TESSERACT_PATH: str = os.getenv(
     "TESSERACT_PATH",
     r"C:\Program Files\Tesseract-OCR\tesseract.exe" if _WINDOWS else "tesseract",
@@ -45,21 +54,15 @@ POPPLER_PATH: Optional[str] = os.getenv(
     r"C:\poppler-25.12.0\Library\bin" if _WINDOWS else None,
 )
 
-# ── Quality thresholds ────────────────────────────────────────────────────────
-# Minimum average chars/page before trying the next extraction method
-OCR_THRESHOLD = 300
-
-# Epic 2 requirement: minimum total chars for a valid extraction
-MIN_TOTAL_CHARS = 500
-QUALITY_MEDIUM_THRESHOLD = 2000
-
-# Minimum fraction of printable characters (garbled text fails this)
-MIN_PRINTABLE_RATIO = 0.70
+# ── Quality thresholds (Epic 2) ───────────────────────────────────────────────
+MIN_TOTAL_CHARS    = 500    # minimum total characters for a valid extraction
+MIN_PRINTABLE_RATIO = 0.70  # minimum fraction of printable characters
+OCR_THRESHOLD      = 300    # kept for test-suite compatibility — not used in logic
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 # QUALITY VALIDATION
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 
 def _quality_check(text: str) -> dict:
     """
@@ -70,28 +73,25 @@ def _quality_check(text: str) -> dict:
 
     Returns:
         {
-            "passes":          bool,   # True if both checks pass
+            "passes":          bool,
             "total_chars":     int,
-            "printable_ratio": float,  # 0.0 – 1.0
-            "flags":           list[str],  # human-readable failure reasons
+            "printable_ratio": float,   # 0.0 – 1.0
+            "flags":           list[str],
         }
     """
-    flags = []
+    flags       = []
     total_chars = len(text.strip())
 
-    # Check 1: minimum character count (Epic 2: >500 chars)
+    # Check 1: minimum character count
     if total_chars < MIN_TOTAL_CHARS:
-        flags.append(
-            f"low_char_count:{total_chars}<{MIN_TOTAL_CHARS}"
-        )
+        flags.append(f"low_char_count:{total_chars}<{MIN_TOTAL_CHARS}")
 
-    # Check 2: printable ratio (garbled OCR / encoding issues)
+    # Check 2: printable ratio (catches garbled OCR / encoding noise)
     if total_chars > 0:
-        printable = sum(
-            1 for c in text
-            if c.isprintable() or c in ("\n", "\r", "\t")
+        printable_count  = sum(
+            1 for c in text if c.isprintable() or c in ("\n", "\r", "\t")
         )
-        printable_ratio = printable / len(text)
+        printable_ratio = printable_count / len(text)
     else:
         printable_ratio = 0.0
 
@@ -108,122 +108,12 @@ def _quality_check(text: str) -> dict:
     }
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# METHOD 1 — PyMuPDF (primary)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _extract_pymupdf(pdf_path: str) -> Optional[dict]:
-    """
-    Attempt text extraction with PyMuPDF (fitz).
-
-    Returns result dict on success, None if the library is unavailable
-    or extraction yields insufficient text density.
-    """
-    try:
-        import fitz
-    except ImportError:
-        logger.debug("   PyMuPDF (fitz) not installed — skipping Method 1")
-        return None
-
-    try:
-        doc = fitz.open(pdf_path)
-        page_texts = []
-        char_counts = []
-
-        for page in doc:
-            t = str(page.get_text("text") or "")
-            page_texts.append(t)
-            char_counts.append(len(t.strip()))
-
-        doc.close()
-
-        total_pages = len(char_counts)
-        avg_chars = sum(char_counts) / max(total_pages, 1)
-        text = "\n\n".join(page_texts)
-
-        if avg_chars >= OCR_THRESHOLD:
-            logger.info(
-                f"   📄 Method 1 (PyMuPDF): {total_pages} pages, "
-                f"avg {avg_chars:.0f} chars/page"
-            )
-            return {
-                "text":   text,
-                "pages":  total_pages,
-                "source": "pymupdf",
-            }
-
-        logger.info(
-            f"   ⚠  Method 1 (PyMuPDF): low density "
-            f"({avg_chars:.0f} chars/page) — trying Method 2"
-        )
-        return None
-
-    except Exception as e:
-        logger.warning(f"   ⚠  Method 1 (PyMuPDF) failed: {e}")
-        return None
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# METHOD 2 — pdfplumber (alternative parser)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def _extract_pdfplumber(pdf_path: str) -> Optional[dict]:
-    """
-    Attempt text extraction with pdfplumber.
-
-    pdfplumber is better than PyMuPDF on complex layouts, multi-column
-    text, and embedded tables — common in Brazilian government contracts.
-
-    Returns result dict on success, None if unavailable or insufficient.
-    """
-    try:
-        import pdfplumber
-    except ImportError:
-        logger.debug("   pdfplumber not installed — skipping Method 2")
-        logger.debug("   Install with: pip install pdfplumber")
-        return None
-
-    try:
-        page_texts = []
-
-        with pdfplumber.open(pdf_path) as pdf:
-            total_pages = len(pdf.pages)
-            for page in pdf.pages:
-                t = page.extract_text() or ""
-                page_texts.append(t)
-
-        text = "\n\n".join(page_texts)
-        char_counts = [len(t.strip()) for t in page_texts]
-        avg_chars = sum(char_counts) / max(total_pages, 1)
-
-        if avg_chars >= OCR_THRESHOLD:
-            logger.info(
-                f"   📄 Method 2 (pdfplumber): {total_pages} pages, "
-                f"avg {avg_chars:.0f} chars/page"
-            )
-            return {
-                "text":   text,
-                "pages":  total_pages,
-                "source": "pdfplumber",
-            }
-
-        logger.info(
-            f"   ⚠  Method 2 (pdfplumber): low density "
-            f"({avg_chars:.0f} chars/page) — trying Method 3 (OCR)"
-        )
-        return None
-
-    except Exception as e:
-        logger.warning(f"   ⚠  Method 2 (pdfplumber) failed: {e}")
-        return None
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# METHOD 3 — Tesseract OCR (final fallback)
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# OCR ENGINE
+# ══════════════════════════════════════════════════════════════════════════════
 
 def _tesseract_available() -> bool:
-    """Check whether Tesseract is installed and callable."""
+    """Return True if Tesseract is installed and callable."""
     try:
         import pytesseract
         pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
@@ -237,22 +127,36 @@ def _tesseract_available() -> bool:
 
 def _extract_ocr(pdf_path: str) -> Optional[dict]:
     """
-    Extract text via pdf2image + Tesseract OCR.
+    Extract text from every page via pdf2image + Tesseract.
 
-    Called only when both native methods yield insufficient content.
-    Returns result dict on success, None if dependencies are missing.
+    Rasterises each page at 300 DPI and runs OCR with the Portuguese
+    language pack (falls back to English if 'por' is not installed).
+
+    Returns:
+        {
+            "text":   str,   # full concatenated text, all pages
+            "pages":  int,
+            "source": "ocr",
+        }
+        or None if Tesseract / pdf2image is unavailable.
     """
     if not _tesseract_available():
-        logger.warning("   ⚠  Method 3 (OCR): Tesseract not available")
-        logger.warning("       Install: https://github.com/UB-Mannheim/tesseract/wiki")
+        logger.error(
+            "   ✗ Tesseract not available — OCR impossible.\n"
+            "     Windows install: https://github.com/UB-Mannheim/tesseract/wiki\n"
+            "     Set TESSERACT_PATH env var if installed to a non-default location."
+        )
         return None
 
     try:
         from pdf2image import convert_from_path
         import pytesseract
     except ImportError:
-        logger.warning("   ⚠  Method 3 (OCR): pdf2image not installed")
-        logger.warning("       Install with: pip install pdf2image")
+        logger.error(
+            "   ✗ pdf2image not installed.\n"
+            "     Install: pip install pdf2image\n"
+            "     Windows also needs Poppler: set POPPLER_PATH env var."
+        )
         return None
 
     try:
@@ -260,9 +164,9 @@ def _extract_ocr(pdf_path: str) -> Optional[dict]:
         if POPPLER_PATH:
             kwargs["poppler_path"] = POPPLER_PATH
 
-        pages = convert_from_path(pdf_path, dpi=300, **kwargs)
+        pages      = convert_from_path(pdf_path, dpi=300, **kwargs)
         total_pages = len(pages)
-        texts = []
+        texts       = []
 
         for i, page_img in enumerate(pages, 1):
             logger.debug(f"   🔍 OCR page {i}/{total_pages}...")
@@ -271,7 +175,7 @@ def _extract_ocr(pdf_path: str) -> Optional[dict]:
                     page_img, lang="por", config="--psm 6 --oem 3"
                 )
             except Exception:
-                # Fallback to English if Portuguese data file is missing
+                # Portuguese tessdata not installed — fall back to English
                 t = pytesseract.image_to_string(
                     page_img, lang="eng", config="--psm 6 --oem 3"
                 )
@@ -279,8 +183,7 @@ def _extract_ocr(pdf_path: str) -> Optional[dict]:
 
         text = "\n\n".join(texts)
         logger.info(
-            f"   📄 Method 3 (OCR): {total_pages} pages, "
-            f"{len(text):,} total chars"
+            f"   📄 OCR: {total_pages} page(s), {len(text):,} total chars"
         )
         return {
             "text":   text,
@@ -289,37 +192,36 @@ def _extract_ocr(pdf_path: str) -> Optional[dict]:
         }
 
     except Exception as e:
-        logger.error(f"   ✗ Method 3 (OCR) failed: {e}")
+        logger.error(f"   ✗ OCR failed: {e}")
         return None
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 # PUBLIC API
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 
 def extract_text(pdf_path: str) -> dict:
     """
-    Extract complete raw text from a PDF using a 3-method cascade.
+    Extract complete raw text from a PDF using Tesseract OCR.
 
-    Tries each method in order until one succeeds with sufficient text
-    density. Quality is validated after extraction and flagged if below
-    Epic 2 thresholds (500 chars minimum, 70% printable ratio).
+    All pages are rasterised and OCR'd regardless of whether the PDF
+    contains a native text layer. This ensures the full contract body
+    is captured even for scanned-image PDFs from this portal.
 
     Args:
         pdf_path: Absolute or relative path to the PDF file.
 
     Returns:
         {
-            "success":          bool,
-            "text":             str,    # COMPLETE contract text
-            "pages":            int,
-            "source":           str,    # "pymupdf" | "pdfplumber" | "ocr"
-                                        # | "native_insufficient" | "failed"
-            "pdf_path":         str,
-            "total_chars":      int,
-            "quality_passes":   bool,   # True if >=500 chars & readable
-            "quality_flags":    list,   # reasons for quality failure (if any)
-            "error":            str | None,
+            "success":        bool,
+            "text":           str,    # complete OCR'd text, all pages
+            "pages":          int,
+            "source":         str,    # "ocr" | "failed"
+            "pdf_path":       str,
+            "total_chars":    int,
+            "quality_passes": bool,
+            "quality_flags":  list[str],
+            "error":          str | None,
         }
     """
     pdf_path = str(pdf_path)
@@ -340,61 +242,38 @@ def extract_text(pdf_path: str) -> dict:
         logger.error(f"   ✗ {base['error']}")
         return base
 
-    # ── Method 1: PyMuPDF ─────────────────────────────────────────────────────
-    result = _extract_pymupdf(pdf_path)
+    result = _extract_ocr(pdf_path)
 
-    # ── Method 2: pdfplumber ──────────────────────────────────────────────────
     if result is None:
-        result = _extract_pdfplumber(pdf_path)
+        base["error"] = (
+            "OCR failed — check Tesseract installation. "
+            "Set TESSERACT_PATH and POPPLER_PATH environment variables."
+        )
+        logger.error(f"   ✗ {base['error']}")
+        return base
 
-    # ── Method 3: OCR ─────────────────────────────────────────────────────────
-    if result is None:
-        logger.info("   🧠 Both native methods insufficient — attempting OCR...")
-        result = _extract_ocr(pdf_path)
+    # Quality gate
+    qc = _quality_check(result["text"])
 
-    # ── All methods exhausted ─────────────────────────────────────────────────
-    if result is None:
-        # Last resort: use whatever PyMuPDF got, even if sparse
-        try:
-            import fitz
-            doc = fitz.open(pdf_path)
-            texts = [str(p.get_text("text") or "") for p in doc]
-            pages = len(texts)
-            doc.close()
-            text = "\n\n".join(texts)
-            logger.warning(
-                f"   ⚠  All methods failed/unavailable — "
-                f"using sparse native text ({len(text)} chars)"
-            )
-            result = {"text": text, "pages": pages, "source": "native_insufficient"}
-        except Exception as e:
-            base["error"] = f"All extraction methods failed: {e}"
-            logger.error(f"   ✗ {base['error']}")
-            return base
-
-    # ── Quality validation ────────────────────────────────────────────────────
-    quality = _quality_check(result["text"])
-
-    if not quality["passes"]:
+    if not qc["passes"]:
         logger.warning(
-            f"   ⚠  Quality check FAILED: {quality['flags']} "
-            f"({quality['total_chars']:,} chars, "
-            f"printable={quality['printable_ratio']:.0%})"
+            f"   ⚠  Low-quality OCR output: {qc['flags']} "
+            f"— saving for manual review"
         )
     else:
         logger.info(
-            f"   ✓ Quality OK: {quality['total_chars']:,} chars, "
-            f"printable={quality['printable_ratio']:.0%}"
+            f"   ✓ Quality OK: {qc['total_chars']:,} chars, "
+            f"printable ratio {qc['printable_ratio']:.2f}"
         )
 
     return {
-        "success":        True,
+        "success":        True,   # OCR ran; quality issues flagged, not fatal
         "text":           result["text"],
         "pages":          result["pages"],
         "source":         result["source"],
         "pdf_path":       pdf_path,
-        "total_chars":    quality["total_chars"],
-        "quality_passes": quality["passes"],
-        "quality_flags":  quality["flags"],
+        "total_chars":    qc["total_chars"],
+        "quality_passes": qc["passes"],
+        "quality_flags":  qc["flags"],
         "error":          None,
     }
