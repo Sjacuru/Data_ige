@@ -175,7 +175,7 @@ def run():
     logger.info("🔬 DIAGNOSTIC v3 — Full Depth-3 DOM Inventory")
     logger.info("=" * 70)
 
-    driver = create_driver(headless=False)
+    driver = create_driver(headless=False, anti_detection=True)
     if not driver:
         logger.error("Driver init failed")
         return

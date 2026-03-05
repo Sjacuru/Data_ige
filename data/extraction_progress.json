@@ -1,9 +1,7 @@
 {
   "started_at": "2026-03-01T21:58:51.630945",
-  "updated_at": "2026-03-03T14:27:15.544578",
-  "completed": [
-    "FIL-PRO-2023/00482"
-  ],
+  "updated_at": "2026-03-04T17:43:20.040457",
+  "completed": [],
   "failed": [
     {
       "processo_id": "006800.000122/2026-12",
@@ -169,6 +167,16 @@
       "processo_id": "006800.000202/2026-60",
       "error": "Message: no such window: target window already closed\nfrom unknown error: web view not found\n  (Session info: chrome=145.0.7632.117)\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0xb97dd3\n\t0xb97e14\n\t0x9a1db0\n\t0x9808d3\n\t0xa150fb\n\t0xa2b0d9\n\t0xa0e7d6\n\t0x9e0049\n\t0x9e0e04\n\t0xdf6924\n\t0xdf1bf7\n\t0xe0f5a0\n\t0xbb0f58\n\t0xbb891d\n\t0xba0648\n\t0xba0812\n\t0xb8a21a\n\t0x76f5fcc9\n\t0x778f82ae\n\t0x778f827e\n",
       "at": "2026-03-03T14:26:55.768692"
+    },
+    {
+      "processo_id": "TUR-PRO-2025/01221",
+      "error": "extraction failed",
+      "at": "2026-03-04T16:53:18.473421"
+    },
+    {
+      "processo_id": "006800.000185/2026-61",
+      "error": "extraction failed",
+      "at": "2026-03-04T17:37:43.761223"
     }
   ],
   "pending": [
@@ -291,10 +299,10 @@
   ],
   "stats": {
     "total": 117,
-    "success": 1,
-    "failed": 33,
+    "success": 0,
+    "failed": 35,
     "skipped": 0,
-    "no_document": 123
+    "no_document": 237
   },
   "no_document": [
     {
@@ -616,6 +624,42 @@
     {
       "processo_id": "000700.000325/2025-61",
       "at": "2026-03-03T00:52:24.589129"
+    },
+    {
+      "processo_id": "006800.000331/2026-58",
+      "at": "2026-03-04T17:34:39.486810"
+    },
+    {
+      "processo_id": "006800.000285/2026-97",
+      "at": "2026-03-04T17:36:31.947715"
+    },
+    {
+      "processo_id": "006800.000329/2026-89",
+      "at": "2026-03-04T17:37:01.809928"
+    },
+    {
+      "processo_id": "006800.000328/2026-34",
+      "at": "2026-03-04T17:37:59.140960"
+    },
+    {
+      "processo_id": "006800.000200/2026-71",
+      "at": "2026-03-04T17:38:51.661932"
+    },
+    {
+      "processo_id": "006800.000097/2026-69",
+      "at": "2026-03-04T17:40:37.493938"
+    },
+    {
+      "processo_id": "006800.000269/2026-02",
+      "at": "2026-03-04T17:41:45.486961"
+    },
+    {
+      "processo_id": "001200.000596/2026-00",
+      "at": "2026-03-04T17:42:32.739389"
+    },
+    {
+      "processo_id": "001200.000602/2026-11",
+      "at": "2026-03-04T17:43:20.039434"
     }
   ]
 }

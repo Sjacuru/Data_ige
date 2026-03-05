@@ -187,7 +187,7 @@ def is_driver_available() -> bool:
         True if available, False otherwise
     """
     try:
-        driver = create_driver(headless=True)
+        driver = create_driver(headless=True, anti_detection=True)
         if driver:
             close_driver(driver)
             return True

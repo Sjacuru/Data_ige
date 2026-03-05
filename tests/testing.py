@@ -1,33 +1,47 @@
+import time, requests
+from infrastructure.web.driver import create_driver, close_driver
+from infrastructure.web.captcha_handler import CaptchaHandler
+from selenium.webdriver.common.by import By
 
-from infrastructure.extractors.pdf_text_extractor import _extract_ocr
-import pathlib
+URL = "https://acesso.processo.rio/sigaex/public/app/transparencia/processo?n=FIL-PRO-2023/00482"
 
-# Point this at any *_raw.json's source PDF, or place a contract PDF here
-pdf = 'data/temp/FIL-PRO-2023_00482.pdf'
+driver = create_driver(headless=False, anti_detection=True)
+assert driver is not None
+driver.get(URL)
+input("Solve CAPTCHA then press ENTER...")
+time.sleep(3)
 
-# If no PDF on disk, use the extraction we already have
-import json, pathlib
-files = list(pathlib.Path('data/extractions').glob('*_raw.json'))
-with open(files[0], "r", encoding="utf-8") as f:
-    r = json.load(f)
+captcha = CaptchaHandler(driver)
+print("On documents page:", captcha.is_on_documents_page())
 
-print("Chars:", r["total_chars"])
-print("Words:", r["total_words"])
-print("Text sample:", r["raw_text"][:300])
+items = driver.find_elements(
+    By.XPATH, "//li[.//img[contains(@src,'page_white_acrobat.png')]]"
+)
 
-# If you have the actual PDF, run OCR directly
-p = pathlib.Path(pdf)
-if p.exists():
+CONTRACT_BODY_LABEL = "Íntegra do contrato/demais instrumentos jurídicos celebrados"
 
-    print()
-    print('=== OCR ===')
-    res_ocr = _extract_ocr(pdf)
-    if res_ocr:
-        print('Chars:', len(res_ocr['text']), '| Pages:', res_ocr['pages'])
-        print('Sample:', res_ocr['text'][:300])
-    else:
-        print('Result: None (tesseract unavailable or failed)')
-else:
-    print(f'PDF not on disk at {pdf} — re-run smoke test to get a fresh PDF')
-    print('The PDF is deleted after extraction by design.')
-    print('Temporarily disable _delete_pdf to keep it for this test.')
+for i, li in enumerate(items, 1):
+    text = li.text.strip()
+    matched = CONTRACT_BODY_LABEL in text
+    try:
+        a = li.find_element(By.XPATH, ".//a[img[contains(@src,'page_white_acrobat.png')]]")
+        href = a.get_attribute("href") or "no href"
+    except:
+        href = "no anchor"
+    
+    print(f"\n[{i}] MATCHED={matched}")
+    print(f"     TEXT: {text[:100]}")
+    print(f"     HREF: {href[:120]}")
+    
+    # If this is the one we want, follow the URL and check what it is
+    if matched:
+        print(f"     >> Following download URL...")
+        cookies = {c["name"]: c["value"] for c in driver.get_cookies()}
+        headers = {"User-Agent": driver.execute_script("return navigator.userAgent;")}
+        resp = requests.head(href, cookies=cookies, headers=headers, 
+                            timeout=30, allow_redirects=True)
+        print(f"     >> Final URL: {resp.url[:120]}")
+        print(f"     >> Content-Type: {resp.headers.get('Content-Type','?')}")
+        print(f"     >> Content-Length: {resp.headers.get('Content-Length','?')}")
+
+close_driver(driver)

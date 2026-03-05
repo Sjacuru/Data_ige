@@ -57,7 +57,7 @@ class Stage1DiscoveryWorkflow:
         try:
             # Step 1: Initialize WebDriver
             logger.info("\n📋 Step 1: Initializing WebDriver...")
-            self.driver = create_driver(headless=self.headless)
+            self.driver = create_driver(headless=self.headless, anti_detection=True)
             
             if not self.driver:
                 error_msg = "Failed to initialize WebDriver"

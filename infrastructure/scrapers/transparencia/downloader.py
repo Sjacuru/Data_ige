@@ -538,13 +538,12 @@ class ProcessoDownloader:
                 return False
 
             # Step 3 + 4: Download each matching PDF, OCR it, concatenate
-            pdf_urls = self._find_pdf_urls()
-            if not pdf_urls:
+            anchors = self._find_pdf_anchors()   # ← replaces _find_pdf_urls()
+            if not anchors:
                 logger.error("   ✗ No contract-body PDF found on page")
                 return False
 
-            logger.info(f"   📎 {len(pdf_urls)} contract document(s) to process")
-
+            logger.info(f"   📎 {len(anchors)} contract document(s) to process")
             combined_text  = []
             total_pages    = 0
             total_size     = 0
@@ -552,16 +551,16 @@ class ProcessoDownloader:
             pdf_paths      = []   # track for cleanup in finally
 
             try:
-                for idx, url in enumerate(pdf_urls, 1):
+                for idx, url in enumerate(anchors, 1):
                     part_id  = f"{_sanitize(link.processo_id)}_part{idx}"
-                    pdf_path = self._download_one_pdf(url, part_id)
+                    pdf_path = self._click_and_wait_for_download(anchor, part_id)
                     if not pdf_path:
                         logger.warning(f"   ⚠  Part {idx} download failed — skipping")
                         continue
                     pdf_paths.append(pdf_path)
                     total_size += pdf_path.stat().st_size
 
-                    logger.info(f"   📄 OCR part {idx}/{len(pdf_urls)}...")
+                    logger.info(f"   📄 OCR part {idx}/{len(pdf_paths)}...")
                     result = extract_text(str(pdf_path))
                     if result["success"]:
                         combined_text.append(result["text"])
@@ -594,20 +593,20 @@ class ProcessoDownloader:
                 "text":           merged_text,
                 "pages":          total_pages,
                 "source":         "ocr",
-                "pdf_path":       f"{len(pdf_urls)} parts",
+                "pdf_path":       f"{len(pdf_paths)} parts",
                 "total_chars":    qc["total_chars"],
                 "quality_passes": qc["passes"],
                 "quality_flags":  qc["flags"],
                 "error":          None,
                 "pdf_size_bytes":          total_size,
                 "processing_time_seconds": elapsed,
-                "parts_count":             len(pdf_urls),
+                "parts_count":             len(pdf_paths),
             }
 
             if qc["passes"]:
                 logger.info(
                     f"   ✓ {qc['total_chars']:,} chars, {total_pages} page(s) "
-                    f"[{len(pdf_urls)} part(s), OCR, {elapsed}s]"
+                    f"[{len(pdf_paths)} part(s), OCR, {elapsed}s]"
                 )
             else:
                 logger.warning(
@@ -697,70 +696,74 @@ class ProcessoDownloader:
         return False
 
     # ── PDF download ──────────────────────────────────────────────────────────
-
-    def _download_one_pdf(self, url: str, safe_id: str) -> Optional[Path]:
+    def _click_and_wait_for_download(
+        self, anchor, safe_id: str, timeout: int = 120
+    ) -> Optional[Path]:
         """
-        Download a single PDF from a direct URL using the current session cookies.
+        Click a PDF anchor inside the browser and wait for Chrome to finish
+        downloading the file to TEMP_PDF_DIR.
+
+        This preserves the JWT session context that requests.get() cannot
+        reuse — the token is bound to the browser session, not to cookies.
 
         Args:
-            url:     Full PDF download URL.
-            safe_id: Sanitised filename stem (no extension).
+            anchor:  Selenium WebElement — the <a> tag to click.
+            safe_id: Sanitised filename stem used to rename the result.
+            timeout: Seconds to wait for the download to complete.
 
         Returns:
-            Path to the downloaded file, or None on failure.
+            Path to the renamed PDF, or None on failure.
         """
         out_path = TEMP_PDF_DIR / f"{safe_id}.pdf"
         TEMP_PDF_DIR.mkdir(parents=True, exist_ok=True)
 
-        # Reuse browser session cookies so authenticated URLs work
-        cookies = {c["name"]: c["value"] for c in self.driver.get_cookies()}
-        headers = {
-            "User-Agent": self.driver.execute_script("return navigator.userAgent;")
-        }
+        # Clear any leftover files from a previous attempt
+        for stale in list(TEMP_PDF_DIR.glob("*.pdf")) + list(TEMP_PDF_DIR.glob("*.crdownload")):
+            try:
+                stale.unlink()
+            except Exception:
+                pass
 
         try:
-            resp = requests.get(
-                url,
-                cookies=cookies,
-                headers=headers,
-                timeout=60,
-                stream=True,
-            )
-            resp.raise_for_status()
+            anchor.click()
+            logger.info(f"   🖱  Clicked download link — waiting for file...")
 
-            with open(out_path, "wb") as f:
-                for chunk in resp.iter_content(chunk_size=8192):
-                    f.write(chunk)
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                pdfs        = list(TEMP_PDF_DIR.glob("*.pdf"))
+                in_progress = list(TEMP_PDF_DIR.glob("*.crdownload"))
+                if pdfs and not in_progress:
+                    downloaded = pdfs[0]
+                    downloaded.rename(out_path)
+                    logger.info(
+                        f"   📥 Downloaded: {out_path.name} "
+                        f"({out_path.stat().st_size / 1024:.1f} KB)"
+                    )
+                    return out_path
+                time.sleep(1)
 
-            logger.info(
-                f"   📥 Downloaded: {out_path.name} "
-                f"({out_path.stat().st_size / 1024:.1f} KB)"
-            )
-            return out_path
+            logger.error(f"   ✗ Download timed out after {timeout}s for {safe_id}")
+            return None
 
         except Exception as e:
-            logger.error(f"   ✗ PDF download failed ({out_path.name}): {e}")
+            logger.error(f"   ✗ Click-download failed ({safe_id}): {e}")
             _delete_pdf(out_path)
             return None
 
-    # ── PDF URL discovery ─────────────────────────────────────────────────────
+        # ── PDF URL discovery ─────────────────────────────────────────────────────
 
-    # Label that identifies the contract body document.
-    # Only <li> items whose visible text contains this string are downloaded.
+        # Label that identifies the contract body document.
+        # Only <li> items whose visible text contains this string are downloaded.
     CONTRACT_BODY_LABEL = "Íntegra do contrato/demais instrumentos jurídicos celebrados"
 
-    def _find_pdf_urls(self) -> List[str]:
+    def _find_pdf_anchors(self) -> List:
         """
-        Return PDF download URLs for contract-body documents only.
+        Return anchor WebElements for contract-body documents only.
 
-        Filters <li> elements by label text so that additive terms
-        ("Termos Aditivos"), legal opinions, and other attachments are
-        ignored. Only items whose visible text contains CONTRACT_BODY_LABEL
-        are included.
-
-        If multiple matching items exist (e.g. a contract with several
-        consolidated versions) all their URLs are returned and their text
-        will be concatenated by the caller.
+        Returns elements — NOT URLs — so the JWT token in each href is
+        consumed inside the active browser session when clicked.
+        Extracting the href and re-fetching via requests.get() fails because
+        the JWT is session-bound and expires within seconds of generation.
 
         Second-line no-document defence: raises NoDocumentError if any
         known error message is still present after CAPTCHA handling.
@@ -782,43 +785,28 @@ class ProcessoDownloader:
         except NoDocumentError:
             raise
 
-        # Walk every <li> that contains an acrobat PDF icon.
-        # Only keep those whose text matches the contract-body label.
-        list_items = self.driver.find_elements(By.XPATH, "//li[.//img[contains(@src, 'page_white_acrobat.png')]]")
+        list_items = self.driver.find_elements(
+            By.XPATH, "//li[.//img[contains(@src, 'page_white_acrobat.png')]]"
+        )
 
-        pdf_urls = []
-        base_url = self.driver.current_url
-
+        anchors = []
         for li in list_items:
             li_text = li.text or ""
             if self.CONTRACT_BODY_LABEL not in li_text:
-                logger.debug(
-                    f"   ⏭  Skipping non-contract document: "
-                    f"{li_text[:80].strip()!r}"
-                )
+                logger.debug(f"   ⏭  Skipping: {li_text[:80].strip()!r}")
                 continue
-
-            # Extract the <a href> from this matched <li>
             try:
                 anchor = li.find_element(
                     By.XPATH, ".//a[img[contains(@src, 'page_white_acrobat.png')]]"
                 )
-                href = anchor.get_attribute("href")
-                if href:
-                    full_url = urljoin(base_url, href)
-                    if full_url not in pdf_urls:
-                        pdf_urls.append(full_url)
-                        logger.info(
-                            f"   📎 Contract document found: "
-                            f"{li_text[:80].strip()}"
-                        )
+                anchors.append(anchor)
+                logger.info(f"   📎 Contract document found: {li_text[:80].strip()}")
             except NoSuchElementException:
                 continue
 
-        if not pdf_urls:
+        if not anchors:
             logger.warning(
                 f"   ⚠  No items matching contract label found on page. "
                 f"Label searched: {self.CONTRACT_BODY_LABEL!r}"
             )
-
-        return pdf_urls
+        return anchors

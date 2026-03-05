@@ -3,7 +3,7 @@ from infrastructure.web.driver import create_driver, close_driver
 from infrastructure.scrapers.contasrio.scraper import ContasRioScraper
 
 # Initialize
-driver = create_driver(headless=False)
+driver = create_driver(headless=False, anti_detection=True)
 assert driver is not None
 scraper = ContasRioScraper(driver)
 
