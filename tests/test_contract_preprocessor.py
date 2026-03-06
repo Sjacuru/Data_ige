@@ -328,6 +328,25 @@ def group_e_appendices():
 # GROUP F — EMBEDDED PUBLICATION DETECTION (4 tests)
 # ══════════════════════════════════════════════════════════════════════════════
 
+# ── TEST FIX: group_f_embedded_pub — F3 ──────────────────────────────────────
+#
+# ROOT CAUSE of F3:
+#   preprocess_text("FIL-PRO-2023_00482_flagtest", text_with_pub)
+#   The fake ID uses underscores ("_") instead of slashes ("/"), so:
+#     '/' not in pid_core → True
+#     pid_core = "FIL-PRO-2023_00482_flagtest"
+#     search for "FIL-PRO-2023_00482_flagtest" in text → 0 matches
+#     found = False → no flag written
+#
+# FIX: use the real processo_id that actually appears in the text.
+#   _sanitize("FIL-PRO-2023/00482") → "FIL-PRO-2023_00482"
+#   flag file → data/preprocessed/FIL-PRO-2023_00482_pub_embedded.flag
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# REPLACE the group_f_embedded_pub function in tests/test_contract_preprocessor.py
+# with this:
+# ─────────────────────────────────────────────────────────────────────────────
+
 def group_f_embedded_pub():
     section("GROUP F — Embedded Publication Detection")
 
@@ -342,23 +361,22 @@ def group_f_embedded_pub():
           pub.get("publication_date") == "16/09/2024",
           hint=f"got: {pub.get('publication_date')}")
 
-    # F3: flag file created when embedded pub found
-    result = preprocess_text("FIL-PRO-2023_00482_flagtest", text_with_pub)
+    # F3: flag file written when embedded publication found.
+    # Use the real processo_id ("FIL-PRO-2023/00482") so it can be matched
+    # inside the text. _sanitize converts "/" → "_" for the file path.
+    result = preprocess_text("FIL-PRO-2023/00482", text_with_pub)
     from infrastructure.extractors.contract_preprocessor import _sanitize
-    flag = PREPROCESSED_DIR / f"{_sanitize('FIL-PRO-2023_00482_flagtest')}_pub_embedded.flag"
+    flag = PREPROCESSED_DIR / f"{_sanitize('FIL-PRO-2023/00482')}_pub_embedded.flag"
     check("F3: flag file created when embedded publication found",
-          flag.exists() or result["embedded_publication"]["found"],
-          hint="flag file not found but pub was detected")
+          flag.exists(),
+          hint=f"flag not found at {flag}; pub.found={result['embedded_publication']['found']}")
 
     # F4: no false positive on plain contract without gazette block
     pub2 = _detect_embedded_publication(_CONTRACT_BODY, "FIL-PRO-2023/00482")
-    # The efficacy clause mentions "Diário Oficial" — it should NOT be flagged
-    # as an embedded publication because it has no publication_date
     check("F4: efficacy clause mention does not trigger false positive",
           not pub2["found"] or pub2.get("publication_date") is not None,
           hint="gazette mention in clause body falsely triggered embedded pub")
-
-
+    
 # ══════════════════════════════════════════════════════════════════════════════
 # GROUP G — OUTPUT SCHEMA (4 tests)
 # ══════════════════════════════════════════════════════════════════════════════

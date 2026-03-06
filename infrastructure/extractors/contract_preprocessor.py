@@ -13,17 +13,18 @@ Pipeline
 6. Embedded publication detection - gazette extracts attached to contract
 7. Validation + save  - warns on missing fields, never hard-fails
 
-Input:  raw_text from {processo_id}_raw.json  (data/extractions/)
-Output: data/preprocessed/{processo_id}_preprocessed.json
-        data/preprocessed/{processo_id}_pub_embedded.flag  (only when pub found)
-
-Usage:
-    from infrastructure.extractors.contract_preprocessor import preprocess_contract
-    result = preprocess_contract("FIL-PRO-2023/00482")
-
-    # Or process raw text directly (useful in tests):
-    from infrastructure.extractors.contract_preprocessor import preprocess_text
-    result = preprocess_text(processo_id, raw_text)
+Patch history
+-------------
+v2 — _PROC_RE \d{4}→\d{4,}; "de um lado" party pattern; pid_based pub search
+v3 — header zone restriction; pid_core normalization; _CTANTE/CTADA require [,:]
+v4 — Pattern 0 "Aos N dias" for parties; masthead full-text search
+v5 — Three fixes from real-data run + test failures:
+  Fix A — Contratada name truncated by OCR line break
+  Fix B — pub date None when no gazette masthead present (fallback to Data da Assinatura)
+  Fix C — _clean_party: collapse internal newlines from multi-line OCR names
+v6 — Step 6 delegates all field extraction to publication_parser.parse_publication_text()
+     _save also writes _publication_structured.json (source="embedded") when pub found,
+     giving Epic 4 the same input schema regardless of publication source.
 """
 
 import json
@@ -33,10 +34,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from infrastructure.extractors.publication_parser import parse_publication_text
+
 logger = logging.getLogger(__name__)
 
 EXTRACTIONS_DIR  = Path("data/extractions")
 PREPROCESSED_DIR = Path("data/preprocessed")
+
+HEADER_ZONE_CHARS = 2000
 
 # ── Noise patterns ─────────────────────────────────────────────────────────────
 
@@ -90,7 +95,7 @@ _CNUM_RE = re.compile(
 _PROC_RE = re.compile(
     r'(?:Processo\s+(?:Instrutivo|Administrativo|n[o\u00ba\u00b0]?)?'
     r'|PROCESSO\s+(?:INSTRUTIVO|ADMINISTRATIVO|N[O\u00ba\u00b0]?)?)'
-    r'\s*[:\-]?\s*([\w\-.]+/\d{4}(?:/\d+)?(?:\s*[-\u2013.]\s*(?:CO|TP|TA)\s*\d+/\d+)?)',
+    r'\s*[:\-]?\s*([\w\-.]+/\d{4,}(?:/\d+)?(?:\s*[-\u2013.]\s*(?:CO|TP|TA)\s*\d+/\d+)?)',
     re.IGNORECASE
 )
 _DATE_LBL_RE = re.compile(
@@ -101,11 +106,14 @@ _DATE_PROSE_RE = re.compile(
     r'Aos\s+(\d{1,2})\s+dias\s+do\s+m[e\u00ea]s\s+de\s+(\w+)\s+do\s+ano\s+de\s+(\d{4})',
     re.IGNORECASE
 )
+# v3: require explicit colon or comma after label — prevents bare clause references
 _CTANTE_RE = re.compile(
-    r'(?:CONTRATANTE|contratante)[,:]?\s*([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^\n,;]{5,120})'
+    r'(?:CONTRATANTE|contratante)\s*[:,]\s*'
+    r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^\n,;]{5,120})'
 )
 _CTADA_RE = re.compile(
-    r'(?:CONTRATADA|contratada)[,:]?\s*([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^\n,;]{5,120})'
+    r'(?:CONTRATADA|contratada)\s*[:,]\s*'
+    r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^\n,;]{5,120})'
 )
 _MONTHS_PT = {
     "janeiro":"01","fevereiro":"02","mar\u00e7o":"03","abril":"04",
@@ -117,7 +125,7 @@ _MONTHS_PT = {
 
 _CLAUSE_HDR_RE = re.compile(
     r'^(CL[A\u00c1]USULA\s+([A-Z\u00c1\u00c9\u00cd\u00d3\u00da\u00c0\u00c2\u00ca'
-    r'\u00d4\u00c3\u00d5\u00dc\u00c7\s]+?)\s*[–\-]\s*(.+?))$',
+    r'\u00d4\u00c3\u00d5\u00dc\u00c7\s]+?)\s*[\u2013\-]\s*(.+?))$',
     re.MULTILINE | re.IGNORECASE
 )
 _PARA_HDR_RE = re.compile(
@@ -138,27 +146,19 @@ _APPENDIX_RE = re.compile(
     re.MULTILINE | re.IGNORECASE
 )
 
-# ── Embedded publication patterns ──────────────────────────────────────────────
-# Intentionally excludes bare "Diario Oficial" — too common inside clause bodies.
-# Requires an actual EXTRATO block or D.O.RIO masthead.
+# ── Embedded publication — fast-exit trigger only ──────────────────────────────
+# All field extraction is delegated to publication_parser.parse_publication_text()
 
 _PUB_TRIGGER_RE = re.compile(
     r'EXTRATO\s+DE\s+INSTRUMENTO\s+CONTRATUAL'
+    r'|EXTRATO\s+INSTRUMENTO\s+CONTRATUAL'
     r'|EXTRATO\s+DE\s+INSTRUMENTO\s+CONTRATO'
     r'|EXTRATO\s+DE\s+CONTRATO'
     r'|EXTRATO\s+DO\s+CONTRATO'
+    r'|EXTRATO\s+DE\s+TERMO\s+ADITIVO'
     r'|EXTRATO\s+DE\s+TERMO\s+DE\s+EXECU'
     r'|D\.O\.RIO\b',
     re.IGNORECASE
-)
-_PUB_DATE_RE    = _DATE_LBL_RE   # same pattern as contract signing date label
-_PUB_EDITION_RE = re.compile(r'[Nn][o\u00ba\u00b0]\s*(\d{3,})')
-_PUB_PARTIES_RE = re.compile(
-    r'(?:Partes|PARTES)\s*[:\-]\s*(.+?)(?=\n|Objeto|OBJETO)', re.IGNORECASE
-)
-_PUB_END_RE = re.compile(
-    r'^(?:SECRETARIA\s+MUNICIPAL|PREFEITURA|DISTRIBUIDORA\s+DE)',
-    re.MULTILINE
 )
 
 
@@ -247,8 +247,6 @@ def _detect_type(text: str) -> str:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _extract_header(text: str, warnings: list) -> dict[str, str | None]:
-# def _extract_header(text: str, warnings: list) -> dict:
-
     header: dict[str, str | None] = {
         "contract_number": None,
         "processo_id_in_document": None,
@@ -258,26 +256,32 @@ def _extract_header(text: str, warnings: list) -> dict[str, str | None]:
         "object_summary": None,
     }
 
+    # Restrict date and party label searches to the header zone to prevent
+    # false matches from clause bodies and appended gazette pages.
+    header_zone = text[:HEADER_ZONE_CHARS]
+
+    # Contract number and processo ID search the full text — they can appear
+    # in the document title block which may exceed the header zone.
     m = _CNUM_RE.search(text)
     if m: header["contract_number"] = m.group(1).strip()
 
     m = _PROC_RE.search(text)
     if m: header["processo_id_in_document"] = m.group(1).strip()
 
-    m = _DATE_LBL_RE.search(text)
+    m = _DATE_LBL_RE.search(header_zone)
     if m:
         header["signing_date"] = m.group(1).strip()
     else:
-        m = _DATE_PROSE_RE.search(text)
+        m = _DATE_PROSE_RE.search(header_zone)
         if m:
             day   = m.group(1).zfill(2)
             month = _MONTHS_PT.get(m.group(2).lower(), "??")
             header["signing_date"] = f"{day}/{month}/{m.group(3)}"
 
-    m = _CTANTE_RE.search(text)
+    m = _CTANTE_RE.search(header_zone)
     if m: header["contratante"] = _clean_party(m.group(1))
 
-    m = _CTADA_RE.search(text)
+    m = _CTADA_RE.search(header_zone)
     if m: header["contratada"] = _clean_party(m.group(1))
 
     if not header["contratante"] or not header["contratada"]:
@@ -293,23 +297,86 @@ def _extract_header(text: str, warnings: list) -> dict[str, str | None]:
 
 
 def _clean_party(raw: str) -> str:
-    c = raw.strip().rstrip(".,;:-")
+    # Fix C: collapse internal newlines before other stripping — handles OCR
+    # line breaks inside multi-word company names e.g.:
+    # "ARTE VITAL EXIBIÇÕES\nCINEMATOGRÁFICAS LTDA ME" → one clean string
+    c = re.sub(r'\s*\n\s*', ' ', raw.strip())
+    c = c.strip().rstrip(".,;:-")
     c = re.sub(r'\s*,?\s*inscrit[ao].{0,200}$', '', c, flags=re.IGNORECASE)
     c = re.sub(r'\s*,?\s*CNPJ.{0,100}$',        '', c, flags=re.IGNORECASE)
     return c.strip()
 
 
 def _parties_from_prose(text: str, header: dict) -> None:
+    """
+    Three-tier fallback for party extraction when label-based patterns fail.
+
+    Pattern 0 — "Aos N dias" prose opener (contracts and addenda):
+      "Aos 17 dias...a DISTRIBUIDORA DE FILMES S/A - RIOFILME, inscrita...
+       ...e a empresa ARTE VITAL EXIBIÇÕES\nCINEMATOGRÁFICAS LTDA ME..."
+      Party captures allow one optional OCR continuation line via
+      (?:\n[A-Z][^\n,]{3,80})? so multi-line names are captured in full.
+
+    Pattern 1 — "de um lado" prose (some RIOFILME contracts).
+
+    Pattern 2 — "entre si celebram" last resort, header zone only.
+    """
+
+    # ── Pattern 0: "Aos N dias" opener ────────────────────────────────────────
     m = re.search(
-        r'entre\s+(?:si\s+)?(?:celebram\s+)?[ao]\s+'
-        r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^,\n]{5,120})'
-        r'(?:,|\s+e\s+[ao]\s+empresa\s+)'
-        r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^,\n]{5,120})',
-        text, re.IGNORECASE
+        r'Aos\s+\d{1,2}\s+dias\s+do\s+m[e\u00ea]s.{0,200}?,\s+[ao]\s+'
+        # CONTRATANTE: one line + optional continuation line
+        r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^\n,]{5,120}'
+        r'(?:\n[A-Z][^\n,]{3,80})?)'
+        r'(?:,\s+inscrit[ao]|,\s+CNPJ|,\s+representad)'
+        r'.{0,800}?'
+        r'e\s+[ao]\s+empresa\s+'
+        # CONTRATADA: one line + optional continuation line
+        r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^\n,]{5,120}'
+        r'(?:\n[A-Z][^\n,]{3,80})?)',
+        text, re.IGNORECASE | re.DOTALL
     )
     if m:
-        if not header["contratante"]: header["contratante"] = _clean_party(m.group(1))
-        if not header["contratada"]:  header["contratada"]  = _clean_party(m.group(2))
+        if not header["contratante"]:
+            header["contratante"] = _clean_party(m.group(1))
+        if not header["contratada"]:
+            header["contratada"] = _clean_party(m.group(2))
+        return
+
+    # ── Pattern 1: "de um lado" opener ────────────────────────────────────────
+    m = re.search(
+        r'de\s+um\s+lado[,.]?\s+[ao]\s+'
+        r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^\n]{5,150}?)'
+        r'(?:,\s+inscrit[ao]|,\s+CNPJ|,\s+neste\s+ato|\.\s+)'
+        r'.{0,600}?'
+        r'(?:[,;]\s+e\s+(?:[ao]\s+empresa\s+)?|\be\s+[ao]\s+empresa\s+)'
+        r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^,\n]{5,150})',
+        text, re.IGNORECASE | re.DOTALL
+    )
+    if m:
+        if not header["contratante"]:
+            header["contratante"] = _clean_party(m.group(1))
+        if not header["contratada"]:
+            header["contratada"] = _clean_party(m.group(2))
+        return
+
+    # ── Pattern 2: "entre si celebram" — header zone, last resort ─────────────
+    # Restricted to header_zone to prevent OCR title-block false matches.
+    # (The title block "ENTRE A\nRIOFILME\nE\nA\nEMPRESA" satisfies this
+    #  pattern when searched across the full text via \s+ crossing newlines.)
+    hz = text[:HEADER_ZONE_CHARS]
+    m = re.search(
+        r'entre\s+(?:si\s+)?(?:celebram\s+)?[ao]\s+'
+        r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^,\n]{10,120})'
+        r'(?:,\s+|\s+e\s+[ao]\s+(?:empresa\s+)?)'
+        r'([A-Z\u00c1\u00c9\u00cd\u00d3\u00da][^,\n]{10,120})',
+        hz, re.IGNORECASE
+    )
+    if m:
+        if not header["contratante"]:
+            header["contratante"] = _clean_party(m.group(1))
+        if not header["contratada"]:
+            header["contratada"] = _clean_party(m.group(2))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -326,7 +393,6 @@ def _segment_clauses(text: str) -> list:
         start      = match.end()
         end        = matches[i+1].start() if i+1 < len(matches) else len(text)
         raw        = text[start:end].strip()
-        # Clip at first appendix marker inside this block
         app_m = _APPENDIX_RE.search(raw)
         if app_m:
             raw = raw[:app_m.start()].strip()
@@ -383,49 +449,62 @@ def _detect_appendices(text: str) -> list:
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STEP 6 — EMBEDDED PUBLICATION DETECTION
+# Delegates all field extraction to publication_parser.parse_publication_text()
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _detect_embedded_publication(text: str, processo_id: str) -> dict:
+    """
+    Search for a D.O.RIO gazette EXTRATO that references this processo_id.
+
+    Fast-exit: if _PUB_TRIGGER_RE does not match, return found=False immediately
+    without calling the parser — most contracts have no gazette attached.
+
+    When a trigger is found, delegates to parse_publication_text() for all
+    field extraction. The dict returned uses the legacy key names expected
+    by the existing test suite and by preprocess_text():
+
+        found, processo_id_in_pub, publication_date, edition,
+        contratante_pub, contratada_pub, raw_block
+
+    The full structured publication data (same schema as publication_preprocessor)
+    is stored under the private key "_parsed" and written to
+    _publication_structured.json by _save() — it is stripped before JSON
+    serialisation so no existing consumer sees it.
+
+    Publication date priority (preserved from v5):
+      1. D.O.RIO masthead weekday date — searched across the full text.
+      2. Fallback: "Data da Assinatura:" inside the extrato block (bare-extrato
+         fixtures and some older document formats).
+    The parser handles both priorities internally.
+    """
     base = {
         "found": False, "processo_id_in_pub": None,
         "publication_date": None, "edition": None,
         "contratante_pub": None, "contratada_pub": None, "raw_block": None,
     }
-    match = _PUB_TRIGGER_RE.search(text)
-    if not match:
+
+    if not _PUB_TRIGGER_RE.search(text):
         return base
 
-    block_start = match.start()
-    suffix      = text[block_start+50:]
-    end_ms      = list(_PUB_END_RE.finditer(suffix))
-    block_end   = (block_start+50+end_ms[0].start()) if end_ms else len(text)
-    raw_block   = text[block_start:block_end].strip()
+    parsed = parse_publication_text(text, processo_id)
 
-    date_m    = _PUB_DATE_RE.search(raw_block)
-    edition_m = _PUB_EDITION_RE.search(raw_block)
-    parties_m = _PUB_PARTIES_RE.search(raw_block)
-    proc_m    = _PROC_RE.search(raw_block)
-
-    # Require a publication date — without it we cannot do compliance checks
-    # and the block is likely just a clause reference, not a real publication
-    if not date_m:
+    # A clause body can mention "Diário Oficial" / "D.O.RIO" without being a
+    # real publication — require at least one date field to confirm.
+    if not parsed["publication_date"] and not parsed["signing_date_in_pub"]:
         return base
 
-    pub_contratante = pub_contratada = None
-    if parties_m:
-        pts = parties_m.group(1).strip()
-        if " e " in pts:
-            p1, p2 = pts.split(" e ", 1)
-            pub_contratante, pub_contratada = p1.strip(), p2.strip()
+    found = parsed["publication_date"] is not None
 
     return {
-        "found":              True,
-        "processo_id_in_pub": proc_m.group(1).strip() if proc_m else None,
-        "publication_date":   date_m.group(1),
-        "edition":            edition_m.group(1) if edition_m else None,
-        "contratante_pub":    pub_contratante,
-        "contratada_pub":     pub_contratada,
-        "raw_block":          raw_block[:1000],
+        "found":              found,
+        "processo_id_in_pub": parsed["processo_id"],
+        "publication_date":   parsed["publication_date"],
+        "edition":            parsed["edition"],
+        "contratante_pub":    parsed["contratante"],
+        "contratada_pub":     parsed["contratada"],
+        "raw_block":          None,
+        # Private: consumed by _save(), stripped before JSON serialisation
+        "_parsed":            parsed,
     }
 
 
@@ -435,14 +514,47 @@ def _detect_embedded_publication(text: str, processo_id: str) -> dict:
 
 def _save(processo_id: str, result: dict, embedded_pub: dict) -> None:
     PREPROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Serialise contract preprocessed JSON — strip private _parsed key
+    serialisable = {k: v for k, v in result.items() if k != "embedded_publication"}
+    serialisable["embedded_publication"] = {
+        k: v for k, v in embedded_pub.items() if k != "_parsed"
+    }
     out = PREPROCESSED_DIR / f"{_sanitize(processo_id)}_preprocessed.json"
     with open(out, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        json.dump(serialisable, f, ensure_ascii=False, indent=2)
     logger.info(f"   \u2713 Saved: {out.name}")
+
     if embedded_pub.get("found"):
+        # Write DoWeb-skip flag
         flag = PREPROCESSED_DIR / f"{_sanitize(processo_id)}_pub_embedded.flag"
         flag.write_text(processo_id, encoding="utf-8")
         logger.info(f"   \U0001f4cc Embedded publication flag: {flag.name}")
+
+        # Write structured publication JSON (same schema as publication_preprocessor)
+        parsed = embedded_pub.get("_parsed", {})
+        structured = {
+            "processo_id":         processo_id,
+            "source":              "embedded",
+            "publication_date":    parsed.get("publication_date"),
+            "signing_date_in_pub": parsed.get("signing_date_in_pub"),
+            "contract_number":     parsed.get("contract_number"),
+            "contratante":         parsed.get("contratante"),
+            "contratada":          parsed.get("contratada"),
+            "object_summary":      parsed.get("object_summary"),
+            "value":               parsed.get("value"),
+            "edition":             parsed.get("edition"),
+            "document_type":       parsed.get("document_type"),
+            "documents_found":     1,
+            "documents_parsed":    1,
+            "all_publications":    [],
+            "warnings":            parsed.get("warnings", []),
+            "preprocessed_at":     datetime.now().isoformat(),
+        }
+        pub_out = PREPROCESSED_DIR / f"{_sanitize(processo_id)}_publication_structured.json"
+        with open(pub_out, "w", encoding="utf-8") as f:
+            json.dump(structured, f, ensure_ascii=False, indent=2)
+        logger.info(f"   \U0001f4d6 Structured pub saved: {pub_out.name}")
 
 
 def _sanitize(pid: str) -> str:
@@ -462,14 +574,18 @@ if __name__ == "__main__":
     pid    = sys.argv[1]
     result = preprocess_contract(pid)
     if result:
+        ep = result["embedded_publication"]
         print(f"\n{'='*60}")
         print(f"Type         : {result['document_type']}")
         print(f"Signing date : {result['header'].get('signing_date')}")
         print(f"Contratante  : {result['header'].get('contratante')}")
         print(f"Contratada   : {result['header'].get('contratada')}")
+        print(f"Processo_id  : {result['header'].get('processo_id_in_document')}")
         print(f"Clauses      : {len(result['clauses'])}")
         print(f"Appendices   : {len(result['appendices'])}")
-        print(f"Embedded pub : {result['embedded_publication']['found']}")
+        print(f"Embedded pub : {ep['found']}")
+        print(f"Pub date     : {ep.get('publication_date')}")
+        print(f"Edition      : {ep.get('edition')}")
         print(f"Warnings     : {result['warnings']}")
         print(f"Noise removed: {result['noise_removed']}")
         print(f"{'='*60}")

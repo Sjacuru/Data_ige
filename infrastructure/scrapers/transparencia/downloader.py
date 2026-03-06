@@ -95,7 +95,6 @@ PAGE_LOAD_WAIT  = 10   # seconds after navigating to a URL
 DOWNLOAD_WAIT   = 15   # seconds to wait for PDF download
 BETWEEN_DOCS    = 3    # polite pause between documents
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # FILE NAMING  (Epic 2: PROCESSO_ID_raw.json)
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -514,120 +513,147 @@ class ProcessoDownloader:
         """
         Navigate → CAPTCHA → Download PDF → Extract text → Save JSON → Delete PDF.
 
-        Ensures PDF is deleted in all exit paths (success, failure, exception).
-        Returns True if a JSON file was saved successfully.
-
-        CHANGE 3: records pdf_size_bytes and processing_time_seconds before
-        calling _save_extraction so the metadata block is populated.
+        Tries the discovery URL first (from processo_links.json), then falls
+        back to the canonical direct URL (?n=processo_id) if the first attempt
+        produces no document or no anchors. CAPTCHA failures abort immediately
+        — they are session problems, not URL problems.
         """
-        pdf_path = None
-        try:
-            # Step 1: Navigate
-            self.driver.get(link.url)
-            time.sleep(PAGE_LOAD_WAIT)
+        # ── Build URL attempt list ────────────────────────────────────────────
+        direct_url = (
+            "https://acesso.processo.rio/sigaex/public/app/"
+            f"transparencia/processo?n={link.processo_id}"
+        )
+        urls_to_try = [link.url]
+        if link.url.rstrip("/") != direct_url.rstrip("/"):
+            urls_to_try.append(direct_url)
 
-            # Step 1.5: Early no-document check — BEFORE CAPTCHA handling.
-            # If the portal already shows an error page, stop immediately.
-            # Prevents the CAPTCHA handler interacting with an error page
-            # and crashing the browser session (invalid session id).
-            self._check_no_document_on_page()
+        # Initialize anchors to None to detect if it was ever successfully assigned
+        anchors = None
 
-            # Step 2: CAPTCHA
-            if not self._ensure_past_captcha():
-                logger.error("   ✗ Could not pass CAPTCHA — skipping")
-                return False
-
-            # Step 3 + 4: Download each matching PDF, OCR it, concatenate
-            anchors = self._find_pdf_anchors()   # ← replaces _find_pdf_urls()
-            if not anchors:
-                logger.error("   ✗ No contract-body PDF found on page")
-                return False
-
-            logger.info(f"   📎 {len(anchors)} contract document(s) to process")
-            combined_text  = []
-            total_pages    = 0
-            total_size     = 0
-            t_start        = time.time()
-            pdf_paths      = []   # track for cleanup in finally
+        # ── URL retry loop ────────────────────────────────────────────────────
+        for attempt, url in enumerate(urls_to_try, 1):
+            is_last = attempt == len(urls_to_try)
+            url_label = "discovery URL" if attempt == 1 else "direct URL (fallback)"
+            logger.info(f"   🌐 Attempt {attempt}/{len(urls_to_try)} [{url_label}]: {url}")
 
             try:
-                for idx, url in enumerate(anchors, 1):
-                    part_id  = f"{_sanitize(link.processo_id)}_part{idx}"
-                    pdf_path = self._click_and_wait_for_download(anchor, part_id)
-                    if not pdf_path:
-                        logger.warning(f"   ⚠  Part {idx} download failed — skipping")
-                        continue
-                    pdf_paths.append(pdf_path)
-                    total_size += pdf_path.stat().st_size
+                # Step 1: Navigate
+                self.driver.get(url)
+                time.sleep(PAGE_LOAD_WAIT)
 
-                    logger.info(f"   📄 OCR part {idx}/{len(pdf_paths)}...")
-                    result = extract_text(str(pdf_path))
-                    if result["success"]:
-                        combined_text.append(result["text"])
-                        total_pages += result["pages"]
-                    else:
+                # Step 1.5: Early no-document check — BEFORE CAPTCHA handling.
+                self._check_no_document_on_page()
+
+                # Step 2: CAPTCHA — failure here aborts entirely, not retried
+                if not self._ensure_past_captcha():
+                    logger.error("   ✗ Could not pass CAPTCHA — skipping")
+                    return False
+
+                # Step 3: Find anchors
+                anchors = self._find_pdf_anchors()
+                if not anchors:
+                    if not is_last:
                         logger.warning(
-                            f"   ⚠  Part {idx} OCR failed: {result.get('error')}"
+                            f"   ↩  No PDF anchors on {url_label} — "
+                            f"retrying with direct URL"
                         )
+                        continue
+                    logger.error("   ✗ No contract-body PDF found on any URL")
+                    return False
 
-            finally:
-                # Delete ALL temp PDFs — max 1 on disk is per-document,
-                # here we clean up all parts at once after extraction.
-                for p in pdf_paths:
-                    _delete_pdf(p)
+            except NoDocumentError:
+                if not is_last:
+                    logger.warning(
+                        f"   ↩  No document on {url_label} — "
+                        f"retrying with direct URL: {direct_url}"
+                    )
+                    continue
+                raise  # exhausted — propagates to download_all → _mark_no_document
 
-            if not combined_text:
-                logger.error("   ✗ All parts failed OCR — nothing to save")
-                return False
+            except Exception:
+                if not is_last:
+                    logger.warning(
+                        f"   ⚠  Navigation failed on {url_label} — "
+                        f"retrying with fallback URL"
+                    )
+                    continue
+                # On last URL, re-raise as this is a session-level problem
+                raise
 
-            # Merge all parts with a clear separator
-            merged_text = "\n\n--- DOCUMENT PART SEPARATOR ---\n\n".join(combined_text)
-            elapsed     = round(time.time() - t_start, 2)
+            # ── URL resolved — proceed with download + OCR ────────────────────
+            break  # exit the retry loop with valid `anchors`
 
-            # Build a single extraction dict for _save_extraction
-            from infrastructure.extractors.pdf_text_extractor import _quality_check
-            qc = _quality_check(merged_text)
-
-            extraction = {
-                "success":        True,
-                "text":           merged_text,
-                "pages":          total_pages,
-                "source":         "ocr",
-                "pdf_path":       f"{len(pdf_paths)} parts",
-                "total_chars":    qc["total_chars"],
-                "quality_passes": qc["passes"],
-                "quality_flags":  qc["flags"],
-                "error":          None,
-                "pdf_size_bytes":          total_size,
-                "processing_time_seconds": elapsed,
-                "parts_count":             len(pdf_paths),
-            }
-
-            if qc["passes"]:
-                logger.info(
-                    f"   ✓ {qc['total_chars']:,} chars, {total_pages} page(s) "
-                    f"[{len(pdf_paths)} part(s), OCR, {elapsed}s]"
-                )
-            else:
-                logger.warning(
-                    f"   ⚠ Low-quality OCR: {qc['flags']} — saving for manual review"
-                )
-
-            # Step 5: Save JSON
-            # pdf_path is now None — cleanup already done in the try/finally above
-            return _save_extraction(link, extraction)
-
-        except FileNotFoundError as e:
-            # Safety net: unexpected file-system or URL failure NOT caused
-            # by the "Não há documento associado" portal message.
-            # That case raises NoDocumentError and propagates to download_all.
-            logger.error(f"   ✗ File not found (unexpected): {e}")
+        # Defensive check: ensure anchors was assigned (should always be true if we get here)
+        if anchors is None:
+            logger.error("   ✗ No valid URL produced document anchors")
             return False
 
-        # NoDocumentError intentionally NOT caught here.
-        # It propagates up to download_all → _mark_no_document (retry later).
+        # Step 4: Download each matching PDF, OCR it, concatenate
+        logger.info(f"   📎 {len(anchors)} contract document(s) to process")
+        combined_text = []
+        total_pages   = 0
+        total_size    = 0
+        t_start       = time.time()
+        pdf_paths     = []
 
-        # Note: PDF cleanup is now handled inside the multi-part loop above.
+        try:
+            for idx, anchor in enumerate(anchors, 1):
+                part_id  = f"{_sanitize(link.processo_id)}_part{idx}"
+                pdf_path = self._click_and_wait_for_download(anchor, part_id)
+                if not pdf_path:
+                    logger.warning(f"   ⚠  Part {idx} download failed — skipping")
+                    continue
+                pdf_paths.append(pdf_path)
+                total_size += pdf_path.stat().st_size
+
+                logger.info(f"   📄 OCR part {idx}/{len(anchors)}...")
+                result = extract_text(str(pdf_path))
+                if result["success"]:
+                    combined_text.append(result["text"])
+                    total_pages += result["pages"]
+                else:
+                    logger.warning(f"   ⚠  Part {idx} OCR failed: {result.get('error')}")
+
+        finally:
+            for p in pdf_paths:
+                _delete_pdf(p)
+
+        if not combined_text:
+            logger.error("   ✗ All parts failed OCR — nothing to save")
+            return False
+
+        merged_text = "\n\n--- DOCUMENT PART SEPARATOR ---\n\n".join(combined_text)
+        elapsed     = round(time.time() - t_start, 2)
+
+        from infrastructure.extractors.pdf_text_extractor import _quality_check
+        qc = _quality_check(merged_text)
+
+        extraction = {
+            "success":                   True,
+            "text":                      merged_text,
+            "pages":                     total_pages,
+            "source":                    "ocr",
+            "pdf_path":                  f"{len(pdf_paths)} parts",
+            "total_chars":               qc["total_chars"],
+            "quality_passes":            qc["passes"],
+            "quality_flags":             qc["flags"],
+            "error":                     None,
+            "pdf_size_bytes":            total_size,
+            "processing_time_seconds":   elapsed,
+            "parts_count":               len(pdf_paths),
+        }
+
+        if qc["passes"]:
+            logger.info(
+                f"   ✓ {qc['total_chars']:,} chars, {total_pages} page(s) "
+                f"[{len(pdf_paths)} part(s), OCR, {elapsed}s]"
+            )
+        else:
+            logger.warning(
+                f"   ⚠ Low-quality OCR: {qc['flags']} — saving for manual review"
+            )
+
+        return _save_extraction(link, extraction)
         # Each part PDF is deleted immediately after OCR in the try/finally
         # block within Step 3+4. No outer cleanup needed here.
 
@@ -754,6 +780,8 @@ class ProcessoDownloader:
 
         # Label that identifies the contract body document.
         # Only <li> items whose visible text contains this string are downloaded.
+
+    # ── Description ────────────────────────────────────────────────────────────────────
     CONTRACT_BODY_LABEL = "Íntegra do contrato/demais instrumentos jurídicos celebrados"
 
     def _find_pdf_anchors(self) -> List:

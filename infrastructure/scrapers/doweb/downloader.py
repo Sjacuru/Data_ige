@@ -7,30 +7,31 @@ Responsibility
 ──────────────
 Orchestrates the full Stage 3 pipeline for every processo ID:
 
-    1. Call DoWebSearcher.search() to get result rows
-    2. For each result: download the PDF page with requests.get()
-    3. Run Tesseract OCR via publication_text_extractor.extract_text()
-    4. Delete the PDF immediately (max 1 PDF in temp/ at any time)
-    5. Bundle all publication texts into one JSON per processo
-    6. Track progress so any crash is resumable with zero data loss
+    1. Check for embedded publication flag (Gap 4) — skip DoWeb if found
+    2. Call DoWebSearcher.search() to get result rows
+    3. For each result: download the PDF page with requests.get()
+    4. Run OCR via publication_extractor.extract_text()
+    5. Delete the PDF immediately (max 1 PDF in temp/ at any time)
+    6. Bundle all publication texts into one JSON per processo
+    7. Track progress so any crash is resumable with zero data loss
 
 This file does NOT search DoWeb — that belongs to searcher.py.
-This file does NOT run OCR logic — that belongs to publication_text_extractor.py.
+This file does NOT run OCR logic — that belongs to publication_extractor.py.
 
-Output JSON per processo (multi-document structure)
-───────────────────────────────────────────────────
+Gap 4 — Embedded publication short-circuit
+──────────────────────────────────────────
+contract_preprocessor.py writes:
+    data/preprocessed/{sanitized_pid}_pub_embedded.flag
+when it finds a gazette EXTRATO inside the contract PDF itself.
+download_all() checks for this flag before any DoWeb network activity.
+If present, the processo is marked completed and DoWeb is skipped entirely.
+
+Output JSON per processo
+────────────────────────
 {
-  "processo_id":    "TUR-PRO-2025/01221",
-  "discovery_metadata": {
-    "company_name":   "GRÊMIO RECREATIVO...",  ← from processo_links.json
-    "company_cnpj":   "01282704000167",         ← source: discovery (verify vs contract)
-    "contract_value": "2.150.000,00"
-  },
-  "search_metadata": {
-    "searched_at":   "2026-03-04T10:30:00",
-    "query_used":    "TUR-PRO-2025/01221",
-    "results_found": 2
-  },
+  "processo_id":        "TUR-PRO-2025/01221",
+  "discovery_metadata": { "company_name": ..., "company_cnpj": ..., ... },
+  "search_metadata":    { "searched_at": ..., "query_used": ..., "results_found": ... },
   "publications": [
     {
       "document_index":  1,
@@ -43,19 +44,14 @@ Output JSON per processo (multi-document structure)
         "content_hint":     "structured_contract"
       },
       "extraction_metadata": {
-        "method":          "ocr",
-        "pages":           1,
-        "text_length":     4823,
-        "printable_ratio": 0.97,
-        "extracted_at":    "2026-03-04T10:31:05"
+        "method": "ocr", "pages": 1, "text_length": 4823,
+        "printable_ratio": 0.97, "extracted_at": "..."
       },
       "validation": {
-        "quality_passes":         true,
-        "quality_flags":          [],
-        "processo_found_in_text": true,
-        "extraction_error":       null
+        "quality_passes": true, "quality_flags": [],
+        "processo_found_in_text": true, "extraction_error": null
       },
-      "raw_text": "...complete OCR text of the gazette page..."
+      "raw_text": "...complete OCR text..."
     }
   ]
 }
@@ -63,11 +59,11 @@ Output JSON per processo (multi-document structure)
 Progress file: data/publication_extraction_progress.json
 Output files:  data/extractions/{PROCESSO_ID}_publications_raw.json
 Temp folder:   data/temp_downloads/  (max 1 PDF at any time)
-Log file:      logs/extraction_publications_YYYYMMDD_HHMMSS.log
 """
 
 import json
 import logging
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -87,24 +83,23 @@ logger = logging.getLogger(__name__)
 # PATHS & CONSTANTS
 # ══════════════════════════════════════════════════════════════════════════════
 
-EXTRACTIONS_DIR     = Path(EXTRACTIONS_DIR)
-TEMP_PDF_DIR        = Path("data/temp_downloads")
-PROGRESS_FILE       = Path("data/publication_extraction_progress.json")
-DISCOVERY_FILE      = Path("data/discovery/processo_links.json")
+EXTRACTIONS_DIR      = Path(EXTRACTIONS_DIR)
+TEMP_PDF_DIR         = Path("data/temp_downloads")
+PROGRESS_FILE        = Path("data/publication_extraction_progress.json")
+DISCOVERY_FILE       = Path("data/discovery/processo_links.json")
+PREPROCESSED_DIR     = Path("data/preprocessed")
 
-# Timing
-BETWEEN_PROCESSOS   = 2    # polite pause between processo searches
-BETWEEN_DOWNLOADS   = 1    # polite pause between publication downloads
-PDF_DOWNLOAD_TIMEOUT = 30  # requests.get timeout in seconds
+BETWEEN_PROCESSOS    = 2    # polite pause between processo searches
+BETWEEN_DOWNLOADS    = 1    # polite pause between publication downloads
+PDF_DOWNLOAD_TIMEOUT = 30   # requests.get timeout in seconds
 
-# HTTP headers — identifies the request politely to the portal
 REQUEST_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/pdf,*/*",
+    "Accept":  "application/pdf,*/*",
     "Referer": "https://doweb.rio.rj.gov.br/",
 }
 
@@ -127,12 +122,46 @@ def _temp_pdf_path(processo_id: str, doc_index: int) -> Path:
     """Returns data/temp_downloads/{id}_pub_{N}.pdf."""
     return TEMP_PDF_DIR / f"{_sanitize(processo_id)}_pub_{doc_index}.pdf"
 
+
 def _is_already_extracted(processo_id: str) -> bool:
     return _publications_path(processo_id).exists()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# DISCOVERY METADATA LOADER
+# GAP 4 — EMBEDDED PUBLICATION CHECK
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _has_embedded_publication(processo_id: str) -> bool:
+    """
+    Return True if the preprocessor found a gazette EXTRATO inside the
+    contract PDF for this processo_id.
+
+    The flag file is written by contract_preprocessor._save() when
+    embedded_publication["found"] is True:
+        data/preprocessed/{sanitized_pid}_pub_embedded.flag
+    """
+    flag = PREPROCESSED_DIR / f"{_sanitize(processo_id)}_pub_embedded.flag"
+    return flag.exists()
+
+
+def _mark_embedded(progress: dict, processo_id: str) -> None:
+    """
+    Record this processo_id as resolved via embedded publication.
+    Added to both the 'embedded' list and 'completed' so standard
+    skip logic catches it on all future runs.
+    """
+    if "embedded" not in progress:
+        progress["embedded"] = []
+    if processo_id not in progress["embedded"]:
+        progress["embedded"].append(processo_id)
+    if processo_id not in progress.get("completed", []):
+        progress.setdefault("completed", []).append(processo_id)
+    progress["stats"]["embedded"] = len(progress["embedded"])
+    progress["updated_at"] = datetime.now().isoformat()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DISCOVERY LOADERS
 # ══════════════════════════════════════════════════════════════════════════════
 
 def load_processo_ids(
@@ -140,12 +169,7 @@ def load_processo_ids(
 ) -> List[str]:
     """
     Load the list of processo IDs produced by Stage 1.
-
-    Returns a deduplicated list of processo_id strings preserving
-    discovery order.  Company metadata is loaded separately by
-    load_discovery_metadata() to keep this function simple.
-
-    Returns empty list if the discovery file does not exist.
+    Returns a deduplicated list preserving discovery order.
     """
     path = Path(discovery_file)
     if not path.exists():
@@ -159,7 +183,6 @@ def load_processo_ids(
         data = json.load(f)
 
     processos = data.get("processos", [])
-    # Deduplicate while preserving order — duplicate IDs appear in the real data
     seen: set = set()
     ids: List[str] = []
     for p in processos:
@@ -180,21 +203,7 @@ def load_discovery_metadata(
 ) -> dict:
     """
     Load company metadata keyed by processo_id from Stage 1 discovery.
-
-    Returns a dict:
-        {
-          "TUR-PRO-2025/01221": {
-            "company_name":   "GRÊMIO RECREATIVO...",
-            "company_cnpj":   "01282704000167",
-            "contract_value": "2.150.000,00",
-            "discovery_path": ["RIOTUR", "Contratos", "2025"]
-          },
-          ...
-        }
-
-    These values are attached to the output JSON as "discovery_metadata"
-    and clearly marked as coming from Stage 1 (not from LLM extraction).
-    Epic 4 uses them as a starting point and verifies against contract text.
+    Returns dict: { processo_id: { company_name, company_cnpj, ... } }
     """
     path = Path(discovery_file)
     if not path.exists():
@@ -222,34 +231,14 @@ def load_discovery_metadata(
 
 def _load_progress() -> dict:
     """
-    Load Stage 3 progress file.
+    Load Stage 3 progress file, or return a fresh skeleton.
 
     Progress states:
-        completed   — all publications for this ID were downloaded successfully
-        failed      — a technical error stopped the processo (retried next run)
-        no_results  — DoWeb returned 0 results for all ID variations
-                      (may be published later — retried every run)
-        partial     — some publications failed OCR; partial JSON was saved
-                      (retried only with --force flag)
-
-    Schema:
-    {
-      "started_at":  str,
-      "updated_at":  str,
-      "completed":   [processo_id, ...],
-      "failed":      [{"processo_id": ..., "error": ..., "at": ...}, ...],
-      "no_results":  [{"processo_id": ..., "at": ...}, ...],
-      "partial":     [{"processo_id": ..., "successful": int,
-                       "failed": int, "at": ...}, ...],
-      "stats": {
-        "total":      int,
-        "success":    int,
-        "failed":     int,
-        "no_results": int,
-        "partial":    int,
-        "skipped":    int
-      }
-    }
+        completed   — all publications extracted successfully
+        failed      — technical error (retried next run)
+        no_results  — DoWeb returned 0 results (retried every run)
+        partial     — some publications failed OCR (retried with --force)
+        embedded    — publication found inside contract PDF; DoWeb skipped
     """
     if PROGRESS_FILE.exists():
         try:
@@ -260,7 +249,8 @@ def _load_progress() -> dict:
                 f"{len(data.get('completed', []))} completed, "
                 f"{len(data.get('failed', []))} failed, "
                 f"{len(data.get('no_results', []))} no_results, "
-                f"{len(data.get('partial', []))} partial"
+                f"{len(data.get('partial', []))} partial, "
+                f"{len(data.get('embedded', []))} embedded"
             )
             return data
         except Exception as e:
@@ -273,6 +263,7 @@ def _load_progress() -> dict:
         "failed":     [],
         "no_results": [],
         "partial":    [],
+        "embedded":   [],
         "stats": {
             "total":      0,
             "success":    0,
@@ -280,6 +271,7 @@ def _load_progress() -> dict:
             "no_results": 0,
             "partial":    0,
             "skipped":    0,
+            "embedded":   0,
         },
     }
 
@@ -313,11 +305,8 @@ def _mark_failed(progress: dict, processo_id: str, error: str) -> None:
 def _mark_no_results(progress: dict, processo_id: str) -> None:
     """
     Record that DoWeb returned 0 results for all ID variations.
-
-    This is NOT a technical error — it may mean the contract was never
-    published (compliance violation R001) or was published under an
-    unrecognised ID format.  The ID is NOT added to completed or failed
-    so it will be retried on future runs.
+    NOT added to completed/failed — retried on every future run.
+    May indicate an R001 compliance violation.
     """
     progress["no_results"].append({
         "processo_id": processo_id,
@@ -327,17 +316,14 @@ def _mark_no_results(progress: dict, processo_id: str) -> None:
 
 
 def _mark_partial(
-    progress: dict,
+    progress:    dict,
     processo_id: str,
-    successful: int,
-    failed: int,
+    successful:  int,
+    failed:      int,
 ) -> None:
     """
-    Record that some (but not all) publications for a processo were extracted.
-
-    The partial JSON is still saved so the auditor can see what was captured.
-    This ID is NOT added to completed — it will be skipped on the next run
-    unless --force is used.
+    Record that some (but not all) publications were extracted.
+    NOT added to completed — skipped on reruns unless --force is used.
     """
     progress["partial"].append({
         "processo_id": processo_id,
@@ -354,21 +340,9 @@ def _mark_partial(
 
 def _download_pdf(url: str, dest_path: Path) -> bool:
     """
-    Download a single gazette page PDF using requests.get().
-
-    Why requests and not Selenium?
-    ───────────────────────────────
-    The pdf_page_url extracted by searcher.py is a direct public link:
-        https://doweb.rio.rj.gov.br/portal/edicoes/download/{edition}/{page}
-    No session state, cookies, or CAPTCHA is required.  requests.get()
-    is faster, more reliable, and uses less memory than browser downloads.
-
-    Args:
-        url:       Direct PDF URL from SearchResultItem.pdf_page_url.
-        dest_path: Destination path in data/temp_downloads/.
-
-    Returns:
-        True on success, False on any network or file-system error.
+    Download a gazette page PDF using requests.get().
+    Uses requests (not Selenium) because pdf_page_url is a direct public link
+    that requires no session state or CAPTCHA.
     """
     if not url:
         logger.warning("   ⚠ pdf_page_url is empty — cannot download")
@@ -394,9 +368,7 @@ def _download_pdf(url: str, dest_path: Path) -> bool:
         return True
 
     except requests.exceptions.Timeout:
-        logger.error(
-            f"   ✗ Download timed out after {PDF_DOWNLOAD_TIMEOUT}s: {url}"
-        )
+        logger.error(f"   ✗ Download timed out after {PDF_DOWNLOAD_TIMEOUT}s: {url}")
         return False
     except requests.exceptions.HTTPError as e:
         logger.error(f"   ✗ HTTP error downloading {url}: {e}")
@@ -411,10 +383,7 @@ def _download_pdf(url: str, dest_path: Path) -> bool:
 
 def _delete_pdf(path: Optional[Path]) -> None:
     """
-    Delete temp PDF in a finally block — guarantees max 1 PDF on disk.
-
-    Called on success, failure, AND exception.
-    Logs every deletion for the audit trail.
+    Delete temp PDF — called in finally blocks to guarantee max 1 PDF on disk.
     Silent on missing files (already deleted or never created).
     """
     if path is None:
@@ -438,25 +407,13 @@ def _build_publication_record(
 ) -> dict:
     """
     Build a single publication record for the publications list.
-
-    Args:
-        result:      SearchResultItem from searcher.py (search metadata).
-        ocr_result:  Dict returned by extract_text() (or error stub).
-        processo_id: The processo ID being processed (for text validation).
-
-    Returns:
-        A fully-populated publication dict ready for JSON serialisation.
+    Called for every SearchResultItem — including failures (stub records).
     """
-    raw_text   = ocr_result.get("text", "")
-    error      = ocr_result.get("error")
-    qc_passes  = ocr_result.get("quality_passes", False)
-    qc_flags   = ocr_result.get("quality_flags", [])
+    raw_text  = ocr_result.get("text", "")
+    error     = ocr_result.get("error")
+    qc_passes = ocr_result.get("quality_passes", False)
+    qc_flags  = ocr_result.get("quality_flags", [])
 
-    # Post-OCR validation: does the extracted text contain the processo_id?
-    # This is a defence-in-depth check — Busca Exata already guarantees the
-    # match at the search level, but OCR noise or a wrong page could cause
-    # the ID to be unreadable in the extracted text.
-    import re
     processo_found = bool(
         re.search(re.escape(processo_id), raw_text, re.IGNORECASE)
     ) if raw_text else False
@@ -473,12 +430,12 @@ def _build_publication_record(
             "snippet":          result.snippet,
         },
         "extraction_metadata": {
-            "method":           ocr_result.get("source", "failed"),
-            "pages":            ocr_result.get("pages", 0),
-            "text_length":      len(raw_text),
-            "printable_ratio":  ocr_result.get("printable_ratio",
-                                    ocr_result.get("quality_ratio", 0.0)),
-            "extracted_at":     datetime.now().isoformat(),
+            "method":          ocr_result.get("source", "failed"),
+            "pages":           ocr_result.get("pages", 0),
+            "text_length":     len(raw_text),
+            "printable_ratio": ocr_result.get("printable_ratio",
+                                   ocr_result.get("quality_ratio", 0.0)),
+            "extracted_at":    datetime.now().isoformat(),
         },
         "validation": {
             "quality_passes":         qc_passes,
@@ -491,34 +448,23 @@ def _build_publication_record(
 
 
 def _save_publications_json(
-    processo_id:       str,
-    discovery_meta:    dict,
-    search_meta:       dict,
+    processo_id:         str,
+    discovery_meta:      dict,
+    search_meta:         dict,
     publication_records: List[dict],
 ) -> bool:
     """
     Write the multi-document publications JSON for one processo.
-
-    Called once per processo after ALL publications have been processed
-    (including stub records for failed extractions).
-
-    Args:
-        processo_id:         The processo ID string.
-        discovery_meta:      Company metadata from Stage 1 discovery.
-        search_meta:         Query info (searched_at, query_used, results_found).
-        publication_records: List of publication dicts from _build_publication_record.
-
-    Returns:
-        True on success, False on file-system error.
+    Called once per processo after ALL publications have been processed.
     """
     out_path = _publications_path(processo_id)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     document = {
-        "processo_id":       processo_id,
+        "processo_id":        processo_id,
         "discovery_metadata": discovery_meta,
-        "search_metadata":   search_meta,
-        "publications":      publication_records,
+        "search_metadata":    search_meta,
+        "publications":       publication_records,
     }
 
     try:
@@ -543,7 +489,7 @@ class DoWebDownloader:
     """
     Downloads and extracts all publications for a list of processo IDs.
 
-    One instance is created per Stage 3 run.  The shared browser session
+    One instance is created per Stage 3 run. The shared browser session
     (and any solved CAPTCHA) is preserved across all searches.
 
     Usage
@@ -552,9 +498,6 @@ class DoWebDownloader:
         downloader = DoWebDownloader(driver)
         summary    = downloader.download_all(processo_ids, force=False)
         close_driver(driver)
-
-    The downloader owns the DoWebSearcher internally — callers do not
-    need to instantiate searcher.py separately.
     """
 
     def __init__(self, driver: webdriver.Chrome):
@@ -574,21 +517,12 @@ class DoWebDownloader:
         """
         Run the full Stage 3 pipeline for every processo ID.
 
-        Skip rules:
-            - completed IDs are always skipped (unless force=True)
-            - partial IDs are skipped unless force=True
-            - no_results IDs are retried every run
-              (publication may have appeared since last run)
-            - failed IDs are always retried
-
-        Args:
-            processo_ids:   List of processo ID strings from Stage 1.
-            force:          If True, reprocess completed and partial IDs.
-            discovery_meta: Dict from load_discovery_metadata().
-                            Pass None if unavailable — defaults to empty.
-
-        Returns:
-            Summary dict with counts for each outcome category.
+        Skip rules (in priority order):
+            1. embedded flag exists  → skip DoWeb entirely (Gap 4)
+            2. completed + extracted → skip (unless force=True)
+            3. partial               → skip (unless force=True)
+            4. no_results            → retry every run
+            5. failed                → retry every run
         """
         TEMP_PDF_DIR.mkdir(parents=True, exist_ok=True)
         EXTRACTIONS_DIR.mkdir(parents=True, exist_ok=True)
@@ -600,12 +534,13 @@ class DoWebDownloader:
         completed   = set(progress.get("completed", []))
         partial_ids = {e["processo_id"] for e in progress.get("partial", [])}
 
-        total   = len(processo_ids)
-        skipped = 0
-        success = 0
-        failed  = 0
+        total            = len(processo_ids)
+        skipped          = 0
+        success          = 0
+        failed           = 0
         no_results_count = 0
         partial_count    = 0
+        embedded_count   = 0
 
         progress["stats"]["total"] = total
         _save_progress(progress)
@@ -614,13 +549,31 @@ class DoWebDownloader:
         logger.info(f"📰 STAGE 3: PUBLICATION EXTRACTION — {total} processo(s)")
         logger.info(f"   Completed : {len(completed)}")
         logger.info(f"   Partial   : {len(partial_ids)}")
+        logger.info(f"   Embedded  : {len(progress.get('embedded', []))}")
         logger.info(f"   Force mode: {force}")
         logger.info("=" * 70)
 
         for i, pid in enumerate(processo_ids, 1):
             label = f"[{i}/{total}] {pid}"
 
-            # ── Skip logic ──────────────────────────────────────────────────
+            # ── Skip: embedded publication (Gap 4) ───────────────────────────
+            # Check BEFORE the completed/partial skip so a previously-failed
+            # processo that now has a flag is resolved without a DoWeb attempt.
+            if _has_embedded_publication(pid):
+                logger.info(
+                    f"   📎 {label} — publication embedded in contract PDF "
+                    f"(preprocessor flag) — skipping DoWeb"
+                )
+                _mark_embedded(progress, pid)
+                _save_progress(progress)
+                skipped       += 1
+                embedded_count += 1
+                progress["stats"]["skipped"] = (
+                    progress["stats"].get("skipped", 0) + 1
+                )
+                continue
+
+            # ── Skip: already completed or partial ───────────────────────────
             if not force:
                 if pid in completed and _is_already_extracted(pid):
                     logger.info(f"   ⏭  {label} — already completed")
@@ -677,7 +630,6 @@ class DoWebDownloader:
             else:
                 failed += 1
 
-            # ── Save progress after EVERY processo ───────────────────────────
             _save_progress(progress)
             time.sleep(BETWEEN_PROCESSOS)
 
@@ -689,6 +641,7 @@ class DoWebDownloader:
             "no_results": no_results_count,
             "partial":    partial_count,
             "skipped":    skipped,
+            "embedded":   embedded_count,
         }
         logger.info("\n" + "=" * 70)
         logger.info("✅ STAGE 3 COMPLETE")
@@ -715,7 +668,7 @@ class DoWebDownloader:
             1. Search DoWeb → List[SearchResultItem]
             2. If empty → mark no_results, return
             3. For each result → download PDF, OCR, delete PDF
-            4. Build publication records (including stubs for failures)
+            4. Build publication records (stubs for failures too)
             5. Save publications JSON
             6. Mark completed or partial
 
@@ -762,7 +715,6 @@ class DoWebDownloader:
                 f"ed={result.edition_number} pg={result.page_number} "
                 f"date={result.publication_date}"
             )
-
             record = self._download_and_extract(result, processo_id)
             publication_records.append(record)
 
@@ -775,10 +727,10 @@ class DoWebDownloader:
 
         # ── Step 4: Save JSON ─────────────────────────────────────────────────
         saved = _save_publications_json(
-            processo_id         = processo_id,
-            discovery_meta      = discovery_meta,
-            search_meta         = search_meta,
-            publication_records = publication_records,
+            processo_id          = processo_id,
+            discovery_meta       = discovery_meta,
+            search_meta          = search_meta,
+            publication_records  = publication_records,
         )
 
         if not saved:
@@ -788,9 +740,7 @@ class DoWebDownloader:
         # ── Step 5: Mark outcome ──────────────────────────────────────────────
         if ocr_failures == 0:
             _mark_completed(progress, processo_id)
-            logger.info(
-                f"   ✓ Completed: {ocr_successes} publication(s) extracted"
-            )
+            logger.info(f"   ✓ Completed: {ocr_successes} publication(s) extracted")
             return "completed"
         else:
             _mark_partial(progress, processo_id, ocr_successes, ocr_failures)
@@ -812,36 +762,30 @@ class DoWebDownloader:
         """
         Download the PDF page, run OCR, delete the PDF, return a record.
 
-        The PDF is always deleted in the finally block — this guarantees
-        at most 1 PDF exists in temp_downloads/ at any point, even if
-        OCR crashes or the process is interrupted.
-
-        If download or OCR fails, a stub record is returned with
-        extraction_error set and raw_text = "".  This ensures the
-        caller always receives a record for every SearchResultItem,
-        so the publications list in the output JSON is complete.
+        PDF is always deleted in the finally block — guarantees max 1 PDF
+        in temp_downloads/ at any time, even if OCR crashes.
+        Returns a stub record on any failure so the publications list
+        in the output JSON is always complete.
         """
         pdf_path = _temp_pdf_path(processo_id, result.document_index)
 
         try:
-            # ── Download ────────────────────────────────────────────────────
+            # ── Download ─────────────────────────────────────────────────────
             downloaded = _download_pdf(result.pdf_page_url, pdf_path)
 
             if not downloaded:
                 return _build_publication_record(
                     result      = result,
                     ocr_result  = {
-                        "text":           "",
-                        "error":          "PDF download failed",
-                        "source":         "failed",
-                        "pages":          0,
+                        "text": "", "error": "PDF download failed",
+                        "source": "failed", "pages": 0,
                         "quality_passes": False,
                         "quality_flags":  ["download_failed"],
                     },
                     processo_id = processo_id,
                 )
 
-            # ── OCR extraction ───────────────────────────────────────────────
+            # ── OCR ───────────────────────────────────────────────────────────
             ocr_result = extract_text(str(pdf_path), processo_id)
 
             if not ocr_result.get("success"):
@@ -850,17 +794,14 @@ class DoWebDownloader:
                 return _build_publication_record(
                     result      = result,
                     ocr_result  = {
-                        "text":           "",
-                        "error":          error_msg,
-                        "source":         "failed",
-                        "pages":          0,
+                        "text": "", "error": error_msg,
+                        "source": "failed", "pages": 0,
                         "quality_passes": False,
                         "quality_flags":  ["ocr_failed"],
                     },
                     processo_id = processo_id,
                 )
 
-            # ── Log quality outcome ──────────────────────────────────────────
             if ocr_result.get("quality_passes"):
                 logger.info(
                     f"   ✓ OCR OK: {ocr_result.get('total_chars', 0):,} chars, "
@@ -886,10 +827,8 @@ class DoWebDownloader:
             return _build_publication_record(
                 result      = result,
                 ocr_result  = {
-                    "text":           "",
-                    "error":          str(exc),
-                    "source":         "failed",
-                    "pages":          0,
+                    "text": "", "error": str(exc),
+                    "source": "failed", "pages": 0,
                     "quality_passes": False,
                     "quality_flags":  ["unexpected_error"],
                 },
@@ -897,7 +836,6 @@ class DoWebDownloader:
             )
 
         finally:
-            # CRITICAL: always delete, even on exception
             _delete_pdf(pdf_path)
 
     # ══════════════════════════════════════════════════════
