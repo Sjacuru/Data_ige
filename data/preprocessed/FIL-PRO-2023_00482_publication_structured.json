@@ -1,0 +1,44 @@
+{
+  "processo_id": "FIL-PRO-2023/00482",
+  "source": "doweb",
+  "publication_date": "30/09/2024",
+  "signing_date_in_pub": "15/09/2024",
+  "contract_number": "059/2023",
+  "contratante": "RIOTUR e EMPRESA XPTO LTDA.",
+  "contratada": null,
+  "object_summary": "Operação do Centro de Convenções.",
+  "value": "287.000,00",
+  "edition": "136",
+  "document_type": "contract",
+  "documents_found": 1,
+  "documents_parsed": 1,
+  "all_publications": [
+    {
+      "document_index": 1,
+      "content_hint": "structured_contract",
+      "edition_number": "136",
+      "page_number": "10",
+      "source_url": "https://doweb.rio.rj.gov.br/portal/edicoes/download/12345/10",
+      "parsed_fields": {
+        "processo_id": "TUR-PRO-2025/01221",
+        "publication_date": "30/09/2024",
+        "signing_date_in_pub": "15/09/2024",
+        "contract_number": "059/2023",
+        "contratante": "RIOTUR e EMPRESA XPTO LTDA.",
+        "contratada": null,
+        "object_summary": "Operação do Centro de Convenções.",
+        "value": "287.000,00",
+        "edition": "136",
+        "document_type": "contract",
+        "warnings": [
+          "missing:contratada"
+        ],
+        "parsed_at": "2026-03-08T00:15:25.345130"
+      }
+    }
+  ],
+  "warnings": [
+    "missing:contratada"
+  ],
+  "preprocessed_at": "2026-03-08T00:15:25.346297"
+}

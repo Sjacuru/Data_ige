@@ -1,6 +1,6 @@
 {
   "processo_id": "FIL-PRO-2023/00482",
-  "preprocessed_at": "2026-03-06T15:39:51.298501",
+  "preprocessed_at": "2026-03-07T23:51:44.625065",
   "document_type": "contract",
   "header": {
     "contract_number": "2403453/2024",
@@ -69,9 +69,9 @@
   "noise_removed": [],
   "warnings": [],
   "embedded_publication": {
-    "found": false,
+    "found": true,
     "processo_id_in_pub": "FIL-PRO-2023/00482",
-    "publication_date": null,
+    "publication_date": "16/09/2024",
     "edition": "2403453",
     "contratante_pub": "Distribuidora de Filmes S.A - RIOFILME",
     "contratada_pub": "Arte Vital Exibições Cinematográficas LTDA",

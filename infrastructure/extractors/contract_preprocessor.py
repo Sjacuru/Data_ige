@@ -493,12 +493,13 @@ def _detect_embedded_publication(text: str, processo_id: str) -> dict:
     if not parsed["publication_date"] and not parsed["signing_date_in_pub"]:
         return base
 
-    found = parsed["publication_date"] is not None
-
+    pub_date = parsed["publication_date"] or parsed.get("signing_date_in_pub")
+    found    = pub_date is not None
+    
     return {
         "found":              found,
         "processo_id_in_pub": parsed["processo_id"],
-        "publication_date":   parsed["publication_date"],
+        "publication_date":   pub_date,
         "edition":            parsed["edition"],
         "contratante_pub":    parsed["contratante"],
         "contratada_pub":     parsed["contratada"],

@@ -10,7 +10,7 @@ and return ALL matching publication result rows as SearchResultItem objects.
 
 This file does NOT download PDFs. That belongs to downloader.py.
 This file does NOT save JSON. That belongs to downloader.py.
-This file does NOT run OCR.  That belongs to publication_text_extractor.py.
+This file does NOT run OCR.  That belongs to publication_extractor.py.
 
 Search strategy
 ───────────────

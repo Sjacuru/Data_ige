@@ -98,7 +98,8 @@ _MASTHEAD_DATE_RE = re.compile(
 
 # ── Gazette edition number (Nº 136, No 218, etc.) ────────────────────────────
 _EDITION_RE = re.compile(
-    r'[Nn][o\u00ba\u00b0°]\s*(\d{3,})'
+    r'[Nn][o\u00ba\u00b0°]\s*(\d{3,})'          # Nº 136 / No 218
+    r'|[Ee]di[cç][aã]o\s+[Nn]?[oº°]?\s*(\d{3,})' # Edição 136 / Edição Nº 136
 )
 
 # ── Processo identifier ───────────────────────────────────────────────────────
@@ -331,13 +332,13 @@ def _extract_masthead_date(text: str) -> Optional[str]:
 
 
 def _extract_edition(text: str) -> Optional[str]:
-    """Extract gazette edition number from masthead area."""
-    # Restrict to first 500 chars after any masthead match to avoid
-    # edition numbers that appear inside article text
     mh = _MASTHEAD_DATE_RE.search(text)
     search_zone = text[mh.start(): mh.start() + 500] if mh else text[:500]
     m = _EDITION_RE.search(search_zone)
-    return m.group(1) if m else None
+    if not m:
+        return None
+    # Group 1 = "Nº NNN" pattern, Group 2 = "Edição NNN" pattern
+    return m.group(1) or m.group(2)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
