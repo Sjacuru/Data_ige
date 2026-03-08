@@ -1,0 +1,36 @@
+{
+  "processo_id": "FIX3-MULTI",
+  "preprocessed_at": "2026-03-09T00:13:19.210259",
+  "document_type": "contract",
+  "header": {
+    "contract_number": "0055/2023",
+    "processo_id_in_document": null,
+    "signing_date": null,
+    "contratante": "EMPRESA MUNICIPAL DE TURISMO DO RIO DE JANEIRO S.A. – RIOTUR",
+    "contratada": "SHOWS & EVENTOS LTDA",
+    "object_summary": "Constitui objeto do presente contrato a contratação de empresa especializada para operação do complexo turístico do Morro da Urca, incluindo transporte por teleférico, manutenção das instalações, atendimento ao público e programação de eventos culturais e educacionais ao longo do período contratual."
+  },
+  "clauses": [
+    {
+      "number": "PRIMEIRA",
+      "title": "OBJETO",
+      "full_title": "CLÁUSULA PRIMEIRA - OBJETO",
+      "content": "Constitui objeto do presente contrato a contratação de empresa especializada para\noperação do complexo turístico do Morro da Urca, incluindo transporte por teleférico,\nmanutenção das instalações, atendimento ao público e programação de eventos culturais\ne educacionais ao longo do período contratual.\n\nValor Total: R$ 287.000,00\nVigência: 12 meses.",
+      "paragraphs": []
+    }
+  ],
+  "appendices": [],
+  "noise_removed": [],
+  "warnings": [
+    "missing_header_field:signing_date"
+  ],
+  "embedded_publication": {
+    "found": false,
+    "processo_id_in_pub": null,
+    "publication_date": null,
+    "edition": null,
+    "contratante_pub": null,
+    "contratada_pub": null,
+    "raw_block": null
+  }
+}

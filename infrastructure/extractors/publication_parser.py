@@ -333,13 +333,20 @@ def _extract_masthead_date(text: str) -> Optional[str]:
 
 def _extract_edition(text: str) -> Optional[str]:
     mh = _MASTHEAD_DATE_RE.search(text)
-    search_zone = text[mh.start(): mh.start() + 500] if mh else text[:500]
+
+    # Fix 2 (v7): without a masthead anchor, searching text[:500] risks
+    # matching "Contrato nº: 2403453/2024" and returning the contract number
+    # as the edition.  Edition is only meaningful when the gazette masthead
+    # ("Segunda-feira, NN de Mês de AAAA ... Nº NNN") is present.
+
+    if not mh:
+        return None
+    search_zone = text[mh.start(): mh.start() + 500]
     m = _EDITION_RE.search(search_zone)
     if not m:
         return None
     # Group 1 = "Nº NNN" pattern, Group 2 = "Edição NNN" pattern
     return m.group(1) or m.group(2)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FORMAT A — LABELLED EXTRATO BLOCK

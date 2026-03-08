@@ -1,0 +1,31 @@
+{
+  "processo_id": "FIX3-EDGE",
+  "preprocessed_at": "2026-03-09T00:00:35.656854",
+  "document_type": "contract",
+  "header": {
+    "contract_number": "0001/2024",
+    "processo_id_in_document": null,
+    "signing_date": null,
+    "contratante": null,
+    "contratada": null,
+    "object_summary": null
+  },
+  "clauses": [],
+  "appendices": [],
+  "noise_removed": [],
+  "warnings": [
+    "missing_header_field:signing_date",
+    "missing_header_field:contratante",
+    "missing_header_field:contratada",
+    "no_clauses_detected"
+  ],
+  "embedded_publication": {
+    "found": false,
+    "processo_id_in_pub": null,
+    "publication_date": null,
+    "edition": null,
+    "contratante_pub": null,
+    "contratada_pub": null,
+    "raw_block": null
+  }
+}

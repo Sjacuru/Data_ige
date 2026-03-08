@@ -23,6 +23,7 @@ v5 — Three fixes from real-data run + test failures:
   Fix B — pub date None when no gazette masthead present (fallback to Data da Assinatura)
   Fix C — _clean_party: collapse internal newlines from multi-line OCR names
 v6 — Step 6 delegates all field extraction to publication_parser.parse_publication_text()
+v7 — Fix 1: _clean_party strips trailing conjunction ' e'\n     Fix 3: _extract_header object_summary uses boundary-aware DOTALL regex
      _save also writes _publication_structured.json (source="embedded") when pub found,
      giving Epic 4 the same input schema regardless of publication source.
 """
@@ -258,6 +259,8 @@ def _extract_header(text: str, warnings: list) -> dict[str, str | None]:
 
     # Restrict date and party label searches to the header zone to prevent
     # false matches from clause bodies and appended gazette pages.
+    #  _extract_edition returns None when no masthead found
+ 
     header_zone = text[:HEADER_ZONE_CHARS]
 
     # Contract number and processo ID search the full text — they can appear
@@ -287,11 +290,21 @@ def _extract_header(text: str, warnings: list) -> dict[str, str | None]:
     if not header["contratante"] or not header["contratada"]:
         _parties_from_prose(text, header)
 
+
+    # Fix 3 (v7): boundary-aware multi-line object extraction.
+    # Reads until the first structural field that follows the object description:
+    # Valor/Vigência/Prazo/Data da assinatura/Parágrafo Primeiro/next CLÁUSULA.
+    # This prevents capturing just the boilerplate opener line.
     m = re.search(
-        r'(?:objeto\s*(?:do\s+presente)?|OBJETO)[:\-]?\s*\n?\s*([^\n]{20,400})',
-        text, re.IGNORECASE
+        r'(?:objeto\s*(?:do\s+presente)?|OBJETO)\s*[:\-]?\s*'
+        r'(.+?)'
+        r'(?=\n\s*(?:Valor|VALOR|Vig[eê]n|Prazo|PRAZO'
+        r'|Data\s+da|Par[aá]grafo\s+[Pp]rimeiro|CL[AÁ]USULA))',
+        text, re.IGNORECASE | re.DOTALL
     )
-    if m: header["object_summary"] = m.group(1).strip()[:400]
+    if m:
+        obj_raw = re.sub(r'\s+', ' ', m.group(1)).strip()
+        header["object_summary"] = obj_raw[:400]
 
     return header
 
@@ -304,6 +317,12 @@ def _clean_party(raw: str) -> str:
     c = c.strip().rstrip(".,;:-")
     c = re.sub(r'\s*,?\s*inscrit[ao].{0,200}$', '', c, flags=re.IGNORECASE)
     c = re.sub(r'\s*,?\s*CNPJ.{0,100}$',        '', c, flags=re.IGNORECASE)
+
+    # Fix 1 (v7): strip trailing conjunction "e" left by "Partes: A e B" pattern.
+    # e.g. "DISTRIBUIDORA DE FILMES S/A - RIOFILME e" → "DISTRIBUIDORA DE FILMES S/A - RIOFILME"
+    # The word boundary \\b prevents matching "e" inside a name like "ARTE E CULTURA".
+
+    c = re.sub(r'\s+e\s*$', '', c, flags=re.IGNORECASE)
     return c.strip()
 
 
