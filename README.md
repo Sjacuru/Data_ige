@@ -134,6 +134,18 @@ This project follows **Domain-Driven Design (DDD)** and **Clean Architecture**:
 
 **Tip:** launch with a persistent profile (`--user-data-dir` or call `create_driver(..., user_data_dir="/path/to/profile")`) and solve the CAPTCHA once there. The cookies/tokens stored in the profile will carry over to subsequent runs and usually prevent repeated challenges until they expire.
 
+### Stage 6 Commands
+
+- Run Stage 6 alert generation:
+    - `python application/workflows/stage6_alerts.py`
+- Run Stage 6 for one processo:
+    - `python application/workflows/stage6_alerts.py --pid "FIL-PRO-2023/00482"`
+- Run Stage 6 via full pipeline (optionally recalc Stage 5 first):
+    - `python application/workflows/full_pipeline.py`
+    - `python application/workflows/full_pipeline.py --run-stage5`
+- Run all Stage 6 checks + generate completion report:
+    - `python scripts/run_stage6_checks.py`
+
 ---
 
 ## 🗺️ Roadmap

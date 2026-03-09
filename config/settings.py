@@ -25,6 +25,10 @@ BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"
 DISCOVERY_DIR = DATA_DIR / "discovery"
 EXTRACTIONS_DIR = DATA_DIR / "extractions"
+PREPROCESSED_DIR = DATA_DIR / "preprocessed"
+COMPLIANCE_DIR = DATA_DIR / "compliance"
+CONFORMITY_DIR = DATA_DIR / "conformity"
+ALERTS_DIR = DATA_DIR / "alerts"
 TEMP_DIR = DATA_DIR / "temp"
 OUTPUTS_DIR = DATA_DIR / "outputs"
 LOGS_DIR = BASE_DIR / "logs"
@@ -32,6 +36,10 @@ LOGS_DIR = BASE_DIR / "logs"
 # Ensure directories exist
 DISCOVERY_DIR.mkdir(parents=True, exist_ok=True)
 EXTRACTIONS_DIR.mkdir(parents=True, exist_ok=True)
+PREPROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+COMPLIANCE_DIR.mkdir(parents=True, exist_ok=True)
+CONFORMITY_DIR.mkdir(parents=True, exist_ok=True)
+ALERTS_DIR.mkdir(parents=True, exist_ok=True)
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
