@@ -1,0 +1,63 @@
+{
+  "processo_id": "TEST-002",
+  "analysis_date": "2026-03-09T17:15:10.091367",
+  "diagnostic": {
+    "agreement_level": "PARTIAL",
+    "impact": "PARCIAL"
+  },
+  "source_summary": {
+    "epic4_overall_status": "FAIL",
+    "epic4_r001_status": "CONFORME",
+    "epic4_r002_status": "NÃO CONFORME",
+    "fallback_fields_used": {
+      "contract_number_contract": false,
+      "contract_number_publication": false,
+      "contract_value": false,
+      "publication_value": false
+    }
+  },
+  "score_breakdown": {
+    "R001": {
+      "score": 100,
+      "weight": 0.4,
+      "verdict": "PASS"
+    },
+    "R002": {
+      "score": 0,
+      "weight": 0.3,
+      "verdict": "FAIL"
+    },
+    "R003": {
+      "score": 50,
+      "weight": 0.2,
+      "verdict": "INCOMPLETE"
+    },
+    "R004": {
+      "score": 50,
+      "weight": 0.1,
+      "verdict": "INCOMPLETE"
+    }
+  },
+  "rule_details": {
+    "R003": {
+      "verdict": "INCOMPLETE",
+      "score": 50,
+      "explanation": "Missing contract number in contract or publication source."
+    },
+    "R004": {
+      "verdict": "INCOMPLETE",
+      "score": 50,
+      "difference_percentage": null,
+      "explanation": "Missing or invalid value in contract or publication source."
+    }
+  },
+  "conformity_score": 55.0,
+  "overall_status": "NÃO CONFORME",
+  "flags": [
+    "DIAGNOSTIC_PARTIAL"
+  ],
+  "requires_review": true,
+  "recommendations": [
+    "Review partially divergent extracted fields before approval."
+  ]
+}

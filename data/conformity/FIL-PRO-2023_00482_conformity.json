@@ -1,0 +1,61 @@
+{
+  "processo_id": "FIL-PRO-2023/00482",
+  "analysis_date": "2026-03-09T17:15:10.081342",
+  "diagnostic": {
+    "agreement_level": "SKIPPED",
+    "impact": "PARCIAL"
+  },
+  "source_summary": {
+    "epic4_overall_status": "PASS",
+    "epic4_r001_status": "CONFORME",
+    "epic4_r002_status": "CONFORME",
+    "fallback_fields_used": {
+      "contract_number_contract": true,
+      "contract_number_publication": true,
+      "contract_value": false,
+      "publication_value": true
+    }
+  },
+  "score_breakdown": {
+    "R001": {
+      "score": 100,
+      "weight": 0.4,
+      "verdict": "PASS"
+    },
+    "R002": {
+      "score": 100,
+      "weight": 0.3,
+      "verdict": "PASS"
+    },
+    "R003": {
+      "score": 0,
+      "weight": 0.2,
+      "verdict": "FAIL"
+    },
+    "R004": {
+      "score": 50,
+      "weight": 0.1,
+      "verdict": "INCOMPLETE"
+    }
+  },
+  "rule_details": {
+    "R003": {
+      "verdict": "FAIL",
+      "score": 0,
+      "explanation": "Contract numbers differ: '2403453/2024' vs '059/2023'."
+    },
+    "R004": {
+      "verdict": "INCOMPLETE",
+      "score": 50,
+      "difference_percentage": null,
+      "explanation": "Missing or invalid value in contract or publication source."
+    }
+  },
+  "conformity_score": 75.0,
+  "overall_status": "PARCIAL",
+  "flags": [
+    "DIAGNOSTIC_SKIPPED"
+  ],
+  "requires_review": false,
+  "recommendations": []
+}

@@ -1,0 +1,54 @@
+{
+  "processo_id": "FIL-PRO-2023/00482",
+  "evaluated_at": "2026-03-09T14:10:42.567487",
+  "inputs": {
+    "contract_file": "data\\preprocessed\\FIL-PRO-2023_00482_preprocessed.json",
+    "publication_file": "data\\preprocessed\\FIL-PRO-2023_00482_publication_structured.json",
+    "publication_source": "doweb"
+  },
+  "extraction_diagnostic": {
+    "agreement_level": "SKIPPED",
+    "fields_confirmed": [],
+    "fields_divergent": [],
+    "divergence_detail": {},
+    "auditor_action_required": false
+  },
+  "r001_timeliness": {
+    "verdict": "PASS",
+    "signing_date": "16/09/2024",
+    "publication_date": "30/09/2024",
+    "days_delta": 14,
+    "limit_days": 20,
+    "explanation": "Contract published 14 day(s) after signing (16/09/2024 → 30/09/2024). Within the 20-day legal limit.",
+    "confidence": "high",
+    "requires_review": false,
+    "inconclusive_reason": null
+  },
+  "r002_party_match": {
+    "verdict": "PASS",
+    "contract_contratante": "DISTRIBUIDORA DE FILMES S/A - RIOFILME e",
+    "publication_contratante": "Distribuidora de Filmes S.A - RIOFILME",
+    "contract_contratada": "ARTE VITAL EXIBIÇÕES CINEMATOGRÁFICAS LTDA",
+    "publication_contratada": "Arte Vital Exibições Cinematográficas LTDA",
+    "explanation": "Contratante: 'DISTRIBUIDORA DE FILMES S/A - RIOFILME e' ↔ 'Distribuidora de Filmes S.A - RIOFILME' → match. Both refer to the same entity, with 'S/A' and 'S.A' being equivalent Brazilian company suffixes and 'RIOFILME' appearing in both, despite minor formatting differences. | Contratada: 'ARTE VITAL EXIBIÇÕES CINEMATOGRÁFICAS LTDA' ↔ 'Arte Vital Exibições Cinematográficas LTDA' → match. Names are identical except for case difference, indicating the same legal entity.",
+    "confidence": "high",
+    "requires_review": false,
+    "inconclusive_reason": null,
+    "llm_model": "llama-3.3-70b-versatile"
+  },
+  "overall": {
+    "status": "PASS",
+    "requires_review": false,
+    "review_reason": null
+  },
+  "metadata": {
+    "diagnostic_skipped": true,
+    "r001_skipped": false,
+    "r002_skipped": false,
+    "api_calls_made": 1,
+    "processing_time_seconds": 1.45,
+    "warnings": [
+      "diagnostic:skipped:missing_raw_files:raw_publication"
+    ]
+  }
+}

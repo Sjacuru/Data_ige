@@ -743,7 +743,7 @@ def track_b12_parser_format_b():
           hint=f"got: {parsed.get('object_summary')}")
 
     check("Format B: at least contratante or contratada extracted",
-          parsed.get("contratante") or parsed.get("contratada"),
+          (parsed.get("contratante") is not None) or (parsed.get("contratada") is not None),
           hint="both parties are None — Format B parser may not be matching")
 
     check("Format B: warnings is a list",

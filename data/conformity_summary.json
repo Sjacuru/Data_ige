@@ -1,0 +1,11 @@
+{
+  "total_contracts": 3,
+  "conformes": 0,
+  "parciais": 1,
+  "nao_conformes": 1,
+  "incomplete": 1,
+  "average_score": 43.33,
+  "flagged_count": 3,
+  "fallback_usage": 2,
+  "processing_time_seconds": 0.02
+}

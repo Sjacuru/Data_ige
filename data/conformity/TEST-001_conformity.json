@@ -1,0 +1,64 @@
+{
+  "processo_id": "TEST-001",
+  "analysis_date": "2026-03-09T17:15:10.085340",
+  "diagnostic": {
+    "agreement_level": "SKIPPED",
+    "impact": "PARCIAL"
+  },
+  "source_summary": {
+    "epic4_overall_status": "INCONCLUSIVE",
+    "epic4_r001_status": "INCOMPLETE",
+    "epic4_r002_status": "INCOMPLETE",
+    "fallback_fields_used": {
+      "contract_number_contract": true,
+      "contract_number_publication": false,
+      "contract_value": false,
+      "publication_value": false
+    }
+  },
+  "score_breakdown": {
+    "R001": {
+      "score": 50,
+      "weight": 0.4,
+      "verdict": "INCONCLUSIVE"
+    },
+    "R002": {
+      "score": 50,
+      "weight": 0.3,
+      "verdict": "INCONCLUSIVE"
+    },
+    "R003": {
+      "score": 50,
+      "weight": 0.2,
+      "verdict": "INCOMPLETE"
+    },
+    "R004": {
+      "score": 50,
+      "weight": 0.1,
+      "verdict": "INCOMPLETE"
+    }
+  },
+  "rule_details": {
+    "R003": {
+      "verdict": "INCOMPLETE",
+      "score": 50,
+      "explanation": "Missing contract number in contract or publication source."
+    },
+    "R004": {
+      "verdict": "INCOMPLETE",
+      "score": 50,
+      "difference_percentage": null,
+      "explanation": "Missing or invalid value in contract or publication source."
+    }
+  },
+  "conformity_score": 0.0,
+  "overall_status": "INCOMPLETE",
+  "flags": [
+    "DIAGNOSTIC_SKIPPED",
+    "MISSING_PUBLICATION"
+  ],
+  "requires_review": true,
+  "recommendations": [
+    "Run publication extraction/preprocessing before conformity scoring."
+  ]
+}
