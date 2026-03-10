@@ -1,5 +1,5 @@
 {
-  "discovery_date": "2026-03-01T19:58:16.542082",
+  "discovery_date": "2026-03-10T14:48:07.970653",
   "total_companies": 112,
   "total_processos": 117,
   "companies": [
@@ -9,7 +9,7 @@
       "company_cnpj": "64281886000171",
       "total_contracts": 3,
       "total_value": "518.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -18,7 +18,7 @@
       "company_cnpj": "11098056000147",
       "total_contracts": 2,
       "total_value": "8.514.552,64",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -27,7 +27,7 @@
       "company_cnpj": "19353932000146",
       "total_contracts": 2,
       "total_value": "210.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -36,7 +36,7 @@
       "company_cnpj": "68697333000155",
       "total_contracts": 2,
       "total_value": "200.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -45,7 +45,7 @@
       "company_cnpj": "01282704000167",
       "total_contracts": 1,
       "total_value": "77.064,60",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -54,7 +54,7 @@
       "company_cnpj": "01695781000149",
       "total_contracts": 1,
       "total_value": "35.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -63,7 +63,7 @@
       "company_cnpj": "01894553000106",
       "total_contracts": 1,
       "total_value": "5.000.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -72,7 +72,7 @@
       "company_cnpj": "03148098000117",
       "total_contracts": 1,
       "total_value": "77.064,60",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -81,7 +81,7 @@
       "company_cnpj": "03352454000110",
       "total_contracts": 1,
       "total_value": "77.064,60",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -90,7 +90,7 @@
       "company_cnpj": "03459043000802",
       "total_contracts": 1,
       "total_value": "581.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -99,7 +99,7 @@
       "company_cnpj": "03951766000140",
       "total_contracts": 1,
       "total_value": "24.840,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -108,7 +108,7 @@
       "company_cnpj": "04067191000160",
       "total_contracts": 1,
       "total_value": "1.223.200,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -117,7 +117,7 @@
       "company_cnpj": "04448903000190",
       "total_contracts": 1,
       "total_value": "58.200,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -126,7 +126,7 @@
       "company_cnpj": "05279933000183",
       "total_contracts": 1,
       "total_value": "131.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -135,7 +135,7 @@
       "company_cnpj": "05417916000165",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -144,7 +144,7 @@
       "company_cnpj": "05423341000193",
       "total_contracts": 1,
       "total_value": "25.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -153,7 +153,7 @@
       "company_cnpj": "05448558000158",
       "total_contracts": 1,
       "total_value": "70.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -162,7 +162,7 @@
       "company_cnpj": "05662620000100",
       "total_contracts": 1,
       "total_value": "370.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -171,7 +171,7 @@
       "company_cnpj": "06004776000166",
       "total_contracts": 1,
       "total_value": "450.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -180,7 +180,7 @@
       "company_cnpj": "06028343000140",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -189,7 +189,7 @@
       "company_cnpj": "06347750000110",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -198,7 +198,7 @@
       "company_cnpj": "07025989000137",
       "total_contracts": 1,
       "total_value": "420.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -207,7 +207,7 @@
       "company_cnpj": "07070205000192",
       "total_contracts": 1,
       "total_value": "77.064,60",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -216,7 +216,7 @@
       "company_cnpj": "07432517000107",
       "total_contracts": 1,
       "total_value": "425.124,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -225,7 +225,7 @@
       "company_cnpj": "07877924000110",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -234,7 +234,7 @@
       "company_cnpj": "08376871000116",
       "total_contracts": 1,
       "total_value": "5.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.963364",
       "raw_cells": null
     },
     {
@@ -243,7 +243,7 @@
       "company_cnpj": "08640467000108",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -252,7 +252,7 @@
       "company_cnpj": "08827674000176",
       "total_contracts": 1,
       "total_value": "60.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -261,7 +261,7 @@
       "company_cnpj": "09300611000120",
       "total_contracts": 1,
       "total_value": "50.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -270,7 +270,7 @@
       "company_cnpj": "09457773000176",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -279,7 +279,7 @@
       "company_cnpj": "10639829000192",
       "total_contracts": 1,
       "total_value": "1.368.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -288,7 +288,7 @@
       "company_cnpj": "11143709000162",
       "total_contracts": 1,
       "total_value": "400.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -297,7 +297,7 @@
       "company_cnpj": "11289077000140",
       "total_contracts": 1,
       "total_value": "50.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -306,7 +306,7 @@
       "company_cnpj": "11517915000195",
       "total_contracts": 1,
       "total_value": "120.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -315,7 +315,7 @@
       "company_cnpj": "11985110000176",
       "total_contracts": 1,
       "total_value": "175.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -324,7 +324,7 @@
       "company_cnpj": "12251808000120",
       "total_contracts": 1,
       "total_value": "50.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -333,7 +333,7 @@
       "company_cnpj": "14000902000132",
       "total_contracts": 1,
       "total_value": "300.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -342,7 +342,7 @@
       "company_cnpj": "15634608000145",
       "total_contracts": 1,
       "total_value": "70.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -351,7 +351,7 @@
       "company_cnpj": "16832830000204",
       "total_contracts": 1,
       "total_value": "36.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -360,7 +360,7 @@
       "company_cnpj": "18236056000105",
       "total_contracts": 1,
       "total_value": "10.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -369,7 +369,7 @@
       "company_cnpj": "18901675000177",
       "total_contracts": 1,
       "total_value": "60.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -378,7 +378,7 @@
       "company_cnpj": "19172035000136",
       "total_contracts": 1,
       "total_value": "385.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -387,7 +387,7 @@
       "company_cnpj": "19339797000184",
       "total_contracts": 1,
       "total_value": "50.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -396,7 +396,7 @@
       "company_cnpj": "21294150000125",
       "total_contracts": 1,
       "total_value": "15.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -405,7 +405,7 @@
       "company_cnpj": "21491227000157",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -414,7 +414,7 @@
       "company_cnpj": "22618220000116",
       "total_contracts": 1,
       "total_value": "330.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -423,7 +423,7 @@
       "company_cnpj": "23906970000156",
       "total_contracts": 1,
       "total_value": "18.500,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -432,7 +432,7 @@
       "company_cnpj": "25898180000100",
       "total_contracts": 1,
       "total_value": "69.499.999,62",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -441,7 +441,7 @@
       "company_cnpj": "26550082000131",
       "total_contracts": 1,
       "total_value": "65.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -450,7 +450,7 @@
       "company_cnpj": "26599553000104",
       "total_contracts": 1,
       "total_value": "77.064,60",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -459,7 +459,7 @@
       "company_cnpj": "27148592000140",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -468,7 +468,7 @@
       "company_cnpj": "27281047000127",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -477,7 +477,7 @@
       "company_cnpj": "28007649000153",
       "total_contracts": 1,
       "total_value": "77.064,60",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -486,7 +486,7 @@
       "company_cnpj": "28046484000129",
       "total_contracts": 1,
       "total_value": "50.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -495,7 +495,7 @@
       "company_cnpj": "28326598000122",
       "total_contracts": 1,
       "total_value": "450.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -504,7 +504,7 @@
       "company_cnpj": "28635167000148",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -513,7 +513,7 @@
       "company_cnpj": "28666154000136",
       "total_contracts": 1,
       "total_value": "20.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -522,7 +522,7 @@
       "company_cnpj": "28832983000141",
       "total_contracts": 1,
       "total_value": "35.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -531,7 +531,7 @@
       "company_cnpj": "28929408000161",
       "total_contracts": 1,
       "total_value": "115.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -540,7 +540,7 @@
       "company_cnpj": "28935450000195",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -549,7 +549,7 @@
       "company_cnpj": "29066371000158",
       "total_contracts": 1,
       "total_value": "25.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -558,7 +558,7 @@
       "company_cnpj": "29794689000155",
       "total_contracts": 1,
       "total_value": "120.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -567,7 +567,7 @@
       "company_cnpj": "29982519000102",
       "total_contracts": 1,
       "total_value": "15.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -576,7 +576,7 @@
       "company_cnpj": "30029219000184",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -585,7 +585,7 @@
       "company_cnpj": "30030563000193",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -594,7 +594,7 @@
       "company_cnpj": "30036773000199",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -603,7 +603,7 @@
       "company_cnpj": "30644069000119",
       "total_contracts": 1,
       "total_value": "10.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -612,7 +612,7 @@
       "company_cnpj": "30781805000180",
       "total_contracts": 1,
       "total_value": "70.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -621,7 +621,7 @@
       "company_cnpj": "31659733000166",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -630,7 +630,7 @@
       "company_cnpj": "31750452000114",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.107436",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -639,7 +639,7 @@
       "company_cnpj": "31837156000155",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -648,7 +648,7 @@
       "company_cnpj": "32001117000186",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -657,7 +657,7 @@
       "company_cnpj": "32436546000186",
       "total_contracts": 1,
       "total_value": "565.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -666,7 +666,7 @@
       "company_cnpj": "32453793000190",
       "total_contracts": 1,
       "total_value": "18.500,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -675,7 +675,7 @@
       "company_cnpj": "32483553000139",
       "total_contracts": 1,
       "total_value": "25.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -684,7 +684,7 @@
       "company_cnpj": "33285255000105",
       "total_contracts": 1,
       "total_value": "679.560,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -693,7 +693,7 @@
       "company_cnpj": "33593575000114",
       "total_contracts": 1,
       "total_value": "300.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -702,7 +702,7 @@
       "company_cnpj": "34031973000100",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -711,7 +711,7 @@
       "company_cnpj": "34031991000191",
       "total_contracts": 1,
       "total_value": "450.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -720,7 +720,7 @@
       "company_cnpj": "34292854000100",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -729,7 +729,7 @@
       "company_cnpj": "35316905000150",
       "total_contracts": 1,
       "total_value": "349.944,32",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -738,7 +738,7 @@
       "company_cnpj": "36563373000118",
       "total_contracts": 1,
       "total_value": "453.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -747,7 +747,7 @@
       "company_cnpj": "40043296000142",
       "total_contracts": 1,
       "total_value": "32.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -756,7 +756,7 @@
       "company_cnpj": "40192143000167",
       "total_contracts": 1,
       "total_value": "5.700.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -765,7 +765,7 @@
       "company_cnpj": "40284549000170",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -774,7 +774,7 @@
       "company_cnpj": "40672872000110",
       "total_contracts": 1,
       "total_value": "210.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -783,7 +783,7 @@
       "company_cnpj": "42255075000163",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -792,7 +792,7 @@
       "company_cnpj": "42288589000115",
       "total_contracts": 1,
       "total_value": "1.541.292,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -801,7 +801,7 @@
       "company_cnpj": "42535807000179",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -810,7 +810,7 @@
       "company_cnpj": "42602467000151",
       "total_contracts": 1,
       "total_value": "35.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -819,7 +819,7 @@
       "company_cnpj": "45113389000110",
       "total_contracts": 1,
       "total_value": "125.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -828,7 +828,7 @@
       "company_cnpj": "47842915000108",
       "total_contracts": 1,
       "total_value": "45.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -837,7 +837,7 @@
       "company_cnpj": "48722389000105",
       "total_contracts": 1,
       "total_value": "700.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -846,7 +846,7 @@
       "company_cnpj": "48909423000155",
       "total_contracts": 1,
       "total_value": "12.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -855,7 +855,7 @@
       "company_cnpj": "49001473000100",
       "total_contracts": 1,
       "total_value": "50.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -864,7 +864,7 @@
       "company_cnpj": "49208448000194",
       "total_contracts": 1,
       "total_value": "8.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -873,7 +873,7 @@
       "company_cnpj": "52364507000128",
       "total_contracts": 1,
       "total_value": "4.789.201,45",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -882,7 +882,7 @@
       "company_cnpj": "53008346000100",
       "total_contracts": 1,
       "total_value": "40.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -891,7 +891,7 @@
       "company_cnpj": "54023131000113",
       "total_contracts": 1,
       "total_value": "70.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -900,7 +900,7 @@
       "company_cnpj": "55303013000121",
       "total_contracts": 1,
       "total_value": "100.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -909,7 +909,7 @@
       "company_cnpj": "55908942000164",
       "total_contracts": 1,
       "total_value": "40.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108435",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -918,7 +918,7 @@
       "company_cnpj": "55971579000121",
       "total_contracts": 1,
       "total_value": "187.780,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -927,7 +927,7 @@
       "company_cnpj": "56969996000100",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -936,7 +936,7 @@
       "company_cnpj": "57740908000159",
       "total_contracts": 1,
       "total_value": "125.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -945,7 +945,7 @@
       "company_cnpj": "58564198000116",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -954,7 +954,7 @@
       "company_cnpj": "60736613000113",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -963,7 +963,7 @@
       "company_cnpj": "60740690000147",
       "total_contracts": 1,
       "total_value": "10.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -972,7 +972,7 @@
       "company_cnpj": "61199671000118",
       "total_contracts": 1,
       "total_value": "75.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -981,7 +981,7 @@
       "company_cnpj": "62299826000150",
       "total_contracts": 1,
       "total_value": "330.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -990,7 +990,7 @@
       "company_cnpj": "62976606000114",
       "total_contracts": 1,
       "total_value": "50.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -999,7 +999,7 @@
       "company_cnpj": "63737222000101",
       "total_contracts": 1,
       "total_value": "20.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     },
     {
@@ -1008,7 +1008,7 @@
       "company_cnpj": "64037874000104",
       "total_contracts": 1,
       "total_value": "2.150.000,00",
-      "discovered_at": "2026-03-01T21:41:13.108936",
+      "discovered_at": "2026-03-10T14:49:36.964382",
       "raw_cells": null
     }
   ],

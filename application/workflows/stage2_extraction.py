@@ -79,7 +79,7 @@ def run_stage2_extraction(headless: bool = False) -> dict:
         }
 
     # CHANGE: single logging call — produces
-    #   logs/extraction_contracts_YYYYMMDD_HHMMSS.log
+    # logs/extraction_contracts_YYYYMMDD_HHMMSS.log
     # (removed _setup_extraction_logging() which created a duplicate handler)
     log_file = setup_logging("extraction_contracts")
     error_log_path = add_error_log_file()

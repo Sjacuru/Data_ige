@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-03-01T21:41:13.086916",
+  "last_updated": "2026-03-10T15:49:16.898574",
   "completed_company_ids": [
     "01282704000167",
     "01695781000149",
@@ -112,7 +112,42 @@
     "63737222000101",
     "64037874000104",
     "64281886000171",
-    "68697333000155"
+    "68697333000155",
+    "ES20250184",
+    "ES20250185",
+    "00086616000127",
+    "00104659000198",
+    "00171391000107",
+    "00394494000560",
+    "00394494010441",
+    "00440605000101",
+    "00649990000193",
+    "00801512000157",
+    "01165267000100",
+    "01274719000183",
+    "01369211000169",
+    "01435328000101",
+    "01590728000930",
+    "01920177000179",
+    "01998684000125",
+    "02478800000148",
+    "02484235000121",
+    "02535864000133",
+    "02777319000153",
+    "03002154000100",
+    "03108144138",
+    "03237583006440",
+    "03276273000151",
+    "03285661000107",
+    "03460639000148",
+    "03506307000157",
+    "03520458000160",
+    "03568496000192",
+    "03672347000179",
+    "04352999000199",
+    "04617792000107",
+    "04741395000134",
+    "04803073000172"
   ],
   "processos": [
     {
@@ -1656,6 +1691,7 @@
     "Browser session error on 'BANCO DO BRASIL SA': Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x627dd3\n\t0x627e14\n\t0x431bee\n\t0x46f2d5\n\t0x49e8f6\n\t0x49a491\n\t0x499ab2\n\t0x40500e\n\t0x4055ae\n\t0x405a8d\n\t0x886924\n\t0x881bf7\n\t0x89f5a0\n\t0x640f58\n\t0x64891d\n\t0x404c69\n\t0x4042b0\n\t0x9e876f\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
     "Browser session error on 'BANCO DO BRASIL SA': Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x627dd3\n\t0x627e14\n\t0x431bee\n\t0x46f2d5\n\t0x49e8f6\n\t0x49a491\n\t0x499ab2\n\t0x40500e\n\t0x4055ae\n\t0x405a8d\n\t0x886924\n\t0x881bf7\n\t0x89f5a0\n\t0x640f58\n\t0x64891d\n\t0x404c69\n\t0x4042b0\n\t0x9e876f\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
     "Browser session error on 'BANCO DO BRASIL SA': Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x627dd3\n\t0x627e14\n\t0x431bee\n\t0x46f2d5\n\t0x49e8f6\n\t0x49a491\n\t0x499ab2\n\t0x40500e\n\t0x4055ae\n\t0x405a8d\n\t0x886924\n\t0x881bf7\n\t0x89f5a0\n\t0x640f58\n\t0x64891d\n\t0x404c69\n\t0x4042b0\n\t0x9e876f\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
-    "Browser session error on 'BANCO DO BRASIL SA': Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x627dd3\n\t0x627e14\n\t0x431bee\n\t0x46f2d5\n\t0x49e8f6\n\t0x49a491\n\t0x499ab2\n\t0x40500e\n\t0x4055ae\n\t0x405a8d\n\t0x886924\n\t0x881bf7\n\t0x89f5a0\n\t0x640f58\n\t0x64891d\n\t0x404c69\n\t0x4042b0\n\t0x9e876f\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n"
+    "Browser session error on 'BANCO DO BRASIL SA': Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x627dd3\n\t0x627e14\n\t0x431bee\n\t0x46f2d5\n\t0x49e8f6\n\t0x49a491\n\t0x499ab2\n\t0x40500e\n\t0x4055ae\n\t0x405a8d\n\t0x886924\n\t0x881bf7\n\t0x89f5a0\n\t0x640f58\n\t0x64891d\n\t0x404c69\n\t0x4042b0\n\t0x9e876f\n\t0x75f3fcc9\n\t0x774882ae\n\t0x7748827e\n",
+    "Browser session error on 'NETWAY TELECOM LTDA': Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception\nStacktrace:\nSymbols not available. Dumping unresolved backtrace:\n\t0x7a7dd3\n\t0x7a7e14\n\t0x5b1bee\n\t0x5ef2d5\n\t0x61e8f6\n\t0x61a491\n\t0x619ab2\n\t0x58500e\n\t0x5855ae\n\t0x585a8d\n\t0xa06924\n\t0xa01bf7\n\t0xa1f5a0\n\t0x7c0f58\n\t0x7c891d\n\t0x584c69\n\t0x5842b0\n\t0xb6876f\n\t0x74ecfcc9\n\t0x770882ae\n\t0x7708827e\n"
   ]
 }
