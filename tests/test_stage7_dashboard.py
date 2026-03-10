@@ -481,6 +481,9 @@ def main() -> int:
     print(f"{'═' * 65}\n")
     return 0 if FAILED == 0 else 1
 
+def test_stage7_dashboard_suite() -> None:
+    assert main() == 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

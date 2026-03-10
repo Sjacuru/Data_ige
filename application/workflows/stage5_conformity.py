@@ -21,7 +21,8 @@ from infrastructure.io.conformity_writer import (
     write_conformity_summary,
 )
 from infrastructure.io.csv_exporter import write_conformity_csv
-from infrastructure.logging_config import setup_logging
+from infrastructure.logging_config import setup_logging, add_error_log_file
+from infrastructure.health_check import run_preflight
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,30 @@ def _build_csv_row(result: dict) -> dict:
 def run_stage5_conformity(pid: str | None = None) -> dict:
     """Run Stage 5 conformity processing over compliance outputs."""
     t_start = time.monotonic()
-    setup_logging("conformity")
+    log_path = setup_logging("conformity")
+    error_log_path = add_error_log_file()
+    logger.info("Stage 5 error log: %s", error_log_path)
+
+    preflight = run_preflight(
+        "stage5_conformity",
+        require_discovery=True,
+        require_browser=False,
+    )
+    if not preflight.passed:
+        logger.error("Aborting stage5_conformity — pre-flight failed.")
+        return {
+            "total_contracts": 0,
+            "conformes": 0,
+            "parciais": 0,
+            "nao_conformes": 0,
+            "incomplete": 0,
+            "average_score": 0.0,
+            "flagged_count": 0,
+            "fallback_usage": 0,
+            "processing_time_seconds": round(time.monotonic() - t_start, 2),
+            "preflight_failed": True,
+            "preflight_errors": preflight.errors,
+        }
 
     if not COMPLIANCE_DIR.exists():
         logger.warning("Compliance directory not found: %s", COMPLIANCE_DIR)

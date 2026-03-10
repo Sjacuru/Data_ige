@@ -30,7 +30,8 @@ from pathlib import Path
 # Ensure project root is on the path when run directly
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from infrastructure.logging_config import setup_logging
+from infrastructure.logging_config import setup_logging, add_error_log_file
+from infrastructure.health_check import run_preflight
 from infrastructure.web.driver import create_driver, close_driver
 from infrastructure.scrapers.transparencia.downloader import (
     ProcessoDownloader,
@@ -60,10 +61,29 @@ def run_stage2_extraction(headless: bool = False) -> dict:
           "errors":   [{"processo_id": ..., "error": ...}]
         }
     """
+    preflight = run_preflight(
+        "stage2_extraction",
+        require_discovery=True,
+        require_browser=True,
+    )
+    if not preflight.passed:
+        logger.error("Aborting stage2_extraction — pre-flight failed.")
+        return {
+            "total": 0,
+            "skipped": 0,
+            "success": 0,
+            "failed": 0,
+            "errors": [],
+            "preflight_failed": True,
+            "preflight_errors": preflight.errors,
+        }
+
     # CHANGE: single logging call — produces
     #   logs/extraction_contracts_YYYYMMDD_HHMMSS.log
     # (removed _setup_extraction_logging() which created a duplicate handler)
     log_file = setup_logging("extraction_contracts")
+    error_log_path = add_error_log_file()
+    logger.info("Stage 2 error log: %s", error_log_path)
 
     logger.info("=" * 70)
     logger.info("🚀 STARTING STAGE 2: EXTRACTION WORKFLOW")

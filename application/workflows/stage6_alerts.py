@@ -25,7 +25,8 @@ from infrastructure.io.alert_exporter import (
     write_alerts_xlsx,
 )
 from infrastructure.io.alert_writer import write_alert_result, write_alert_summary
-from infrastructure.logging_config import setup_logging
+from infrastructure.logging_config import setup_logging, add_error_log_file
+from infrastructure.health_check import run_preflight
 
 logger = logging.getLogger(__name__)
 SUMMARY_PATH = DATA_DIR / "alerts_summary.json"
@@ -47,7 +48,26 @@ def _load_json(path: Path) -> dict | None:
 
 def run_stage6_alerts(pid: str | None = None) -> dict:
     t_start = time.monotonic()
-    setup_logging("alerts")
+    log_path = setup_logging("alerts")
+    error_log_path = add_error_log_file()
+    logger.info("Stage 6 alerts error log: %s", error_log_path)
+
+    preflight = run_preflight(
+        "stage6_alerts",
+        require_discovery=True,
+        require_browser=False,
+    )
+    if not preflight.passed:
+        logger.error("Aborting stage6_alerts — pre-flight failed.")
+        return {
+            "total_contracts": 0,
+            "ok": 0,
+            "review": 0,
+            "failed": 0,
+            "processing_time_seconds": round(time.monotonic() - t_start, 2),
+            "preflight_failed": True,
+            "preflight_errors": preflight.errors,
+        }
 
     files = sorted(CONFORMITY_DIR.glob("*_conformity.json")) if CONFORMITY_DIR.exists() else []
     if pid:

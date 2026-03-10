@@ -120,5 +120,9 @@ def run_tests() -> int:
     return 0 if failed == 0 else 1
 
 
+def test_stage6_integration_suite() -> None:
+    assert run_tests() == 0
+
+
 if __name__ == "__main__":
     raise SystemExit(run_tests())

@@ -65,6 +65,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from config.settings import EXTRACTIONS_DIR
 from domain.models.processo_link import ProcessoLink
 from infrastructure.extractors.pdf_text_extractor import extract_text
+from infrastructure.scrapers.structure_monitor import check_drift
 from infrastructure.web.captcha_handler import CaptchaHandler
 from infrastructure.web.driver import create_driver, close_driver
 
@@ -83,6 +84,8 @@ class NoDocumentError(Exception):
     uploaded to the portal yet. The processo should be retried on future
     runs and tracked separately from real failures (Selenium errors, etc.).
     """
+
+MissingDocumentError = NoDocumentError
 
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
@@ -560,6 +563,12 @@ class ProcessoDownloader:
                         continue
                     logger.error("   ✗ No contract-body PDF found on any URL")
                     return False
+
+                selector_probe = {
+                    "pdf_icon_li": bool(anchors),
+                    "no_document_alert": False,
+                }
+                check_drift("contasrio", selector_probe)
 
             except NoDocumentError:
                 if not is_last:

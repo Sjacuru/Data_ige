@@ -10,6 +10,7 @@ from typing import List, Dict
 from infrastructure.web.driver import create_driver, close_driver
 from infrastructure.scrapers.contasrio.scraper import ContasRioScraper
 from infrastructure.persistence.json_storage import JSONStorage
+from infrastructure.health_check import run_preflight
 from domain.models.processo_link import DiscoveryResult, ProcessoLink, CompanyData
 from config.settings import DISCOVERY_DIR
 
@@ -231,5 +232,17 @@ def run_stage1_discovery(headless: bool = False) -> DiscoveryResult:
     Returns:
         DiscoveryResult
     """
+    preflight = run_preflight(
+        "stage1_discovery",
+        require_discovery=False,
+        require_browser=True,
+    )
+    if not preflight.passed:
+        logger.error("Aborting stage1_discovery — pre-flight failed.")
+        result = DiscoveryResult()
+        for err in preflight.errors:
+            result.add_error(f"preflight: {err}")
+        return result
+
     workflow = Stage1DiscoveryWorkflow(headless=headless)
     return workflow.execute()

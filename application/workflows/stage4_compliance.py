@@ -42,7 +42,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from config.settings import EXTRACTIONS_DIR, LOGS_DIR
-from infrastructure.logging_config import setup_logging
+from infrastructure.logging_config import setup_logging, add_error_log_file
+from infrastructure.health_check import run_preflight
 
 from domain.services.compliance_engine import evaluate_r001, evaluate_r002
 from domain.services.extraction_comparator import (
@@ -57,6 +58,7 @@ from infrastructure.llm.diagnostic_prompt import (
     build_publication_extraction_prompt,
 )
 from infrastructure.llm.r002_prompt import build_r002_prompt
+from infrastructure.io.failed_items_writer import append_failed_item
 
 logger = logging.getLogger(__name__)
 
@@ -766,6 +768,12 @@ def run_stage4_compliance(
         except Exception as e:
             logger.error("  FAILED — %s", e, exc_info=True)
             _mark_failed(progress, pid, str(e))
+            append_failed_item(
+                processo_id=pid,
+                stage="stage4",
+                error_type="ExtractionFailedError",
+                error_msg=str(e),
+            )
             results["failed"] += 1
 
     # ── Final summary ──────────────────────────────────────────────────────────
@@ -809,8 +817,37 @@ def main():
     log_file = setup_logging(
         "compliance", log_level=getattr(logging, args.log_level)
     )
+    error_log_path = add_error_log_file()
+
+    preflight = run_preflight(
+        "stage4_compliance",
+        require_discovery=True,
+        require_browser=False,
+    )
+    if not preflight.passed:
+        logger.error("Aborting stage4_compliance — pre-flight failed.")
+        results = {
+            "total": 0,
+            "completed": 0,
+            "failed": 0,
+            "skipped": 0,
+            "preflight_failed": True,
+            "preflight_errors": preflight.errors,
+        }
+        if not args.dry_run:
+            print(f"\n📝 Logging to:    {log_file}")
+            print(f"📝 Error log:     {error_log_path}\n")
+        print(f"\n{'═'*60}")
+        print(f"  Stage 4 Results")
+        print(f"{'─'*60}")
+        for k, v in results.items():
+            print(f"  {k:<20}: {v}")
+        print(f"{'═'*60}\n")
+        sys.exit(1)
+
     if not args.dry_run:
-        print(f"\n📝 Logging to: {log_file}\n")
+        print(f"\n📝 Logging to:    {log_file}")
+        print(f"📝 Error log:     {error_log_path}\n")
 
     results = run_stage4_compliance(
         pid_filter=args.pid,

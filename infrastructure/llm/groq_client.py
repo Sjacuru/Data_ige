@@ -36,8 +36,10 @@ Retry strategy
 
 import logging
 import os
-import time
 from typing import Optional
+
+from domain.errors import CriticalError, RateLimitError, TransientError
+from infrastructure.resilience.retry_policy import RetryPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,15 @@ DEFAULT_TEMPERATURE = 0.0
 MAX_ATTEMPTS       = 3
 BASE_DELAY_SECONDS = 2
 RATE_LIMIT_WAIT    = 60   # seconds to wait when Groq returns HTTP 429
+
+MAX_ATTEMPTS       = 5
+
+_RETRY_POLICY = RetryPolicy(
+    max_attempts=5,
+    base_delay=BASE_DELAY_SECONDS,
+    max_delay=32.0,
+    rate_limit_wait=RATE_LIMIT_WAIT,
+)
 
 
 class GroqClient:
@@ -103,68 +114,41 @@ class GroqClient:
         Returns:
             The response content string, or None if all retries are exhausted.
         """
-        for attempt in range(1, MAX_ATTEMPTS + 1):
+        def _attempt_call(
+            prompt: str,
+            model: str,
+            max_tokens: int,
+            temperature: float,
+            json_mode: bool,
+        ) -> Optional[str]:
+            """Inner function passed to RetryPolicy.execute()."""
+            response_format = {"type": "json_object"} if json_mode else None
+            kwargs: dict = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            }
+            if response_format:
+                kwargs["response_format"] = response_format
+
             try:
-                t_start = time.monotonic()
-
-                kwargs: dict = {
-                    "model":       model,
-                    "max_tokens":  max_tokens,
-                    "temperature": temperature,
-                    "messages": [
-                        {"role": "user", "content": prompt}
-                    ],
-                }
-                if json_mode:
-                    kwargs["response_format"] = {"type": "json_object"}
-
-                completion = self._client.chat.completions.create(**kwargs)
-
-                latency   = time.monotonic() - t_start
-                content   = completion.choices[0].message.content or ""
-
-                logger.info(
-                    "Groq call OK | model=%s | prompt_chars=%d | "
-                    "response_chars=%d | latency=%.2fs | attempt=%d/%d",
-                    model, len(prompt), len(content),
-                    latency, attempt, MAX_ATTEMPTS,
-                )
-                return content
-
+                response = self._client.chat.completions.create(**kwargs)
+                text = response.choices[0].message.content
+                logger.debug("GroqClient: received %d chars", len(text or ""))
+                return text
             except Exception as exc:
-                wait = self._classify_and_wait(exc, attempt)
-                logger.warning(
-                    "Groq call failed (attempt %d/%d): %s — waiting %.0fs",
-                    attempt, MAX_ATTEMPTS, exc, wait,
-                )
-                if attempt < MAX_ATTEMPTS:
-                    time.sleep(wait)
-                else:
-                    logger.error(
-                        "Groq call exhausted all %d attempts. Returning None.",
-                        MAX_ATTEMPTS,
-                    )
-                    return None
+                exc_str = str(exc).lower()
+                if "429" in exc_str or "rate limit" in exc_str:
+                    raise RateLimitError(str(exc)) from exc
+                raise TransientError(str(exc)) from exc
 
-        return None  # unreachable but satisfies type checker
-
-    # ── Internal helpers ───────────────────────────────────────────────────────
-
-    @staticmethod
-    def _classify_and_wait(exc: Exception, attempt: int) -> float:
-        """
-        Return the number of seconds to sleep before the next attempt.
-
-        HTTP 429 (rate limit) → fixed RATE_LIMIT_WAIT seconds.
-        Any other error       → exponential backoff (2^attempt * BASE_DELAY).
-        """
-        exc_str = str(exc).lower()
-        if "429" in exc_str or "rate limit" in exc_str or "rate_limit" in exc_str:
-            logger.warning(
-                "Rate limit hit (HTTP 429). Waiting %ds before retry.",
-                RATE_LIMIT_WAIT,
-            )
-            return float(RATE_LIMIT_WAIT)
-
-        delay = BASE_DELAY_SECONDS * (2 ** (attempt - 1))  # 2s, 4s, 8s
-        return float(delay)
+        try:
+            result = _RETRY_POLICY.execute(_attempt_call, prompt, model, max_tokens, temperature, json_mode)
+            return result
+        except CriticalError as exc:
+            logger.error("GroqClient: CriticalError — returning None: %s", exc)
+            return None
+        except Exception as exc:
+            logger.warning("GroqClient: unexpected error — returning None: %s", exc)
+            return None

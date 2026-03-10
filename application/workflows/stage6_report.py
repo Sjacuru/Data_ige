@@ -16,7 +16,8 @@ from infrastructure.io.report_aggregator import build_aggregate_report
 from infrastructure.io.excel_writer import write_excel_report
 from infrastructure.io.report_csv_writer import write_report_csv
 from infrastructure.io.aggregate_json_writer import write_aggregate_json
-from infrastructure.logging_config import setup_logging
+from infrastructure.logging_config import setup_logging, add_error_log_file
+from infrastructure.health_check import run_preflight
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,34 @@ def _print_summary_table(summary: dict) -> None:
 def run_stage6_report(state_only: bool = False, report_only: bool = False, analyst_name: str = "") -> dict:
     try:
         t_start = time.monotonic()
+
+        preflight = run_preflight(
+            "stage6_report",
+            require_discovery=True,
+            require_browser=False,
+        )
+        if not preflight.passed:
+            logger.error("Aborting stage6_report — pre-flight failed.")
+            return {
+                "status": "FAILED",
+                "state_index_path": str(DATA_DIR / "dashboard_state_index.json"),
+                "excel_path": None,
+                "csv_path": None,
+                "json_path": None,
+                "log_path": str(LOGS_DIR),
+                "total_contracts": 0,
+                "total_analyzed": 0,
+                "coverage_rate": 0.0,
+                "conformity_rate": 0.0,
+                "processing_time_seconds": round(time.monotonic() - t_start, 2),
+                "errors": [],
+                "preflight_failed": True,
+                "preflight_errors": preflight.errors,
+            }
+
         log_path = setup_logging("report")
+        error_log_path = add_error_log_file()
+        logger.info("Stage 6 report error log: %s", error_log_path)
         datestamp = datetime.now().strftime("%Y%m%d")
         paths = _build_output_paths(datestamp)
         errors: list[str] = []

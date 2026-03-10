@@ -45,7 +45,8 @@ from pathlib import Path
 # Ensure project root is on the path when run directly
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from infrastructure.logging_config import setup_logging
+from infrastructure.logging_config import setup_logging, add_error_log_file
+from infrastructure.health_check import run_preflight
 from infrastructure.web.driver import create_driver, close_driver
 from infrastructure.scrapers.doweb.downloader import (
     DoWebDownloader,
@@ -82,7 +83,27 @@ def run_stage3_publication(
           "partial":    int,
         }
     """
+    preflight = run_preflight(
+        "stage3_publication",
+        require_discovery=True,
+        require_browser=True,
+    )
+    if not preflight.passed:
+        logger.error("Aborting stage3_publication — pre-flight failed.")
+        return {
+            "total": 0,
+            "success": 0,
+            "skipped": 0,
+            "failed": 0,
+            "no_results": 0,
+            "partial": 0,
+            "preflight_failed": True,
+            "preflight_errors": preflight.errors,
+        }
+
     log_file = setup_logging("extraction_publications")
+    error_log_path = add_error_log_file()
+    logger.info("Stage 3 error log: %s", error_log_path)
 
     logger.info("=" * 70)
     logger.info("🚀 STARTING STAGE 3: PUBLICATION EXTRACTION WORKFLOW")

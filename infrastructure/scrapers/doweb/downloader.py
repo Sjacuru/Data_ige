@@ -75,6 +75,7 @@ from selenium import webdriver
 from config.settings import EXTRACTIONS_DIR
 from infrastructure.scrapers.doweb.searcher import DoWebSearcher, SearchResultItem
 from infrastructure.extractors.publication_extractor import extract_text
+from infrastructure.io.failed_items_writer import append_failed_item
 
 logger = logging.getLogger(__name__)
 
@@ -617,6 +618,12 @@ class DoWebDownloader:
             except Exception as exc:
                 logger.error(f"   ✗ Unexpected error on '{pid}': {exc}")
                 _mark_failed(progress, pid, str(exc))
+                append_failed_item(
+                    processo_id=pid,
+                    stage="stage3",
+                    error_type=type(exc).__name__,
+                    error_msg=str(exc),
+                )
                 outcome = "failed"
 
             # ── Tally outcomes ───────────────────────────────────────────────
@@ -685,6 +692,12 @@ class DoWebDownloader:
             msg = f"Search failed: {exc}"
             logger.error(f"   ✗ {msg}")
             _mark_failed(progress, processo_id, msg)
+            append_failed_item(
+                processo_id=processo_id,
+                stage="stage3",
+                error_type=type(exc).__name__ if exc else "UnknownError",
+                error_msg=str(msg),
+            )
             return "failed"
 
         # ── Step 2: No results ────────────────────────────────────────────────
@@ -735,6 +748,12 @@ class DoWebDownloader:
 
         if not saved:
             _mark_failed(progress, processo_id, "Could not write publications JSON")
+            append_failed_item(
+                processo_id=processo_id,
+                stage="stage3",
+                error_type="UnknownError",
+                error_msg="Could not write publications JSON",
+            )
             return "failed"
 
         # ── Step 5: Mark outcome ──────────────────────────────────────────────

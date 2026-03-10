@@ -71,6 +71,7 @@ from selenium.common.exceptions import (
     NoSuchElementException,
 )
 
+from infrastructure.scrapers.structure_monitor import check_drift
 from infrastructure.web.captcha_handler import CaptchaHandler
 
 logger = logging.getLogger(__name__)
@@ -462,6 +463,12 @@ class DoWebSearcher:
                 continue
 
             if results:
+                selector_probe = {
+                    "search_form": True,
+                    "results_table": bool(results),
+                    "pdf_link": any(r.pdf_page_url for r in results),
+                }
+                check_drift("doweb", selector_probe)
                 logger.info(
                     f"   ✓ {len(results)} result(s) for '{processo_id}' "
                     f"via variation {idx}: '{query}'"
