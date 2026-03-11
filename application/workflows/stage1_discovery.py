@@ -30,14 +30,16 @@ class Stage1DiscoveryWorkflow:
     6. Clean up resources
     """
     
-    def __init__(self, headless: bool = False):
+    def __init__(self, headless: bool = False, year: str | None = None):
         """
         Initialize workflow.
         
         Args:
             headless: Run browser in headless mode
+            year: Optional year override for ContasRio filter
         """
         self.headless = headless
+        self.year = year
         self.driver = None
     
     def execute(self) -> DiscoveryResult:
@@ -70,7 +72,7 @@ class Stage1DiscoveryWorkflow:
             
             # Step 2: Create scraper
             logger.info("\n📋 Step 2: Creating ContasRio scraper...")
-            scraper = ContasRioScraper(self.driver)
+            scraper = ContasRioScraper(self.driver, year=self.year)
             logger.info("✓ Scraper created")
             
             # Step 3: Discover all processos
@@ -222,12 +224,14 @@ class Stage1DiscoveryWorkflow:
         logger.info(f"   ✓ Saved: {summary_file}")
 
 
-def run_stage1_discovery(headless: bool = False) -> DiscoveryResult:
+def run_stage1_discovery(headless: bool = False, year: str | None = None) -> DiscoveryResult:
     """
     Convenience function to run Stage 1 discovery.
     
     Args:
         headless: Run browser in headless mode
+        year: Optional year override for the ContasRio contract filter.
+              If None, falls back to FILTER_YEAR from .env.
         
     Returns:
         DiscoveryResult
@@ -244,5 +248,5 @@ def run_stage1_discovery(headless: bool = False) -> DiscoveryResult:
             result.add_error(f"preflight: {err}")
         return result
 
-    workflow = Stage1DiscoveryWorkflow(headless=headless)
+    workflow = Stage1DiscoveryWorkflow(headless=headless, year=year)
     return workflow.execute()

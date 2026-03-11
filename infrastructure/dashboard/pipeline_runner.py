@@ -186,12 +186,20 @@ def get_stage_status(stage_name: str) -> dict:
         return base
 
 
-def _run_subprocess_stage(stage_name: str, headless: bool) -> None:
+def _run_subprocess_stage(
+    stage_name: str,
+    headless: bool,
+    year: str | None = None,
+) -> None:
     global _RUNNING_PROC
     try:
         cmd = [sys.executable, STAGE_SCRIPTS[stage_name]]
         if headless:
             cmd.append("--headless")
+        # Only Stage 1 accepts --year. Do NOT append for stage2 or stage3 -
+        # their argparse configs do not include this argument and would crash.
+        if year and stage_name == "stage1":
+            cmd.extend(["--year", str(year)])
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
         _RUNNING_PROC = subprocess.Popen(cmd, env=env)
@@ -230,6 +238,7 @@ def launch_stage(
     pid_filter: str | None = None,
     rerun_failed: bool = False,
     analyst_name: str = "",
+    year: str | None = None,
 ) -> bool:
     global _RUNNING_THREAD
     try:
@@ -242,7 +251,11 @@ def launch_stage(
         _STOP_EVENT.clear()
 
         if stage_name in STAGE_SCRIPTS:
-            thread = threading.Thread(target=_run_subprocess_stage, args=(stage_name, headless), daemon=True)
+            thread = threading.Thread(
+                target=_run_subprocess_stage,
+                args=(stage_name, headless, year),
+                daemon=True,
+            )
         else:
             thread = threading.Thread(
                 target=_run_thread_stage,

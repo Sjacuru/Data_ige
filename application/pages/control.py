@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import datetime
+import json
 import logging
 import sys
 from pathlib import Path
@@ -36,6 +38,15 @@ def render() -> None:
 
             rerun_failed = st.checkbox("Reprocessar apenas falhas")
 
+            current_year = datetime.datetime.now().year
+            year_options = list(range(current_year, 2019, -1))
+            selected_year = st.selectbox(
+                "Ano de Referência (Stage 1)",
+                options=year_options,
+                index=0,
+                help="Ano usado no filtro 'ANO DE CELEBRAÇÃO' no portal ContasRio",
+            )
+
             any_running = is_any_running()
             stage1_path = ROOT / "application" / "main.py"
             stage1_exists = stage1_path.exists()
@@ -53,8 +64,20 @@ def render() -> None:
                         headless=headless,
                         pid_filter=pid_filter,
                         rerun_failed=rerun_failed,
+                        year=str(selected_year),
                     )
                     if launched:
+                        # Note: this file is written only when Stage 1 is launched from the dashboard.
+                        # If Stage 1 is run directly via CLI (python application/main.py --year YYYY),
+                        # this file will not be written - that is expected behavior.
+                        from config.settings import DATA_DIR
+
+                        year_file = DATA_DIR / "discovery" / "selected_year.json"
+                        year_file.parent.mkdir(parents=True, exist_ok=True)
+                        year_file.write_text(
+                            json.dumps({"year": str(selected_year)}, ensure_ascii=False),
+                            encoding="utf-8",
+                        )
                         st.success("Stage iniciada — veja progresso ao lado.")
 
             if st.button("📄 Extrair Contratos", disabled=is_any_running()):

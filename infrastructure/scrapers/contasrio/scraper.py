@@ -125,8 +125,10 @@ class ContasRioScraper:
       _discover_company_processos() →  delegate to PathNavigator per company
     """
 
-    def __init__(self, driver: webdriver.Chrome):
+    def __init__(self, driver: webdriver.Chrome, year: str | None = None):
         self.driver = driver
+        # Runtime override takes precedence over .env fallback.
+        self._year: str | None = year if year else (str(FILTER_YEAR) if FILTER_YEAR else None)
 
     # ─── Main entry point ─────────────────────────────────────────────────────
 
@@ -145,6 +147,7 @@ class ContasRioScraper:
         logger.info("=" * 70)
         logger.info("🔍 STAGE 1: DISCOVERY")
         logger.info("=" * 70)
+        logger.info(f"   Year filter: {self._year or '(none - all years will be scraped)'}")
 
         # Load any previous progress
         progress = _load_progress()
@@ -266,8 +269,8 @@ class ContasRioScraper:
     # ─── Year filter ──────────────────────────────────────────────────────────
 
     def _apply_filters(self) -> bool:
-        """Apply the year filter configured in settings."""
-        if not FILTER_YEAR:
+        """Apply the year filter configured at runtime or via settings."""
+        if not self._year:
             logger.info("   ⏭ No year filter configured")
             return True
 
@@ -282,8 +285,8 @@ class ContasRioScraper:
             )
 
             current = year_filter.get_attribute("value") or ""
-            if current.strip() == str(FILTER_YEAR):
-                logger.info(f"   ✓ Filter already set to {FILTER_YEAR}")
+            if current.strip() == str(self._year):
+                logger.info(f"   ✓ Filter already set to {self._year}")
                 return True
 
             # Clear field
@@ -295,14 +298,14 @@ class ContasRioScraper:
                 time.sleep(0.05)
 
             # Type year and confirm
-            year_filter.send_keys(str(FILTER_YEAR))
+            year_filter.send_keys(str(self._year))
             time.sleep(0.5)
             year_filter.send_keys(Keys.ENTER)
             time.sleep(1.0)
 
             final = year_filter.get_attribute("value") or ""
-            if str(FILTER_YEAR) not in final:
-                return self._apply_filter_via_dropdown(year_filter, str(FILTER_YEAR))
+            if str(self._year) not in final:
+                return self._apply_filter_via_dropdown(year_filter, str(self._year))
 
             # Wait for grid to reload
             WebDriverWait(self.driver, 120).until(
@@ -310,7 +313,7 @@ class ContasRioScraper:
                     d.find_elements(By.CSS_SELECTOR, "td.v-grid-cell[role='gridcell']")
                 ) > 0
             )
-            logger.info(f"   ✓ Filter set to {FILTER_YEAR}")
+            logger.info(f"   ✓ Filter set to {self._year}")
             return True
 
         except Exception as e:

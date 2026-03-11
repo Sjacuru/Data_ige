@@ -27,6 +27,13 @@ def main():
         action='store_true',
         help='Run browser in headless mode'
     )
+
+    parser.add_argument(
+        '--year',
+        type=str,
+        default=None,
+        help='Year filter for ContasRio contract discovery. Overrides FILTER_YEAR in .env if provided.'
+    )
     
     parser.add_argument(
         '--log-level',
@@ -47,7 +54,7 @@ def main():
     
     try:
         # Run Stage 1
-        result = run_stage1_discovery(headless=args.headless)
+        result = run_stage1_discovery(headless=args.headless, year=args.year)
         
         # Display summary
         print("\n" + "=" * 70)
