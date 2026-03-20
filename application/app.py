@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Ensure project root is on sys.path regardless of how Streamlit launches this file
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 # ── Import-safe module: NO module-level Streamlit calls. ──────────────────────
 # st.set_page_config() lives inside render_app() to allow test imports.
 
@@ -22,7 +30,7 @@ def render_app() -> None:
 		errors_page = importlib.import_module("application.pages.errors")
 
 		st.set_page_config(
-			page_title="TCM-RJ | Análise de Contratos",
+			page_title="TCM-Rio | Análise de Contratos",
 			page_icon="⚖️",
 			layout="wide",
 			initial_sidebar_state="expanded",
@@ -43,7 +51,7 @@ def render_app() -> None:
 		}
 
 		with st.sidebar:
-			st.title("⚖️ TCM-RJ Auditoria")
+			st.title("⚖️ TCM-Rio Auditoria")
 			st.caption("Análise de Contratos")
 			st.divider()
 
